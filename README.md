@@ -110,7 +110,7 @@ ls -l /sys/devices/platform/soc/c440000.qcom,spmi/spmi-0/spmi0-05/c440000.qcom,s
 
 ## Credits & Acknowledgments
 
-* **Lead Developer & Maintainer**: [Kiran_Embedded](https://github.com/kiran-embedded)
+
 * **AnyKernel3**: [osm0sis](https://github.com/osm0sis/AnyKernel3)
 * **KernelSU**: [backslashxx](https://github.com/backslashxx/KernelSU) & [KernelSU Team](https://github.com/tiann/KernelSU)
 * **Linux Kernel Community & Qualcomm Innovation Center**
