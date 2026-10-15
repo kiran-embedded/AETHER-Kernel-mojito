@@ -7,7 +7,8 @@
   <a href="#"><img src="https://img.shields.io/badge/Kernel-Linux%204.14.356-818cf8?style=flat-square&logo=linux" alt="Kernel"></a>
   <a href="#"><img src="https://img.shields.io/badge/Device-mojito%20%2F%20sunny-c084fc?style=flat-square&logo=android" alt="Device"></a>
   <a href="#"><img src="https://img.shields.io/badge/SoC-Qualcomm%20SM6150-34d399?style=flat-square&logo=qualcomm" alt="SoC"></a>
-  <a href="#"><img src="https://img.shields.io/badge/SuSFS-v1.5.5-10b981?style=flat-square" alt="SuSFS"></a>
+  <a href="https://gitlab.com/simonpunk/susfs4ksu"><img src="https://img.shields.io/badge/SuSFS-v1.5.5-10b981?style=flat-square" alt="SuSFS"></a>
+  <a href="https://github.com/rifsxd/KernelSU-Next"><img src="https://img.shields.io/badge/KernelSU-Dual%20Support-f43f5e?style=flat-square" alt="KernelSU"></a>
   <a href="#"><img src="https://img.shields.io/badge/License-GPL--2.0-94a3b8?style=flat-square" alt="License"></a>
 </p>
 
@@ -23,19 +24,24 @@ Designed for day-to-day stability, fluid multitasking, reliable charging, and ze
 
 ## What's Inside
 
+### 🛡️ Dual Root Manager Support (KernelSU & KernelSU-Next)
+* Full, seamless support for **both** the official [KernelSU Manager](https://github.com/tiann/KernelSU) APK and the [KernelSU-Next Manager](https://github.com/rifsxd/KernelSU-Next) APK.
+* Dynamic UAPI handshake handles both interfaces cleanly, eliminating annoying "Kernel update required" mismatch warnings.
+* Flash and manage your modules using whichever manager app you personally prefer.
+
 ### 🔋 Rock-Solid Charging System
 * **70%-80% Charging Freeze Fixed**: Rewrote the TI charge pump state machine transition (`PD_PM_STATE_SW_LOOP`). Once your battery crosses 75%, it seamlessly switches modes instead of freezing at 0mA–200mA.
 * **Functional Screen-On Charging**: Clamped screen-on thermal throttling to level 8 fast charge ceiling when battery temp is below 45°C. The phone actually charges while you use it without overheating.
 * **Third-Party PPS / PD Support**: Lowered minimum adapter requirement threshold from 2000mA to 1500mA so 18W, 20W, and 33W non-stock chargers negotiate cleanly without cycling connect/disconnect loops.
 * **Hardware Safety**: Strict 46°C battery temp cutoff remains fully enforced.
 
-### 🛡️ Kernel-Level SuSFS v1.5.5 Stealth
-* Full SuSFS v1.5.5 integration with `CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS` enabled.
+### 🥷 Kernel-Level SuSFS v1.5.5 Stealth
+* Full [SuSFS v1.5.5](https://gitlab.com/simonpunk/susfs4ksu) integration with `CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS` enabled.
 * All KernelSU and SuSFS symbols are concealed from `/proc/kallsyms`.
 * Live kernel release spoofing disguises the kernel string as official stock `4.14.190-perf+` to pass sensitive banking apps and Play Integrity checks.
 
 ### ⚡ BORE Scheduler (v5.1.0)
-* Burst-Oriented Response Enhancer baked directly into the CFS task scheduler.
+* [BORE](https://github.com/firelzrd/bore) (Burst-Oriented Response Enhancer) baked directly into the CFS task scheduler.
 * Dynamically identifies and prioritizes touch/UI bursts so app scrolling stays smooth even during background app syncing.
 
 ### 🧠 Multi-Generational LRU (MGLRU)
@@ -67,8 +73,12 @@ Get the latest zip packages from the [GitHub v1.4 Release](https://github.com/ki
 | **AETHER-Kernel-mojito-v1.4-Enhanced.zip** | AnyKernel3 flashable kernel (Enhanced) | [⬇️ Download ZIP](https://github.com/kiran-embedded/AETHER-Kernel-mojito/releases/download/v1.4/AETHER-Kernel-mojito-v1.4-Enhanced.zip) |
 | **AETHER-Kernel-Control-WebUI-v1.4.0.zip** | WebUI Control Panel module (KSU / APatch / Magisk) | [⬇️ Download Module](https://github.com/kiran-embedded/AETHER-Kernel-mojito/releases/download/v1.4/AETHER-Kernel-Control-WebUI-v1.4.0.zip) |
 | **AETHER-SuSFS-Stock-Spoofer.zip** | SuSFS automated bootloader & uname disguise module | [⬇️ Download Module](https://github.com/kiran-embedded/AETHER-Kernel-mojito/releases/download/v1.4/AETHER-SuSFS-Stock-Spoofer.zip) |
-| **ksu_module_susfs.zip** | SuSFS core helper module | [⬇️ Download Module](https://github.com/kiran-embedded/AETHER-Kernel-mojito/releases/download/v1.4/ksu_module_susfs.zip) |
+| **ksu_module_susfs.zip** | SuSFS core companion module | [⬇️ Download Module](https://github.com/kiran-embedded/AETHER-Kernel-mojito/releases/download/v1.4/ksu_module_susfs.zip) |
 | **sha256sum.txt** | Verified SHA256 package checksums | [⬇️ Download Checksums](https://github.com/kiran-embedded/AETHER-Kernel-mojito/releases/download/v1.4/sha256sum.txt) |
+
+### Supported Manager APKs:
+* [Download Official KernelSU Manager APK](https://github.com/tiann/KernelSU/releases)
+* [Download KernelSU-Next Manager APK](https://github.com/rifsxd/KernelSU-Next/releases)
 
 ---
 
@@ -78,8 +88,9 @@ Get the latest zip packages from the [GitHub v1.4 Release](https://github.com/ki
 2. *(Recommended)* Make a quick backup of your existing `Boot` and `DTBO` partitions.
 3. Flash `AETHER-Kernel-mojito-v1.4-Standard.zip` (or `Enhanced.zip`).
 4. Reboot into Android.
-5. In KernelSU (or APatch / Magisk), install `AETHER-Kernel-Control-WebUI-v1.4.0.zip` and `AETHER-SuSFS-Stock-Spoofer.zip`.
-6. Reboot once more to allow the spoofer service to apply cleanly.
+5. Install your preferred manager APK ([KernelSU](https://github.com/tiann/KernelSU/releases) or [KernelSU-Next](https://github.com/rifsxd/KernelSU-Next/releases)).
+6. In the manager, flash `AETHER-Kernel-Control-WebUI-v1.4.0.zip` and `AETHER-SuSFS-Stock-Spoofer.zip`.
+7. Reboot once more to allow the spoofer service to apply cleanly.
 
 ---
 
@@ -117,14 +128,16 @@ cat /sys/class/power_supply/battery/temp
 
 ---
 
-## Credits & Thanks
+## Upstream Credits & Links
 
-* **osm0sis** for AnyKernel3.
-* **Sultan Alsawaf** for CPU input boost and kernel optimization work.
-* **Masahito Suzuki & CachyOS team** for the BORE scheduler.
-* **simonpunk & YuKongA** for SuSFS.
-* **backslashxx & KernelSU Team** for KernelSU.
-* **Qualcomm & Xiaomi** for the SM6150 base tree.
+Huge shoutout to the amazing open-source Android kernel community:
+* **AnyKernel3**: [osm0sis/AnyKernel3](https://github.com/osm0sis/AnyKernel3)
+* **KernelSU**: [tiann/KernelSU](https://github.com/tiann/KernelSU) & [backslashxx](https://github.com/backslashxx/KernelSU)
+* **KernelSU-Next**: [rifsxd/KernelSU-Next](https://github.com/rifsxd/KernelSU-Next)
+* **SuSFS (4KSU)**: [simonpunk/susfs4ksu](https://gitlab.com/simonpunk/susfs4ksu) & [YuKongA](https://github.com/YuKongA)
+* **BORE CPU Scheduler**: [firelzrd/bore](https://github.com/firelzrd/bore) & Masahito Suzuki (CachyOS)
+* **CPU Boost & Kernel Optimizations**: [Sultan Alsawaf (kerneltoast)](https://github.com/kerneltoast)
+* **Qualcomm & Xiaomi**: For the base SM6150 kernel tree.
 
 ---
 
