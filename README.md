@@ -8,7 +8,7 @@
   <a href="#"><img src="https://img.shields.io/badge/Device-mojito%20%2F%20sunny-c084fc?style=flat-square&logo=android" alt="Device"></a>
   <a href="#"><img src="https://img.shields.io/badge/SoC-Qualcomm%20SM6150-34d399?style=flat-square&logo=qualcomm" alt="SoC"></a>
   <a href="https://gitlab.com/simonpunk/susfs4ksu"><img src="https://img.shields.io/badge/SuSFS-v1.5.5-10b981?style=flat-square" alt="SuSFS"></a>
-  <a href="https://github.com/rifsxd/KernelSU-Next"><img src="https://img.shields.io/badge/KernelSU-Dual%20Support-f43f5e?style=flat-square" alt="KernelSU"></a>
+  <a href="https://github.com/backslashxx/KernelSU"><img src="https://img.shields.io/badge/KernelSU-backslashxx%20Supported-f43f5e?style=flat-square" alt="KernelSU"></a>
   <a href="#"><img src="https://img.shields.io/badge/License-GPL--2.0-94a3b8?style=flat-square" alt="License"></a>
 </p>
 
@@ -24,14 +24,20 @@ Designed for day-to-day stability, fluid multitasking, reliable charging, and ze
 
 ## What's Inside
 
-### 🛡️ Dual Root Manager Support (KernelSU & KernelSU-Next)
-* Full, seamless support for **both** the official [KernelSU Manager](https://github.com/tiann/KernelSU) APK and the [KernelSU-Next Manager](https://github.com/rifsxd/KernelSU-Next) APK.
-* Dynamic UAPI handshake handles both interfaces cleanly, eliminating annoying "Kernel update required" mismatch warnings.
-* Flash and manage your modules using whichever manager app you personally prefer.
+### 🚀 Google Developer Tweaks & I/O Speed Improvements
+* **Google Kyber BLK-MQ I/O Scheduler**: Replaces legacy storage queues with Kyber multi-queue scheduling specifically tuned for flash/UFS 2.2 storage. Prioritizes read operations to keep UI fluid while heavy downloads or app updates run in the background.
+* **UFS Read-Ahead Pacing**: Read-ahead buffer tuned (256KB / 512KB) for fast cold app startups without memory waste.
+* **SchedTune Idle Core Preference**: Directs foreground app tasks to wake up on idle CPU cores (`schedtune.prefer_idle = 1`) to eliminate touch frame drops.
+* **TCP Lowat & Dirty Memory Pacing**: Injects TCP lowat socket pacing (`tcp_notsent_lowat = 16384`), TCP Fast Open, and calibrated dirty page writeback (`dirty_ratio = 20`, `dirty_background_ratio = 10`) to prevent UI micro-stutters during disk writes.
 
-### 🔋 Rock-Solid Charging System
-* **70%-80% Charging Freeze Fixed**: Rewrote the TI charge pump state machine transition (`PD_PM_STATE_SW_LOOP`). Once your battery crosses 75%, it seamlessly switches modes instead of freezing at 0mA–200mA.
-* **Functional Screen-On Charging**: Clamped screen-on thermal throttling to level 8 fast charge ceiling when battery temp is below 45°C. The phone actually charges while you use it without overheating.
+### 🛡️ KernelSU Manager Support (backslashxx & Upstream)
+* Fully supported with [backslashxx/KernelSU](https://github.com/backslashxx/KernelSU) Manager.
+* Also supports official [tiann/KernelSU](https://github.com/tiann/KernelSU) and [rifsxd/KernelSU-Next](https://github.com/rifsxd/KernelSU-Next) APKs without UAPI version mismatch errors.
+* Flash and manage your modules using whichever manager app fits your workflow.
+
+### 🔋 Charging System Fixes
+* **70%-80% Charging Freeze Fixed**: Rewrote the TI charge pump state machine transition (`PD_PM_STATE_SW_LOOP`). Once battery crosses 75%, it cleanly switches modes instead of freezing at 0mA–200mA.
+* **Working Screen-On Charging**: Clamped screen-on thermal throttling to level 8 fast charge ceiling when battery temp is below 45°C. The phone actually charges while you use it.
 * **Third-Party PPS / PD Support**: Lowered minimum adapter requirement threshold from 2000mA to 1500mA so 18W, 20W, and 33W non-stock chargers negotiate cleanly without cycling connect/disconnect loops.
 * **Hardware Safety**: Strict 46°C battery temp cutoff remains fully enforced.
 
@@ -46,20 +52,16 @@ Designed for day-to-day stability, fluid multitasking, reliable charging, and ze
 
 ### 🧠 Multi-Generational LRU (MGLRU)
 * Genuine Google MGLRU (`CONFIG_LRU_GEN=y`) actively sorting page access tiers (`0x0003`).
-* Prevents unnecessary app reloads, keeping your open apps alive in RAM without battery drain.
-
-### 🎙️ Factory Stock Audio by Default
-* Audio registers (ADC pre-amps, digital decimators, HPF filters, unmute workqueues) remain 100% factory stock Qualcomm on install.
-* Zero in-call mic issues or weird voice call levels out of the box. Custom tuning can be unlocked manually inside the WebUI panel whenever desired.
+* Prevents unnecessary app reloads, keeping open apps alive in RAM without battery drain.
 
 ---
 
-## Kernel Editions
+## Kernel Editions: Standard vs Enhanced
 
 | Edition | Description | Recommended For |
 | :--- | :--- | :--- |
-| **Standard Edition** | Balanced daily driver, factory stock audio baseline, thermal safety clamped to level 8. | Daily use, maximum stability, all ROMs. |
-| **Enhanced Edition** | Slightly higher thermal headroom and aggressive scheduler scaling for heavier usage. | Heavy multitasking and gaming. |
+| **Standard Edition** | 100% factory stock Qualcomm audio drivers baseline. All charging, I/O speed, and scheduler patches included. | Daily use, maximum stability, ROMs where audio works normally. |
+| **Enhanced Edition** | Includes kernel-level audio patch (unmute delay dropped from 40ms to 5ms on high-priority workqueue, HPF set to 75Hz, boosted analog pre-amp). | Fixes in-call mic delay, low call volume, or callers missing the first 2 seconds on custom ROMs. |
 
 ---
 
@@ -77,6 +79,7 @@ Get the latest zip packages from the [GitHub v1.4 Release](https://github.com/ki
 | **sha256sum.txt** | Verified SHA256 package checksums | [⬇️ Download Checksums](https://github.com/kiran-embedded/AETHER-Kernel-mojito/releases/download/v1.4/sha256sum.txt) |
 
 ### Supported Manager APKs:
+* [Download backslashxx KernelSU Manager APK](https://github.com/backslashxx/KernelSU/releases) — **Primary recommended build**
 * [Download Official KernelSU Manager APK](https://github.com/tiann/KernelSU/releases)
 * [Download KernelSU-Next Manager APK](https://github.com/rifsxd/KernelSU-Next/releases)
 
@@ -88,7 +91,7 @@ Get the latest zip packages from the [GitHub v1.4 Release](https://github.com/ki
 2. *(Recommended)* Make a quick backup of your existing `Boot` and `DTBO` partitions.
 3. Flash `AETHER-Kernel-mojito-v1.4-Standard.zip` (or `Enhanced.zip`).
 4. Reboot into Android.
-5. Install your preferred manager APK ([KernelSU](https://github.com/tiann/KernelSU/releases) or [KernelSU-Next](https://github.com/rifsxd/KernelSU-Next/releases)).
+5. Install your preferred manager APK ([backslashxx KernelSU](https://github.com/backslashxx/KernelSU/releases), [Official KSU](https://github.com/tiann/KernelSU/releases), or [KernelSU-Next](https://github.com/rifsxd/KernelSU-Next/releases)).
 6. In the manager, flash `AETHER-Kernel-Control-WebUI-v1.4.0.zip` and `AETHER-SuSFS-Stock-Spoofer.zip`.
 7. Reboot once more to allow the spoofer service to apply cleanly.
 
@@ -124,19 +127,19 @@ cat /sys/class/power_supply/battery/temp
 ## Source Code & Licensing
 
 * This project is licensed under the **GNU General Public License v2 (GPL-2.0)** in accordance with the Linux kernel license.
-* The complete kernel source code is actively maintained and organized in our private development branch. In strict compliance with GPL-2.0, anyone interested in inspecting the source tree, patch sets, or reproducing builds is welcome to open an issue or reach out to request the full tree.
+* The complete kernel source code is actively maintained and organized in our private development repository. In strict compliance with GPL-2.0, anyone interested in inspecting the source tree, patch sets, or reproducing builds is welcome to open an issue or reach out to request the full tree.
 
 ---
 
 ## Upstream Credits & Links
 
-Huge shoutout to the amazing open-source Android kernel community:
+Huge shoutout to the open-source Android kernel community:
 * **AnyKernel3**: [osm0sis/AnyKernel3](https://github.com/osm0sis/AnyKernel3)
-* **KernelSU**: [tiann/KernelSU](https://github.com/tiann/KernelSU) & [backslashxx](https://github.com/backslashxx/KernelSU)
+* **KernelSU**: [backslashxx/KernelSU](https://github.com/backslashxx/KernelSU) & [tiann/KernelSU](https://github.com/tiann/KernelSU)
 * **KernelSU-Next**: [rifsxd/KernelSU-Next](https://github.com/rifsxd/KernelSU-Next)
 * **SuSFS (4KSU)**: [simonpunk/susfs4ksu](https://gitlab.com/simonpunk/susfs4ksu) & [YuKongA](https://github.com/YuKongA)
 * **BORE CPU Scheduler**: [firelzrd/bore](https://github.com/firelzrd/bore) & Masahito Suzuki (CachyOS)
-* **CPU Boost & Kernel Optimizations**: [Sultan Alsawaf (kerneltoast)](https://github.com/kerneltoast)
+* **CPU Boost & Optimizations**: [Sultan Alsawaf (kerneltoast)](https://github.com/kerneltoast)
 * **Qualcomm & Xiaomi**: For the base SM6150 kernel tree.
 
 ---
