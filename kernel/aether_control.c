@@ -331,7 +331,7 @@ static ssize_t status_show(struct kobject *kobj, struct kobj_attribute *attr, ch
 static struct kobj_attribute status_attr = __ATTR_RO(status);
 
 /* 8. Native Xiaomi PMIC charge-hold controller */
-static int aether_charge_cutoff_limit; /* 0 = Disabled, 50 - 95% */
+static int aether_charge_cutoff_limit = 100; /* Default 100% Inbuilt Safety Cutoff, 50 - 100%, 0 = Disabled */
 static int aether_charge_cutoff_mode = 1;  /* 0 = Cool Standby, 1 = Real Hardware Bypass */
 static int aether_instant_bypass;      /* 0 = Normal, 1 = Instant Direct USB Power */
 static bool aether_cutoff_hardware_active;
@@ -443,10 +443,15 @@ static void aether_cutoff_workfunc(struct work_struct *work)
 	int soc = -1;
 	bool power_connected = aether_is_power_connected();
 
+	bool is_full = false;
 	batt_psy = power_supply_get_by_name("battery");
 	if (batt_psy) {
 		if (power_supply_get_property(batt_psy, POWER_SUPPLY_PROP_CAPACITY, &pval) == 0)
 			soc = pval.intval;
+		if (power_supply_get_property(batt_psy, POWER_SUPPLY_PROP_STATUS, &pval) == 0) {
+			if (pval.intval == POWER_SUPPLY_STATUS_FULL)
+				is_full = true;
+		}
 		power_supply_put(batt_psy);
 	}
 
@@ -469,8 +474,8 @@ static void aether_cutoff_workfunc(struct work_struct *work)
 		if (aether_instant_bypass) {
 			target_disable = true;
 			target_status = "CHARGE_HOLD_ACTIVE (Instant mode; USB input available)";
-		} else if (aether_charge_cutoff_limit > 0 && soc > 0) {
-			if (soc >= aether_charge_cutoff_limit) {
+		} else if (aether_charge_cutoff_limit > 0 && (soc > 0 || is_full)) {
+			if (soc >= aether_charge_cutoff_limit || (aether_charge_cutoff_limit == 100 && is_full)) {
 				target_disable = true;
 				target_status = "CHARGE_HOLD_ACTIVE (Target reached; USB input available)";
 			} else if (aether_cutoff_hardware_active && soc > (aether_charge_cutoff_limit - 3)) {
@@ -597,7 +602,7 @@ static ssize_t aacc_idle_mode_store(struct kobject *kobj, struct kobj_attribute 
 }
 static struct kobj_attribute aacc_idle_mode_attr = __ATTR_RW(aacc_idle_mode);
 
-/* Charge Cutoff Limit Attribute (0 = Disabled, 50 - 95%) */
+/* Charge Cutoff Limit Attribute (0 = Disabled, 50 - 100%) */
 static ssize_t charge_cutoff_limit_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%d\n", aether_charge_cutoff_limit);
@@ -610,7 +615,7 @@ static ssize_t charge_cutoff_limit_store(struct kobject *kobj, struct kobj_attri
 	if (kstrtoint(buf, 10, &val) < 0)
 		return -EINVAL;
 
-	if (val != 0 && (val < 50 || val > 95))
+	if (val != 0 && (val < 50 || val > 100))
 		return -EINVAL;
 
 	aether_charge_cutoff_limit = val;

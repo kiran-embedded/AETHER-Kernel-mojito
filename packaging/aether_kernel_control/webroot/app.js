@@ -180,8 +180,8 @@ function mockKernelResponse(cmd) {
   if (cmd.includes('min_ttl_ms')) return '1000';
   if (cmd.includes('read_ahead_kb')) return '512';
   if (cmd.includes('fts_glove_mode')) return '0';
-  if (cmd.includes('charge_cutoff_status')) return 'STOCK_CONTROL (Disabled / ROM In Control)';
-  if (cmd.includes('charge_cutoff_limit')) return '0';
+  if (cmd.includes('charge_cutoff_status')) return 'CHARGE_HOLD_ACTIVE (100% Full Cutoff; USB input available)';
+  if (cmd.includes('charge_cutoff_limit')) return '100';
   if (cmd.includes('charge_cutoff_mode')) return '1';
   if (cmd.includes('instant_bypass')) return '0';
   if (cmd.includes('anti_flicker')) return '0';
@@ -240,7 +240,7 @@ function getUiState() {
     userCustomized: !!userCustomized,
     readAhead: typeof selectedReadAhead !== 'undefined' ? selectedReadAhead : '512',
     chargeLimit: typeof selectedChargeLimit !== 'undefined' ? selectedChargeLimit : '0',
-    chargeCutoff: typeof selectedChargeCutoff !== 'undefined' ? selectedChargeCutoff : '0',
+    chargeCutoff: typeof selectedChargeCutoff !== 'undefined' ? selectedChargeCutoff : '100',
     cutoffMode: typeof selectedCutoffMode !== 'undefined' ? selectedCutoffMode : '1',
     instantBypass: (typeof chkInstantBypass !== 'undefined' && chkInstantBypass) ? chkInstantBypass.checked : false,
     gpuGov: (typeof selGpuGov !== 'undefined' && selGpuGov) ? selGpuGov.value : 'msm-adreno-tz',
@@ -1594,7 +1594,7 @@ if (rngEarBoost) {
 // ========================================================
 // 6. ESSENTIAL TOGGLES & CHARGE CONTROLS
 // ========================================================
-let selectedChargeCutoff = '0'; // Default: '0' (Off / Stock 100%)
+let selectedChargeCutoff = '100'; // Default: '100' (Safe 100% Native Hardware Cutoff)
 let selectedCutoffMode = '1';    // Default: '1' (Real Bypass when active)
 
 const chkInstantBypass = document.getElementById('chkInstantBypass');
@@ -1631,7 +1631,13 @@ function updateCutoffLabels() {
   }
 
   if (lblCutoffVal) {
-    lblCutoffVal.innerText = selectedChargeCutoff === '0' ? 'Off (Stock charging)' : `${selectedChargeCutoff}% Charge Hold`;
+    if (selectedChargeCutoff === '0') {
+      lblCutoffVal.innerText = 'Off (Raw charging, no cutoff)';
+    } else if (selectedChargeCutoff === '100') {
+      lblCutoffVal.innerText = '100% Safe Native Cutoff (Kernel Default)';
+    } else {
+      lblCutoffVal.innerText = `${selectedChargeCutoff}% Charge Hold`;
+    }
   }
 
   if (lblCutoffModeBadge) {
@@ -1643,12 +1649,16 @@ function updateCutoffLabels() {
     if (chkInstantBypass && chkInstantBypass.checked) {
       statusCutoffEngine.innerText = '⚡ Instant Charge Hold Active';
       statusCutoffEngine.style.color = '#34d399';
+    } else if (selectedChargeCutoff === '100') {
+      const modeStr = selectedCutoffMode === '1' ? 'USB Hold' : 'Charge Pause';
+      statusCutoffEngine.innerText = `100% Safe Native Cutoff Active (${modeStr})`;
+      statusCutoffEngine.style.color = 'var(--color-success)';
     } else if (selectedChargeCutoff !== '0') {
       const modeStr = selectedCutoffMode === '1' ? 'USB Hold' : 'Charge Pause';
       statusCutoffEngine.innerText = `Cutoff Active: ${selectedChargeCutoff}% (${modeStr})`;
       statusCutoffEngine.style.color = 'var(--accent-cyan)';
     } else {
-      statusCutoffEngine.innerText = 'Stock / ROM Default (Normal Charging)';
+      statusCutoffEngine.innerText = 'Raw Stock (No Cutoff / Unmanaged)';
       statusCutoffEngine.style.color = 'var(--text-secondary)';
     }
   }
@@ -2469,7 +2479,7 @@ async function applyProfile(mode) {
 
     // 2. Revert toggles to developer default states
     await runCmd('echo 0 > /sys/kernel/aether/instant_bypass 2>/dev/null');
-    await runCmd('echo 0 > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null; echo 1 > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null');
+    await runCmd('echo 100 > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null; echo 1 > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null');
     await runCmd('echo 0 > /sys/kernel/aether/anti_flicker 2>/dev/null; [ -f /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker ] && echo 0 > /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker 2>/dev/null');
     await runCmd('echo 0 > /sys/kernel/aether/hbm 2>/dev/null; [ -f /sys/devices/platform/soc/soc:qcom,dsi-display/hbm ] && echo 0 > /sys/devices/platform/soc/soc:qcom,dsi-display/hbm 2>/dev/null');
     await runCmd('echo 1 > /sys/kernel/aether/audio_bypass_mode 2>/dev/null');
@@ -2552,8 +2562,8 @@ async function applyProfile(mode) {
     if (chkToggleHbm) chkToggleHbm.checked = false;
     if (chkAudioBypass) chkAudioBypass.checked = true;
     updateAudioBypassUI();
-    selectedChargeCutoff = '0';
-    document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '0'));
+    selectedChargeCutoff = '100';
+    document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '100'));
     updateCutoffLabels();
 
     document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '0'));
