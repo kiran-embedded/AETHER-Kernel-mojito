@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# KernelSU stock — Kbuild
+# Compiled only when CONFIG_KSU_VARIANT_STOCK=y
+#
+
+# ── core objects ─────────────────────────────────────────────────────
+ksu_stock-objs := core.c
+ksu_stock-objs += ksu_stock_dev.c
+
+obj-$(CONFIG_KSU_STOCK) += ksu_stock.o
+
+# ── compiler flags ───────────────────────────────────────────────────
+KSU_STOCK_DIR := $(if $(filter /%,$(src)),$(src),$(srctree)/$(src))
+
+ccflags-y += -I$(KSU_STOCK_DIR)/include
+ccflags-y += -I$(KSU_STOCK_DIR)/../uapi
+
+ccflags-y += -I$(srctree)/security/selinux \
+             -I$(srctree)/security/selinux/include \
+             -I$(objtree)/security/selinux
+ccflags-y += -include $(srctree)/include/uapi/asm-generic/errno.h
+
+ccflags-y += -Wno-strict-prototypes -Wno-int-conversion \
+             -Wno-gcc-compat -Wno-missing-prototypes \
+             -Wno-declaration-after-statement \
+             -Wno-unused-function -Wno-unused-variable
+
+# ── version injection ────────────────────────────────────────────────
+# Version counter: commit-count in the KernelSU-Next git repo
+# We reuse the Next repo's git info for the version stamp.
+LPATH := /usr/bin/env PATH="$$PATH":/usr/bin:/usr/local/bin
+MDIR  := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
+# Use a fixed UAPI version = 6 for stock KSU (user requirement)
+ccflags-y += -DKSU_STOCK_UAPI_VERSION=6
+
+# Use the kernel tree commit count as a build-unique version number
+KSU_STOCK_GIT_ROOT := $(shell cd $(MDIR) && \
+	$(LPATH) git rev-parse --show-toplevel 2>/dev/null)
+
+ifneq ($(KSU_STOCK_GIT_ROOT),)
+KSU_STOCK_VERSION := $(shell cd $(KSU_STOCK_GIT_ROOT) && \
+	$(LPATH) git rev-list --count HEAD 2>/dev/null)
+else
+KSU_STOCK_VERSION := 1
+$(warning "KSU_STOCK: no git repo, using version 1")
+endif
+
+ifdef KSU_STOCK_VERSION_OVERRIDE
+KSU_STOCK_VERSION := $(KSU_STOCK_VERSION_OVERRIDE)
+endif
+
+ccflags-y += -DKSU_STOCK_VERSION=$(KSU_STOCK_VERSION)
+$(info -- KernelSU stock version: $(KSU_STOCK_VERSION) [UAPI=6])
+
+# ── SUSFS detection ──────────────────────────────────────────────────
+ifeq ($(shell test -e $(srctree)/fs/susfs.c; echo $$?),0)
+$(eval SUSFS_VERSION=$(shell cat $(srctree)/include/linux/susfs.h \
+	| grep -E '^#define SUSFS_VERSION' | cut -d' ' -f3 | sed 's/"//g'))
+$(info -- KernelSU stock: SUSFS $(SUSFS_VERSION) detected)
+else
+$(info -- KernelSU stock: SUSFS not found — skipping)
+endif
+
+# Keep a new line here!!

@@ -1,0 +1,6 @@
+id=aether_susfs_spoofer
+name=AETHER SuSFS Stock Identity & GPay Spoofer
+version=v2.3.0
+versionCode=230
+author=Kiran
+description=SuSFS v2.3.0 userspace helper for Redmi Note 10 (mojito/sunny). Applies bootloader lock state emulation and mount isolation for banking and integrity checks.

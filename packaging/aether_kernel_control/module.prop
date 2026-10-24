@@ -1,0 +1,6 @@
+id=aether_kernel_control
+name=AETHER Kernel Control
+version=v1.6.0
+versionCode=160
+author=Kiran
+description=Native WebUI Hardware Control Panel for AETHER Kernel. Provides real-time hardware telemetry, AMOLED display controls, BORE CPU scheduler tuning, charging controls, and in-kernel audio routing.

@@ -1,0 +1,6 @@
+obj-$(CONFIG_SMS_USB_DRV) += smsusb.o
+
+ccflags-y += -I $(srctree)/drivers/media/dvb-core
+ccflags-y += -I $(srctree)/drivers/media/common/siano
+ccflags-y += $(extra-cflags-y) $(extra-cflags-m)
+

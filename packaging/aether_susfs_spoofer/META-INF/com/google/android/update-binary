@@ -1,0 +1,93 @@
+#!/system/bin/sh
+# Universal Module Installer for KernelSU, KernelSU-Next, APatch, and Magisk
+umask 022
+
+OUTFD=$2
+ZIPFILE=$3
+
+ui_print() {
+  if [ -n "$OUTFD" ] && [ -e "/proc/self/fd/$OUTFD" ]; then
+    echo "ui_print $1" > "/proc/self/fd/$OUTFD"
+    echo "ui_print" > "/proc/self/fd/$OUTFD"
+  else
+    echo "$1"
+  fi
+}
+
+mount /data 2>/dev/null
+
+# 1. Try official util_functions.sh if available
+if [ -f /data/adb/ksu/util_functions.sh ]; then
+  . /data/adb/ksu/util_functions.sh
+  install_module
+  exit 0
+elif [ -f /data/adb/magisk/util_functions.sh ]; then
+  . /data/adb/magisk/util_functions.sh
+  install_module
+  exit 0
+elif [ -f /data/adb/ap/util_functions.sh ]; then
+  . /data/adb/ap/util_functions.sh
+  install_module
+  exit 0
+fi
+
+# 2. Universal Standalone Installation Fallback
+TMPDIR=/dev/tmp/module_install
+rm -rf "$TMPDIR" 2>/dev/null
+mkdir -p "$TMPDIR"
+
+unzip -o "$ZIPFILE" module.prop -d "$TMPDIR" >/dev/null 2>&1
+if [ ! -f "$TMPDIR/module.prop" ]; then
+  ui_print "! Failed to extract module.prop"
+  exit 1
+fi
+
+MODID=$(grep '^id=' "$TMPDIR/module.prop" | cut -d= -f2 | tr -d ' \r\n')
+if [ -z "$MODID" ]; then
+  ui_print "! Invalid module.prop: missing id"
+  exit 1
+fi
+
+MODNAME=$(grep '^name=' "$TMPDIR/module.prop" | cut -d= -f2 | tr -d '\r\n')
+ui_print "- Installing $MODNAME ($MODID)..."
+
+# Determine target directory
+if [ -d /data/adb/modules_update ]; then
+  MODPATH="/data/adb/modules_update/$MODID"
+elif [ -d /data/adb/modules ]; then
+  MODPATH="/data/adb/modules/$MODID"
+else
+  mkdir -p /data/adb/modules
+  MODPATH="/data/adb/modules/$MODID"
+fi
+
+rm -rf "$MODPATH" 2>/dev/null
+mkdir -p "$MODPATH"
+
+# Extract all module files
+unzip -o "$ZIPFILE" -x 'META-INF/*' -d "$MODPATH" >/dev/null 2>&1
+
+# Run customize.sh if present
+if [ -f "$MODPATH/customize.sh" ]; then
+  ui_print "- Executing customize.sh..."
+  cd "$MODPATH"
+  . "$MODPATH/customize.sh"
+fi
+
+# Set proper permissions
+chown -R 0:0 "$MODPATH" 2>/dev/null
+chmod -R 755 "$MODPATH" 2>/dev/null
+[ -f "$MODPATH/service.sh" ] && chmod 755 "$MODPATH/service.sh"
+[ -f "$MODPATH/post-fs-data.sh" ] && chmod 755 "$MODPATH/post-fs-data.sh"
+[ -f "$MODPATH/action.sh" ] && chmod 755 "$MODPATH/action.sh"
+[ -f "$MODPATH/uninstall.sh" ] && chmod 755 "$MODPATH/uninstall.sh"
+
+# Ensure active module in /data/adb/modules/
+if [ "$MODPATH" != "/data/adb/modules/$MODID" ]; then
+  mkdir -p "/data/adb/modules/$MODID"
+  cp -rf "$MODPATH"/* "/data/adb/modules/$MODID/" 2>/dev/null
+fi
+
+rm -rf "$TMPDIR" 2>/dev/null
+ui_print "- Success! Module installed."
+exit 0

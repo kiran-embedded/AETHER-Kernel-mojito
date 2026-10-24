@@ -1,0 +1,6 @@
+id=miui_stock_mic_mojito
+name=MIUI Stock Mic Port
+version=v1.6-Stock-V14.0.9.0
+versionCode=160
+author=Kiran
+description=Restores stock MIUI 14 Qualcomm ACDB dual-mic calibration, Bolero WCD9375 mixer paths, and Fluence Pro noise cancellation for Redmi Note 10 (mojito/sunny). Clean and fully reversible.

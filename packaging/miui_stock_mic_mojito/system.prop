@@ -1,0 +1,11 @@
+# Qualcomm Fluence Pro Dual-Mic Hardware Noise Cancellation & Echo Suppression
+ro.vendor.audio.sdk.fluencetype=fluencepro
+persist.vendor.audio.fluence.voicecall=true
+persist.vendor.audio.fluence.voicerec=true
+persist.vendor.audio.fluence.speaker=true
+persist.vendor.audio.fluence.audiorec=true
+vendor.audio.sdk.fluencetype=fluencepro
+
+# Audio Route Stability & In-Call Clarity
+vendor.audio.feature.fluence.enable=true
+persist.vendor.audio.spv3.enable=true

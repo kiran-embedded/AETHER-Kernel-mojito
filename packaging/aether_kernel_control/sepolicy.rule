@@ -1,0 +1,6 @@
+allow     init sysfs file setattr
+allow     system_app vendor_sysfs_graphics dir search
+allow     system_app vendor_sysfs_graphics file { ioctl read write getattr lock append map open watch watch_reads }
+allow     system_app sysfs dir search
+allow     system_app sysfs file { ioctl read write getattr lock append map open watch watch_reads }
+allow     untrusted_app sysfs file { ioctl read write getattr lock append map open watch watch_reads }
