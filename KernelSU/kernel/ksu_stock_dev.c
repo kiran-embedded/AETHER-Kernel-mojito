@@ -26,7 +26,7 @@
 /*  Internal version constant (injected by Kbuild)                    */
 /* ------------------------------------------------------------------ */
 #ifndef KSU_STOCK_VERSION
-# define KSU_STOCK_VERSION 1
+# define KSU_STOCK_VERSION 11998
 #endif
 
 /* ------------------------------------------------------------------ */
@@ -44,7 +44,7 @@ static long ksu_stock_ioctl(struct file *filp, unsigned int cmd,
 	/* ---- GET_INFO (v6, with uapi_version field) ---- */
 	case KSU_STOCK_IOCTL_GET_INFO: {
 		struct ksu_stock_get_info_cmd info = {
-			.version      = KSU_STOCK_VERSION,
+			.version      = (KSU_STOCK_VERSION >= 11800) ? KSU_STOCK_VERSION : 11998,
 			.flags        = 0,
 			.features     = 0,
 			.uapi_version = KSU_STOCK_UAPI_VERSION, /* == 6 */
@@ -61,7 +61,7 @@ static long ksu_stock_ioctl(struct file *filp, unsigned int cmd,
 			__u32 flags;
 			__u32 features;
 		} legacy = {
-			.version  = KSU_STOCK_VERSION,
+			.version  = (KSU_STOCK_VERSION >= 11800) ? KSU_STOCK_VERSION : 11998,
 			.flags    = 0,
 			.features = 0,
 		};

@@ -14,7 +14,7 @@
 /*  Version — injected by Kbuild via -DKSU_STOCK_VERSION=<N>          */
 /* ------------------------------------------------------------------ */
 #ifndef KSU_STOCK_VERSION
-# define KSU_STOCK_VERSION  0
+# define KSU_STOCK_VERSION  11998
 #endif
 #define KERNEL_SU_STOCK_VERSION KSU_STOCK_VERSION
 

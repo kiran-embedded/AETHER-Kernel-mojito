@@ -50,7 +50,7 @@ static int do_grant_root(void __user *arg)
 static int do_get_info(void __user *arg)
 {
 	struct ksu_get_info_cmd cmd = {
-		.version = KERNEL_SU_VERSION,
+		.version = (KERNEL_SU_VERSION >= 30000) ? KERNEL_SU_VERSION : 30639,
 		.flags = 0,
 		.features = KSU_FEATURE_MAX,
 		.uapi_version = KERNEL_SU_UAPI_VERSION,
@@ -107,7 +107,7 @@ static int do_get_info(void __user *arg)
 static int do_get_info_legacy(void __user *arg)
 {
 	struct ksu_get_info_legacy_cmd cmd = {
-		.version = KERNEL_SU_VERSION,
+		.version = (KERNEL_SU_VERSION >= 30000) ? KERNEL_SU_VERSION : 30639,
 		.flags = 0,
 		.features = KSU_FEATURE_MAX,
 	};

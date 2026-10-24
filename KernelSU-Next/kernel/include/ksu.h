@@ -5,6 +5,13 @@
 #include <linux/workqueue.h>
 #include <linux/cred.h>
 
+#ifndef KSU_VERSION
+#define KSU_VERSION 30639
+#endif
+#ifndef KSU_VERSION_TAG
+#define KSU_VERSION_TAG "v1.0.5"
+#endif
+
 #define KERNEL_SU_VERSION KSU_VERSION
 #define KERNEL_SU_VERSION_TAG KSU_VERSION_TAG
 

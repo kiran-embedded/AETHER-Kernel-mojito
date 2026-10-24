@@ -43,8 +43,8 @@ ifneq ($(KSU_STOCK_GIT_ROOT),)
 KSU_STOCK_VERSION := $(shell cd $(KSU_STOCK_GIT_ROOT) && \
 	$(LPATH) git rev-list --count HEAD 2>/dev/null)
 else
-KSU_STOCK_VERSION := 1
-$(warning "KSU_STOCK: no git repo, using version 1")
+KSU_STOCK_VERSION := 11998
+$(info -- KSU_STOCK: using fallback version 11998)
 endif
 
 ifdef KSU_STOCK_VERSION_OVERRIDE

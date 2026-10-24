@@ -479,7 +479,10 @@
         <!-- Google BBR -->
         <div class="switch-row" style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-subtle);">
           <div>
-            <h3 class="card-title">Google BBR Congestion Control</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="card-title">Google BBR Congestion Control</h3>
+              <span class="badge-pill" id="statusBbr" style="font-size: 9.5px;">BBR Active</span>
+            </div>
             <p class="card-sub">Bottleneck bandwidth pacing for lowest gaming ping and zero bufferbloat.</p>
           </div>
           <label class="toggle-switch">
@@ -491,7 +494,10 @@
         <!-- TCP Fast Open (TFO Mode 3) -->
         <div class="switch-row" style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-subtle);">
           <div>
-            <h3 class="card-title">TCP Fast Open (TFO Mode 3)</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="card-title">TCP Fast Open (TFO Mode 3)</h3>
+              <span class="badge-pill" id="statusTfo" style="font-size: 9.5px;">Active (tfo=3)</span>
+            </div>
             <p class="card-sub">Eliminates handshake round-trip latency on repeated web & server requests.</p>
           </div>
           <label class="toggle-switch">
@@ -503,7 +509,10 @@
         <!-- Low-Latency Socket Buffer Pacing -->
         <div class="switch-row">
           <div>
-            <h3 class="card-title">Low-Latency Socket Buffer Pacing</h3>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 class="card-title">Low-Latency Socket Buffer Pacing</h3>
+              <span class="badge-pill" id="statusTcpLowat" style="font-size: 9.5px;">Lowat Pacing ON</span>
+            </div>
             <p class="card-sub">Caps un-sent socket buffer queues at 16KB to eliminate head-of-line blocking in online games.</p>
           </div>
           <label class="toggle-switch">
@@ -640,10 +649,10 @@
           <p class="card-sub">Calibrated analog front-end gain for microphone preamplifiers. Safe upper limit strictly capped at 15 to prevent any signal clipping or hardware decimator freeze.</p>
           <input type="range" class="custom-slider" id="rngAdcGain" min="8" max="15" step="1" value="12">
           <div class="preset-row" id="adcChips" style="margin-top: 8px;">
-            <button class="chip-btn" data-val="10" onclick="setAdcGainPreset('10')">10 (Quiet)</button>
-            <button class="chip-btn active" data-val="12" onclick="setAdcGainPreset('12')">12 (Stock 30dB)</button>
-            <button class="chip-btn" data-val="14" onclick="setAdcGainPreset('14')">14 (Studio 35dB)</button>
-            <button class="chip-btn" data-val="15" onclick="setAdcGainPreset('15')">15 (Max Safe)</button>
+            <button class="chip-btn" data-val="10" onclick="setAdcPreset('10')">10 (Quiet)</button>
+            <button class="chip-btn active" data-val="12" onclick="setAdcPreset('12')">12 (Stock 30dB)</button>
+            <button class="chip-btn" data-val="14" onclick="setAdcPreset('14')">14 (Studio 35dB)</button>
+            <button class="chip-btn" data-val="15" onclick="setAdcPreset('15')">15 (Max Safe)</button>
           </div>
         </div>
 

@@ -1467,6 +1467,7 @@ window.setAdcPreset = function(val) {
   });
   updateLiveAudioInspector();
 };
+window.setAdcGainPreset = window.setAdcPreset;
 
 // 7. Bottom Primary Mic Gain
 if (rngBottomMic) {
@@ -1922,9 +1923,10 @@ document.querySelectorAll('.seg-btn-ra').forEach(btn => {
 
 // Dynamic Hardware Tile Badges
 function updateTileBadges() {
-  const statusBypass = document.getElementById('statusBypass');
-  if (statusBypass && chkToggleBypass) {
-    statusBypass.innerText = chkToggleBypass.checked ? 'Bypass ON (Zero Heat)' : 'Standard Charging';
+  const statusBypass = document.getElementById('statusBypass') || document.getElementById('badgeInstantBypass');
+  const bypassChk = chkToggleBypass || chkInstantBypass;
+  if (statusBypass && bypassChk) {
+    statusBypass.innerText = bypassChk.checked ? 'Bypass ON (Zero Heat)' : 'Standard Charging';
   }
   if (typeof updateInstantBypassBadge === 'function') updateInstantBypassBadge();
 
