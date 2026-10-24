@@ -835,9 +835,9 @@
         <div class="form-group">
           <label class="form-label" for="selBoostHp">BIG Cores Touch Frequency</label>
           <select class="custom-select" id="selBoostHp">
-            <option value="0">Disabled (0 MHz)</option>
+            <option value="0" selected>Disabled (0 MHz - Dev Default)</option>
             <option value="652800">652 MHz</option>
-            <option value="1209600" selected>1209 MHz (Default)</option>
+            <option value="1209600">1209 MHz</option>
             <option value="1536000">1536 MHz</option>
             <option value="1843200">1843 MHz (Performance)</option>
             <option value="2208000">2208 MHz (Max Frequency)</option>
@@ -846,16 +846,16 @@
 
         <div class="slider-head" style="margin-top: 10px;">
           <label class="form-label">Touch Boost Duration</label>
-          <span class="badge-val" id="lblBoostDur">48 ms</span>
+          <span class="badge-val" id="lblBoostDur">64 ms</span>
         </div>
-        <input type="range" class="custom-slider" id="rngBoostDur" min="16" max="200" step="8" value="48">
+        <input type="range" class="custom-slider" id="rngBoostDur" min="16" max="200" step="8" value="64">
       </div>
 
       <!-- BORE CPU Scheduler -->
       <div class="card">
         <div class="tile-category-row">
           <span class="tile-category cat-cpu">🧠 BORE Scheduler</span>
-          <span class="tile-status" id="statusBoreTile" style="color: var(--color-success);">Active (v3.1.8 • Scale 1280)</span>
+          <span class="tile-status" id="statusBoreTile" style="color: var(--color-success);">Active (v3.1.8 • Scale 1380)</span>
         </div>
         <h3 class="card-title">Burst-Oriented Response Enhancer (BORE)</h3>
         <p class="card-sub">Prioritizes short interactive bursts while retaining CFS fairness under sustained load.</p>
@@ -872,8 +872,8 @@
           <label class="form-label" for="selBoreScale">Burst Penalty Scale (Dispatch Priority)</label>
           <select class="custom-select" id="selBoreScale">
             <option value="1024">Light penalty (1024)</option>
-            <option value="1280" selected>Balanced (1280)</option>
-            <option value="1380">Stronger batch penalty (1380)</option>
+            <option value="1280">Balanced (1280)</option>
+            <option value="1380" selected>Balanced Dev Tuned (1380)</option>
             <option value="1536">Heavy Batch Suppression (1536)</option>
           </select>
         </div>
@@ -982,31 +982,31 @@
 
         <div class="slider-head">
           <label class="form-label">Schedutil Up-Rate Limit</label>
-          <span class="badge-val" id="lblUpRate">1000 μs (Balanced)</span>
+          <span class="badge-val" id="lblUpRate">500 μs (Dev Tuned)</span>
         </div>
-        <input type="range" class="custom-slider" id="rngUpRate" min="0" max="2000" step="50" value="1000">
+        <input type="range" class="custom-slider" id="rngUpRate" min="0" max="2000" step="50" value="500">
 
         <div class="slider-head" style="margin-top: 12px;">
           <label class="form-label">VM Swappiness (ZRAM)</label>
-          <span class="badge-val" id="lblSwappiness">100</span>
+          <span class="badge-val" id="lblSwappiness">60</span>
         </div>
-        <input type="range" class="custom-slider" id="rngSwappiness" min="0" max="100" step="10" value="100">
+        <input type="range" class="custom-slider" id="rngSwappiness" min="0" max="100" step="10" value="60">
 
         <div class="slider-head" style="margin-top: 12px;">
           <label class="form-label">VFS Cache Pressure (Dentry/Inode Reclamation)</label>
-          <span class="badge-val" id="lblVfsCache">100</span>
+          <span class="badge-val" id="lblVfsCache">50</span>
         </div>
-        <input type="range" class="custom-slider" id="rngVfsCache" min="50" max="200" step="10" value="100">
+        <input type="range" class="custom-slider" id="rngVfsCache" min="10" max="200" step="10" value="50">
 
         <div class="slider-head" style="margin-top: 14px;">
           <label class="form-label">Multi-Gen LRU (MGLRU) Cache Protection TTL</label>
-          <span class="badge-val" id="lblMglruTtl">0 ms</span>
+          <span class="badge-val" id="lblMglruTtl">1000 ms</span>
         </div>
-        <input type="range" class="custom-slider" id="rngMglruTtl" min="0" max="3000" step="100" value="0">
+        <input type="range" class="custom-slider" id="rngMglruTtl" min="0" max="3000" step="100" value="1000">
         <div class="preset-row" id="mglruChips" style="margin-top: 8px;">
-          <button class="chip-btn active" data-val="0" onclick="setMglruPreset('0')">0 ms (Stock)</button>
+          <button class="chip-btn" data-val="0" onclick="setMglruPreset('0')">0 ms (Stock)</button>
           <button class="chip-btn" data-val="500" onclick="setMglruPreset('500')">500 ms (Gaming)</button>
-          <button class="chip-btn" data-val="1000" onclick="setMglruPreset('1000')">1000 ms (Fluid UI)</button>
+          <button class="chip-btn active" data-val="1000" onclick="setMglruPreset('1000')">1000 ms (Fluid UI)</button>
           <button class="chip-btn" data-val="2000" onclick="setMglruPreset('2000')">2000 ms (Multitask)</button>
           <button class="chip-btn" data-val="3000" onclick="setMglruPreset('3000')">3000 ms (Max Retention)</button>
         </div>

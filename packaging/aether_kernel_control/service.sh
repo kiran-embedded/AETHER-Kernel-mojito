@@ -202,8 +202,9 @@ if [ -d /sys/class/kgsl/kgsl-3d0 ]; then
     echo 0 > /sys/class/kgsl/kgsl-3d0/force_rail_on 2>/dev/null || true
 fi
 
-# Network TCP Lowat Pacing
+# Network TCP Lowat Pacing & Fast Open
 echo 16384 > /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null || true
+echo 3 > /proc/sys/net/ipv4/tcp_fastopen 2>/dev/null || true
 
 # Purge any legacy generic override scripts to guarantee dev-set kernel values are never overwritten
 rm -f /data/adb/aether/aether_tweaks.sh 2>/dev/null || true
@@ -259,6 +260,7 @@ fi
 # write_expire=2000: wider window for write batching
 for _q in /sys/block/sda/queue /sys/block/sdb/queue /sys/block/sdc/queue; do
     [ -d "$_q" ] || continue
+    echo 512  > "$_q/read_ahead_kb"              2>/dev/null || true
     echo 64   > "$_q/nr_requests"                2>/dev/null || true
     echo 1    > "$_q/iosched/front_merges"       2>/dev/null || true
     echo 32   > "$_q/iosched/async_depth"        2>/dev/null || true

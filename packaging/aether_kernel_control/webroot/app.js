@@ -172,7 +172,7 @@ function mockKernelResponse(cmd) {
   if (cmd.includes('sched_burst_penalty_scale')) return '1380';
   if (cmd.includes('sched_burst_penalty_offset')) return '22';
   if (cmd.includes('input_boost_duration') || cmd.includes('input_boost_ms')) return '64';
-  if (cmd.includes('input_boost_freq')) return '0:979200 6:1305600';
+  if (cmd.includes('input_boost_freq')) return '0:1017600 6:0';
   if (cmd.includes('charging_enabled')) return '1';
   if (cmd.includes('tcp_congestion_control')) return 'bbr';
   if (cmd.includes('swappiness')) return '60';
@@ -238,7 +238,7 @@ function getUiState() {
   return {
     profile: currentProfileMode,
     userCustomized: !!userCustomized,
-    readAhead: typeof selectedReadAhead !== 'undefined' ? selectedReadAhead : '384',
+    readAhead: typeof selectedReadAhead !== 'undefined' ? selectedReadAhead : '512',
     chargeLimit: typeof selectedChargeLimit !== 'undefined' ? selectedChargeLimit : '0',
     chargeCutoff: typeof selectedChargeCutoff !== 'undefined' ? selectedChargeCutoff : '0',
     cutoffMode: typeof selectedCutoffMode !== 'undefined' ? selectedCutoffMode : '1',
@@ -251,13 +251,13 @@ function getUiState() {
     cpuGovBig: (typeof selCpuGovBig !== 'undefined' && selCpuGovBig) ? selCpuGovBig.value : 'schedutil',
     cpuMaxBig: (typeof selCpuMaxBig !== 'undefined' && selCpuMaxBig) ? selCpuMaxBig.value : '2208000',
     upRate: (typeof rngUpRate !== 'undefined' && rngUpRate) ? rngUpRate.value : '500',
-    boostLp: (typeof selBoostLp !== 'undefined' && selBoostLp) ? selBoostLp.value : '979200',
-    boostHp: (typeof selBoostHp !== 'undefined' && selBoostHp) ? selBoostHp.value : '1305600',
+    boostLp: (typeof selBoostLp !== 'undefined' && selBoostLp) ? selBoostLp.value : '1017600',
+    boostHp: (typeof selBoostHp !== 'undefined' && selBoostHp) ? selBoostHp.value : '0',
     boostDur: (typeof rngBoostDur !== 'undefined' && rngBoostDur) ? rngBoostDur.value : '64',
     boreState: (typeof selBoreState !== 'undefined' && selBoreState) ? selBoreState.value : '1',
-    boreScale: (typeof selBoreScale !== 'undefined' && selBoreScale) ? selBoreScale.value : '1280',
+    boreScale: (typeof selBoreScale !== 'undefined' && selBoreScale) ? selBoreScale.value : '1380',
     swappiness: (typeof rngSwappiness !== 'undefined' && rngSwappiness) ? rngSwappiness.value : '60',
-    vfsCache: (typeof rngVfsCache !== 'undefined' && rngVfsCache) ? rngVfsCache.value : '40',
+    vfsCache: (typeof rngVfsCache !== 'undefined' && rngVfsCache) ? rngVfsCache.value : '50',
     mglruTtl: (typeof rngMglruTtl !== 'undefined' && rngMglruTtl) ? rngMglruTtl.value : '1000',
     micDelay: (typeof rngMicDelay !== 'undefined' && rngMicDelay) ? rngMicDelay.value : '40',
     bottomMic: (typeof rngBottomMic !== 'undefined' && rngBottomMic) ? rngBottomMic.value : '0',
@@ -280,7 +280,7 @@ function getUiState() {
     ioSched: (typeof selIoSched !== 'undefined' && selIoSched) ? selIoSched.value : 'mq-deadline',
     schedtuneIdle: (typeof chkSchedtuneIdle !== 'undefined' && chkSchedtuneIdle) ? chkSchedtuneIdle.checked : true,
     tcpLowat: (typeof chkTcpLowat !== 'undefined' && chkTcpLowat) ? chkTcpLowat.checked : true,
-    kpMode: (document.querySelector('#gridKpMode .cutoff-pill.active') ? document.querySelector('#gridKpMode .cutoff-pill.active').dataset.val : '0'),
+    kpMode: (document.querySelector('#gridKpMode .cutoff-pill.active') ? document.querySelector('#gridKpMode .cutoff-pill.active').dataset.val : (document.querySelector('#gridKpMode .kp-pill.active') ? document.querySelector('#gridKpMode .kp-pill.active').dataset.val : '0')),
     autoKp: (typeof chkToggleAutoKp !== 'undefined' && chkToggleAutoKp) ? chkToggleAutoKp.checked : true,
   };
 }
@@ -2522,7 +2522,7 @@ async function applyProfile(mode) {
     await runCmd('[ -f /dev/stune/top-app/schedtune.prefer_idle ] && echo 1 > /dev/stune/top-app/schedtune.prefer_idle 2>/dev/null');
     await runCmd('[ -f /sys/module/kprofiles/parameters/auto_kp ] && echo 1 > /sys/module/kprofiles/parameters/auto_kp 2>/dev/null');
     await runCmd('[ -f /sys/kernel/kprofiles/kp_mode ] && echo 0 > /sys/kernel/kprofiles/kp_mode 2>/dev/null');
-    await runCmd('echo 1 > /proc/sys/net/ipv4/tcp_fastopen 2>/dev/null');
+    await runCmd('echo 3 > /proc/sys/net/ipv4/tcp_fastopen 2>/dev/null');
     await runCmd('echo 16384 > /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null');
     await runCmd('echo bbr > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null || echo westwood > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null');
 
@@ -2541,11 +2541,11 @@ async function applyProfile(mode) {
     if (selGpuMin) selGpuMin.value = '180';
     if (rngGpuIdle) { rngGpuIdle.value = 66; if (lblGpuIdle) lblGpuIdle.innerText = '66 ms'; }
     if (rngUpRate) { rngUpRate.value = 500; if (lblUpRate) lblUpRate.innerText = '500 μs'; }
-    if (selBoostLp) selBoostLp.value = '979200';
-    if (selBoostHp) selBoostHp.value = '1305600';
+    if (selBoostLp) selBoostLp.value = '1017600';
+    if (selBoostHp) selBoostHp.value = '0';
     if (rngBoostDur) { rngBoostDur.value = 64; if (lblBoostDur) lblBoostDur.innerText = '64 ms'; }
     if (selBoreState) selBoreState.value = '1';
-    if (selBoreScale) selBoreScale.value = '1280';
+    if (selBoreScale) selBoreScale.value = '1380';
     if (chkSchedtuneIdle) chkSchedtuneIdle.checked = true;
     if (chkInstantBypass) chkInstantBypass.checked = false;
     if (chkToggleDcDim) chkToggleDcDim.checked = false;
@@ -2581,22 +2581,22 @@ async function applyProfile(mode) {
       if (selGpuMin) selGpuMin.value = '180';
       if (rngGpuIdle) rngGpuIdle.value = 66;
       if (rngUpRate) rngUpRate.value = 500;
-      if (selBoostLp) selBoostLp.value = '979200';
-      if (selBoostHp) selBoostHp.value = '1305600';
+      if (selBoostLp) selBoostLp.value = '1017600';
+      if (selBoostHp) selBoostHp.value = '0';
       if (rngBoostDur) rngBoostDur.value = 64;
       if (selBoreState) selBoreState.value = '1';
-      if (selBoreScale) selBoreScale.value = '1280';
+      if (selBoreScale) selBoreScale.value = '1380';
       if (chkToggleBypass) chkToggleBypass.checked = false;
       if (chkToggleBbr) chkToggleBbr.checked = true;
       if (rngMicDelay) rngMicDelay.value = 40;
       if (rngBottomMic) rngBottomMic.value = 6;
       if (rngTopMic) rngTopMic.value = 0;
       if (rngSwappiness) rngSwappiness.value = 60;
-      if (rngVfsCache) rngVfsCache.value = 40;
+      if (rngVfsCache) rngVfsCache.value = 50;
       if (rngMglruTtl) rngMglruTtl.value = 1000;
       if (chkSchedtuneIdle) chkSchedtuneIdle.checked = true;
       if (selIoSched) selIoSched.value = 'mq-deadline';
-      selectedReadAhead = '384';
+      selectedReadAhead = '512';
     } else if (mode === 'balanced') {
       profileLabel = 'Balanced Daily Driver';
       if (activeModeBadge) activeModeBadge.innerText = 'Balanced Active';
@@ -2608,8 +2608,8 @@ async function applyProfile(mode) {
       if (selGpuMin) selGpuMin.value = '180';
       if (rngGpuIdle) rngGpuIdle.value = 66;
       if (rngUpRate) rngUpRate.value = 500;
-      if (selBoostLp) selBoostLp.value = '979200';
-      if (selBoostHp) selBoostHp.value = '1305600';
+      if (selBoostLp) selBoostLp.value = '1017600';
+      if (selBoostHp) selBoostHp.value = '0';
       if (rngBoostDur) rngBoostDur.value = 64;
       if (chkToggleBypass) chkToggleBypass.checked = false;
       if (chkToggleBbr) chkToggleBbr.checked = true;
@@ -2617,10 +2617,10 @@ async function applyProfile(mode) {
       if (rngBottomMic) rngBottomMic.value = 6;
       if (rngTopMic) rngTopMic.value = 0;
       if (rngSwappiness) rngSwappiness.value = 60;
-      if (rngVfsCache) rngVfsCache.value = 40;
+      if (rngVfsCache) rngVfsCache.value = 50;
       if (rngMglruTtl) rngMglruTtl.value = 1000;
-      if (selBoreScale) selBoreScale.value = '1280';
-      selectedReadAhead = '384';
+      if (selBoreScale) selBoreScale.value = '1380';
+      selectedReadAhead = '512';
     } else if (mode === 'gaming') {
       profileLabel = 'Gaming Beast (504MHz GPU)';
       if (activeModeBadge) activeModeBadge.innerText = 'Gaming Beast Active';
