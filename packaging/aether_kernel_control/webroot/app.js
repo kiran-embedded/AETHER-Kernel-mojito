@@ -176,7 +176,7 @@ function mockKernelResponse(cmd) {
   if (cmd.includes('charging_enabled')) return '1';
   if (cmd.includes('tcp_congestion_control')) return 'bbr';
   if (cmd.includes('swappiness')) return '60';
-  if (cmd.includes('vfs_cache_pressure')) return '100';
+  if (cmd.includes('vfs_cache_pressure')) return '50';
   if (cmd.includes('min_ttl_ms')) return '1000';
   if (cmd.includes('read_ahead_kb')) return '512';
   if (cmd.includes('fts_glove_mode')) return '0';
@@ -2498,7 +2498,7 @@ async function applyProfile(mode) {
     // 6. Revert VM / MGLRU / UFS I/O to developer in-kernel calibrations
     await runCmd('echo 60 > /proc/sys/vm/swappiness 2>/dev/null');
     await runCmd('echo 0 > /proc/sys/vm/page-cluster 2>/dev/null');
-    await runCmd('echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null');
+    await runCmd('echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null');
     await runCmd('echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null');
     await runCmd('echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null');
     await runCmd('echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null');
@@ -2520,7 +2520,7 @@ async function applyProfile(mode) {
     if (typeof selCpuGovBig !== 'undefined' && selCpuGovBig) selCpuGovBig.value = 'schedutil';
     if (typeof selCpuMaxBig !== 'undefined' && selCpuMaxBig) selCpuMaxBig.value = '2208000';
     if (rngSwappiness) { rngSwappiness.value = 60; if (lblSwappiness) lblSwappiness.innerText = '60'; }
-    if (rngVfsCache) { rngVfsCache.value = 100; if (lblVfsCache) lblVfsCache.innerText = '100'; }
+    if (rngVfsCache) { rngVfsCache.value = 50; if (lblVfsCache) lblVfsCache.innerText = '50'; }
     if (rngMglruTtl) { rngMglruTtl.value = 1000; if (lblMglruTtl) lblMglruTtl.innerText = '1000 ms'; syncChips('#mglruChips', '1000'); }
     if (selIoSched) selIoSched.value = 'mq-deadline';
     selectedReadAhead = '512';
