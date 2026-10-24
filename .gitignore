@@ -139,3 +139,4 @@ artifacts_aether/
 TODAY_DEVELOPMENT_HISTORY_*.md
 *.orig
 *.rej
+sha256sum.txt
