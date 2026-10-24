@@ -47,80 +47,80 @@ static int do_grant_root(void __user *arg)
 	return ret;
 }
 
-extern const char *ksu_get_manager_pkg_by_uid(uid_t uid);
-
 static int do_get_info(void __user *arg)
 {
-	struct ksu_get_info_cmd cmd = {.version = KERNEL_SU_VERSION, .flags = 0};
+	struct ksu_get_info_cmd cmd = {
+		.version = KERNEL_SU_VERSION,
+		.flags = 0,
+		.features = KSU_FEATURE_MAX,
+		.uapi_version = KERNEL_SU_UAPI_VERSION,
+	};
 	struct ksu_get_info_cmd in_cmd = { 0 };
-	const char *mpkg = ksu_get_manager_pkg_by_uid(current_uid().val);
 
 	if (ksuver_override) {
 		cmd.version = ksuver_override;
 	}
 
 #ifdef MODULE
-    cmd.flags |= KSU_GET_INFO_FLAG_LKM;
-    if (ksu_bundled) {
-        cmd.flags |= KSU_GET_INFO_FLAG_BUNDLED;
-    }
+	cmd.flags |= KSU_GET_INFO_FLAG_LKM;
+	if (ksu_bundled) {
+		cmd.flags |= KSU_GET_INFO_FLAG_BUNDLED;
+	}
 #endif
-    if (is_manager()) {
-        cmd.flags |= KSU_GET_INFO_FLAG_MANAGER;
-    }
-    if (ksu_late_loaded) {
-        cmd.flags |= KSU_GET_INFO_FLAG_LATE_LOAD;
-    }
-    cmd.features = KSU_FEATURE_MAX;
+	if (is_manager()) {
+		cmd.flags |= KSU_GET_INFO_FLAG_MANAGER;
+	}
+	if (ksu_late_loaded) {
+		cmd.flags |= KSU_GET_INFO_FLAG_LATE_LOAD;
+	}
 
-    /*
-     * Dynamic Dual-Manager UAPI Negotiation:
-     * - Official KernelSU (tiann / backslashxx / ksud): UAPI 6
-     * - KernelSU-Next (rifsxd / datura): UAPI 5
-     *
-     * Detect specific manager flavor by caller's input, package name, or process comm.
-     * Default to UAPI 6 for maximum backward/forward compatibility unless
-     * explicitly identified as KernelSU-Next.
-     */
-    bool is_next = false;
-    if (copy_from_user(&in_cmd, arg, sizeof(in_cmd)) == 0) {
-        if (in_cmd.uapi_version == 5)
-            is_next = true;
-        else if (in_cmd.uapi_version == 6)
-            is_next = false;
-    }
-    if (!is_next && in_cmd.uapi_version == 0) {
-        if (mpkg && (strstr(mpkg, "next") || strstr(mpkg, "rifsxd") || strstr(mpkg, "datura") || strstr(mpkg, "ksunext")))
-            is_next = true;
-        else if (current->comm[0] && (strstr(current->comm, "next") || strstr(current->comm, "ksun") || strstr(current->comm, "rifsxd")))
-            is_next = true;
-    }
-
-    cmd.uapi_version = is_next ? 5 : 6;
+	/*
+	 * Seamless Dual-Manager UAPI Negotiation:
+	 * - Official KernelSU (v3.3.1+ / ksud / backslashxx): UAPI 6
+	 * - KernelSU-Next (rifsxd / datura): UAPI 5 / 6
+	 *
+	 * If user-space explicitly passes uapi_version == 5 (legacy tool or specific Next build),
+	 * honor it. Otherwise, return UAPI 6 so official KernelSU manager displays full compatibility
+	 * without triggering the "Kernel update required" banner or [LEGACY] badge.
+	 */
+	if (copy_from_user(&in_cmd, arg, sizeof(in_cmd)) == 0) {
+		if (in_cmd.uapi_version == 5)
+			cmd.uapi_version = 5;
+		else if (in_cmd.uapi_version >= 6)
+			cmd.uapi_version = 6;
+	}
 
 #ifndef KSU_NO_PREINIT
-    if (cmd.uapi_version >= 6) {
-        cmd.flags |= KSU_GET_INFO_FLAG_PREINIT;
-    }
+	if (cmd.uapi_version >= 6) {
+		cmd.flags |= KSU_GET_INFO_FLAG_PREINIT;
+	}
 #endif
 
-    if (copy_to_user(arg, &cmd, sizeof(cmd))) {
-        pr_err("get_version: copy_to_user failed\n");
-        return -EFAULT;
-    }
+	if (copy_to_user(arg, &cmd, sizeof(cmd))) {
+		pr_err("get_version: copy_to_user failed\n");
+		return -EFAULT;
+	}
 
-    return 0;
+	return 0;
 }
 
 static int do_get_info_legacy(void __user *arg)
 {
-    struct ksu_get_info_legacy_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
+	struct ksu_get_info_legacy_cmd cmd = {
+		.version = KERNEL_SU_VERSION,
+		.flags = 0,
+		.features = KSU_FEATURE_MAX,
+	};
+
+	if (ksuver_override) {
+		cmd.version = ksuver_override;
+	}
 
 #ifdef MODULE
-    cmd.flags |= KSU_GET_INFO_FLAG_LKM;
-    if (ksu_bundled) {
-        cmd.flags |= KSU_GET_INFO_FLAG_BUNDLED;
-    }
+	cmd.flags |= KSU_GET_INFO_FLAG_LKM;
+	if (ksu_bundled) {
+		cmd.flags |= KSU_GET_INFO_FLAG_BUNDLED;
+	}
 #endif
 
 	if (is_manager()) {
@@ -129,7 +129,6 @@ static int do_get_info_legacy(void __user *arg)
 	if (ksu_late_loaded) {
 		cmd.flags |= KSU_GET_INFO_FLAG_LATE_LOAD;
 	}
-	cmd.features = KSU_FEATURE_MAX;
 
 	if (copy_to_user(arg, &cmd, sizeof(cmd))) {
 		pr_err("get_version: copy_to_user failed\n");

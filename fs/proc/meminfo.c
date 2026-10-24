@@ -26,21 +26,7 @@ void __attribute__((weak)) arch_report_meminfo(struct seq_file *m)
 
 static void show_val_kb(struct seq_file *m, const char *s, unsigned long num)
 {
-	char v[32];
-	static const char blanks[7] = {' ', ' ', ' ', ' ',' ', ' ', ' '};
-	int len;
-
-	len = num_to_str(v, sizeof(v), num << (PAGE_SHIFT - 10));
-
-	seq_write(m, s, 16);
-
-	if (len > 0) {
-		if (len < 8)
-			seq_write(m, blanks, 8 - len);
-
-		seq_write(m, v, len);
-	}
-	seq_write(m, " kB\n", 4);
+	seq_printf(m, "%s%8lu kB\n", s, num << (PAGE_SHIFT - 10));
 }
 
 static int meminfo_proc_show(struct seq_file *m, void *v)

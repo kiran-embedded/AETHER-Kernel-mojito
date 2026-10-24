@@ -10,8 +10,7 @@
 // 3: scoped su-session driver fd
 // 4: add KSU_GET_INFO_FLAG_BUNDLED
 // 5: add EVENT_SERVICES with a start/skip result
-// 6: add KSU_IOCTL_LOOKUP_SYMBOLS and KSU_GET_INFO_FLAG_PREINIT; modules.rc and preinit may live under /metadata/vold/ksu
-#define KERNEL_SU_UAPI_VERSION 5
+#define KERNEL_SU_UAPI_VERSION 6
 
 /* Magic numbers for reboot hook to install fd */
 #define KSU_INSTALL_MAGIC1 0xDEADBEEF
