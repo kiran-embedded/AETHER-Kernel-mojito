@@ -1,0 +1,6 @@
+id=aether_kernel_control
+name=AETHER Kernel Control (WebUI)
+version=v1.4.0
+versionCode=140
+author=Kiran
+description=Interactive WebUI dashboard for AETHER Kernel. Features genuine BORE & MGLRU kernel detection with fail-safe flash, zero-resource background freezer (0% CPU/RAM), Stock Audio Bypass default mode, deep hardware HPF noise cancellation (75Hz/150Hz), and live hardware telemetry.

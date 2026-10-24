@@ -1,0 +1,1415 @@
+/* ========================================================
+   AETHER Kernel Control v1.4 - Modern Design System
+   Pure Solid Clean UI (No Glass Blur) • AMOLED Pitch Black
+   Optimized for Xiaomi Redmi Note 10 (mojito / sunny)
+   ======================================================== */
+
+:root, [data-theme="dark"] {
+  /* True AMOLED Pitch Black Tokens */
+  --bg-page: #000000;              /* Pure 0-nit pitch black for AMOLED */
+  --bg-surface: #0a0e17;           /* Deep solid card base */
+  --bg-surface-elevated: #111726;  /* Elevated cards, mode cards, panels */
+  --bg-input: #05070c;             /* Inset control recessed background */
+  
+  --border-subtle: #1c2538;        /* Razor-sharp 1px dark border */
+  --border-focus: #38bdf8;         /* Electric cyan accent */
+
+  --text-primary: #ffffff;         /* Crisp 100% white for dark mode */
+  --text-secondary: #94a3b8;       /* High-contrast readable slate-400 */
+  --text-muted: #64748b;           /* Clean muted slate-500 */
+
+  --accent-primary: #0284c7;       /* Electric blue */
+  --accent-cyan: #38bdf8;          /* AMOLED Cyan */
+  --accent-hover: #0369a1;
+  --accent-light: rgba(56, 189, 248, 0.16); /* Soft dark-tinted badge */
+  --accent-glow: rgba(56, 189, 248, 0.35);
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 10px 20px -3px rgba(0, 0, 0, 0.85);
+
+  --transition-fast: 0.10s cubic-bezier(0, 0, 0.2, 1);
+  --transition-normal: 0.14s cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Light Mode Overrides */
+[data-theme="light"] {
+  --bg-page: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-input: #e2e8f0;
+
+  --border-subtle: #cbd5e1;
+  --border-focus: #0284c7;
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+
+  --accent-primary: #0284c7;
+  --accent-cyan: #0284c7;
+  --accent-hover: #0369a1;
+  --accent-light: #e0f2fe;
+  --accent-glow: rgba(2, 132, 199, 0.25);
+
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.12);
+}
+
+/* Global Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Universal text color inheritance to prevent system-black text defaults */
+button, input, select, textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px;
+  min-height: 100vh;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+.app-wrapper {
+  max-width: 520px; /* Optimized for Redmi Note 10 1080p AMOLED display */
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 120px;
+}
+
+/* Header Bar */
+.app-bar {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  background-color: var(--accent-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+.brand-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.version-pill {
+  background-color: var(--accent-light);
+  color: var(--accent-cyan);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.theme-toggle {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: transform 0.12s cubic-bezier(0, 0, 0.2, 1), background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.theme-toggle:active {
+  transform: scale(0.86) rotate(35deg);
+}
+
+.theme-toggle.theme-flip {
+  animation: themeSnap 0.14s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes themeSnap {
+  0% { transform: scale(0.85) rotate(-45deg); opacity: 0.7; }
+  50% { transform: scale(1.08) rotate(15deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* Live Telemetry Panel */
+.telemetry-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.telemetry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+}
+
+.telemetry-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--color-success);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+  box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+  animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.telemetry-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.telemetry-item {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.telemetry-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.telemetry-value {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.telemetry-value.highlight {
+  color: var(--color-success);
+}
+
+/* Live Real-Time Kernel Subsystems Strip */
+.kernel-live-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.kernel-live-strip .live-engine-chip:nth-child(5) {
+  grid-column: 1 / -1;
+}
+
+.live-engine-chip {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--accent-cyan);
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.chip-dot.active {
+  background-color: var(--color-success);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.chip-dot.inactive {
+  background-color: var(--color-danger);
+}
+
+.live-engine-chip .chip-label {
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.live-engine-chip strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Zero Resource Paused Mode */
+body.page-paused .pulse-dot {
+  animation-play-state: paused !important;
+}
+
+/* Hero Mode Cards (1-Tap Selection) */
+.modes-section {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-title-row h2 {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.mode-status-badge {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.mode-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.mode-card {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.mode-card:active {
+  transform: scale(0.97);
+}
+
+/* Active Mode Card: High Contrast on AMOLED Black */
+.mode-card.active {
+  background-color: #0c1a2e !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 1px #38bdf8, 0 4px 14px rgba(56, 189, 248, 0.25) !important;
+}
+
+[data-theme="light"] .mode-card.active {
+  background-color: #e0f2fe !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 1px #0284c7, 0 4px 14px rgba(2, 132, 199, 0.2) !important;
+}
+
+.mode-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1.1;
+}
+
+.mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+.mode-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.mode-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: block;
+}
+
+.mode-card.full-tile {
+  background-color: var(--bg-surface-elevated);
+  margin-bottom: 2px;
+}
+
+.mode-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.badge-pill {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--bg-input);
+  color: var(--accent-cyan);
+  border: 1px solid var(--border-subtle);
+  text-transform: uppercase;
+}
+
+.user-choice-banner {
+  background-color: rgba(56, 189, 248, 0.1);
+  border: 1px dashed var(--border-focus);
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--border-focus);
+  text-align: center;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Tabs Navigation */
+.nav-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 0;
+}
+
+.nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-item {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab-item:active {
+  transform: scale(0.96);
+}
+
+.tab-item.active {
+  background-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.5);
+}
+
+/* Tab Pages */
+.tab-page {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+.tab-page.active {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.6; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hardware Tile Card */
+.card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast);
+  contain: layout style;
+  will-change: transform;
+}
+
+/* Custom Mic Container: Dimmed & Non-Interactive when Stock Audio Bypass is Active */
+.custom-mic-bypassed {
+  opacity: 0.42;
+  pointer-events: none !important;
+  filter: grayscale(0.5);
+  transition: opacity var(--transition-normal), filter var(--transition-normal);
+}
+
+.custom-mic-bypassed * {
+  cursor: not-allowed !important;
+}
+
+.tile-category-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.tile-category {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-muted);
+}
+
+.tile-category.cat-power { color: #10b981; background: rgba(16, 185, 129, 0.15); }
+.tile-category.cat-display { color: #38bdf8; background: rgba(56, 189, 248, 0.15); }
+.tile-category.cat-gpu { color: #f59e0b; background: rgba(245, 158, 11, 0.15); }
+.tile-category.cat-cpu { color: #ec4899; background: rgba(236, 72, 153, 0.15); }
+.tile-category.cat-audio { color: #a855f7; background: rgba(168, 85, 247, 0.15); }
+.tile-category.cat-haptic { color: #06b6d4; background: rgba(6, 182, 212, 0.15); }
+.tile-category.cat-sys { color: #6366f1; background: rgba(99, 102, 241, 0.15); }
+
+.tile-status {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.card-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.card-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* Switch Row */
+.switch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-track {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border-subtle);
+  border-radius: 26px;
+  transition: background-color var(--transition-fast);
+}
+
+.toggle-track:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+input:checked + .toggle-track {
+  background-color: var(--color-success);
+}
+
+input:checked + .toggle-track:before {
+  transform: translateX(22px);
+}
+
+/* Segmented Buttons Container (Pills) */
+.btn-segmented {
+  display: flex;
+  gap: 4px;
+  background-color: var(--bg-input);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.seg-btn, .seg-btn-ra {
+  flex: 1;
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.seg-btn:active, .seg-btn-ra:active {
+  transform: scale(0.96);
+}
+
+/* Active Segmented Pill: High Contrast Pop */
+.seg-btn.active, .seg-btn-ra.active {
+  background-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.5) !important;
+}
+
+/* Sliders */
+.slider-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge-val {
+  background-color: var(--bg-input);
+  color: var(--accent-cyan);
+  border: 1px solid var(--border-subtle);
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 12px;
+}
+
+.custom-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  background-color: var(--border-subtle);
+  accent-color: var(--accent-cyan);
+  outline: none;
+  cursor: pointer;
+  touch-action: pan-y !important; /* Prevents scroll gestures from triggering accidental slider tweaks */
+  transition: opacity var(--transition-fast), filter var(--transition-fast);
+}
+
+/* Touch Guard: Accidental Touch Protection */
+.touch-guard-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  margin-top: 2px;
+  margin-bottom: 2px;
+  transition: all var(--transition-normal);
+}
+
+.touch-guard-bar.locked {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.touch-guard-bar.unlocked {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.touch-guard-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.touch-guard-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.touch-guard-heading {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: block;
+}
+
+.touch-guard-sub {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  display: block;
+  line-height: 1.3;
+}
+
+.touch-guard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.touch-guard-btn.is-locked {
+  background-color: var(--color-success);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.touch-guard-btn.is-unlocked {
+  background-color: var(--color-warning);
+  color: #000000;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+.touch-guard-btn:active {
+  transform: scale(0.95);
+}
+
+/* Sliders Locked State (Accidental Protection Active) */
+body.sliders-locked .custom-slider {
+  pointer-events: none !important;
+  opacity: 0.55;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+}
+
+body.sliders-locked .chip-btn {
+  pointer-events: none !important;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+body.sliders-locked .preset-row {
+  opacity: 0.6;
+}
+
+body.sliders-locked .slider-container,
+body.sliders-locked .card:has(.custom-slider) {
+  position: relative;
+}
+
+/* Toast alert when user taps slider while locked */
+.touch-lock-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-focus);
+  color: var(--text-primary);
+  padding: 10px 18px;
+  border-radius: 24px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.touch-lock-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Preset Chips */
+.preset-row, .chips-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+#audioProfileChips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+#audioProfileChips .chip-btn {
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 8px 10px;
+}
+
+.chip-btn, .chip-pill {
+  background-color: var(--bg-surface-elevated) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.chip-btn:active, .chip-pill:active {
+  transform: scale(0.95);
+}
+
+/* Active Chip Pill: High Contrast Cyan/Blue */
+.chip-btn.active, .chip-pill.active {
+  background-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.5) !important;
+}
+
+/* Select Inputs */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-secondary);
+}
+
+.custom-select {
+  width: 100%;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.custom-select:focus {
+  border-color: var(--border-focus);
+}
+
+.custom-select option {
+  background-color: #0a0e17;
+  color: #ffffff;
+}
+
+[data-theme="light"] .custom-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Code & Status Box */
+.code-box {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* SUSFS Grid */
+.status-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge-active {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 16px;
+}
+
+.susfs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.susfs-badge-item {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.text-green {
+  color: var(--color-success);
+}
+
+.text-red {
+  color: var(--color-danger);
+}
+
+.text-amber {
+  color: var(--color-warning);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.badge-warning {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.badge-danger {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+/* Help Accordion & Real-World Examples */
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.accordion-item {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.accordion-header {
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.accordion-header::-webkit-details-marker {
+  display: none;
+}
+
+.accordion-header:after {
+  content: "+";
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--accent-cyan);
+}
+
+details[open] .accordion-header:after {
+  content: "−";
+}
+
+.accordion-body {
+  padding: 0 14px 12px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+.help-example-box {
+  background-color: var(--bg-input);
+  border-left: 3px solid var(--accent-cyan);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 8px 10px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.help-example-title {
+  font-weight: 800;
+  color: var(--accent-cyan);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Terminal Log */
+.terminal-log {
+  background-color: #030712;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #38bdf8;
+  white-space: pre-wrap;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+/* Action Dock (Sticky Bottom) */
+.action-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 999;
+  box-shadow: var(--shadow-lg);
+}
+
+.dock-switch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.dock-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+}
+
+.btn-action {
+  padding: 11px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-action:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 10px var(--accent-glow);
+}
+
+.btn-danger {
+  background-color: var(--bg-surface-elevated);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.btn-outline {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Toast Popup */
+.toast-popup {
+  display: none;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--color-success);
+  padding: 4px;
+}
+
+/* ========================================================
+   AETHER Hardware Battery Care & Bypass Engine Styling
+   Mobile-Optimized for Xiaomi Redmi Note 10 (392px CSS Width)
+   ======================================================== */
+
+.alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  margin: 10px 0 12px 0;
+  transition: all var(--transition-fast);
+}
+
+.alert-banner.warning {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-left: 3.5px solid #f59e0b;
+}
+
+.alert-banner .alert-icon {
+  font-size: 18px;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.alert-banner .alert-content {
+  flex: 1;
+}
+
+.alert-banner .alert-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin-bottom: 2px;
+}
+
+.alert-banner .alert-text {
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.alert-banner .alert-text strong {
+  color: #fef08a;
+}
+
+.alert-banner .alert-text em {
+  font-style: normal;
+  color: #94a3b8;
+}
+
+/* Power Subcard (Recessed background for Instant Bypass) */
+.power-subcard {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.power-subcard:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+/* Uniform 3x2 Grid for Cutoff Percentages */
+.btn-cutoff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background-color: var(--bg-input);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.cutoff-pill {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 8px 4px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 48px;
+  user-select: none;
+  touch-action: manipulation;
+  transition: all var(--transition-fast);
+}
+
+.cutoff-pill:active {
+  transform: scale(0.96);
+}
+
+.cutoff-pill-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+}
+
+.cutoff-pill-sub {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.cutoff-pill.active {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.95), rgba(14, 165, 233, 0.95)) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 3px 12px rgba(2, 132, 199, 0.45) !important;
+}
+
+.cutoff-pill.active .cutoff-pill-val {
+  color: #ffffff !important;
+}
+
+.cutoff-pill.active .cutoff-pill-sub {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Uniform 1x2 Grid for Cutoff Behavior Mode */
+.btn-cutoff-mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background-color: var(--bg-input);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.cutoff-mode-pill {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 10px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  user-select: none;
+  touch-action: manipulation;
+  transition: all var(--transition-fast);
+}
+
+.cutoff-mode-pill:active {
+  transform: scale(0.97);
+}
+
+.cutoff-mode-pill .mode-pill-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.cutoff-mode-pill .mode-pill-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cutoff-mode-pill .mode-pill-text strong {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.cutoff-mode-pill .mode-pill-text small {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.1;
+}
+
+.cutoff-mode-pill.active {
+  background: var(--bg-surface);
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25) !important;
+}
+
+.cutoff-mode-pill.active .mode-pill-text strong {
+  color: var(--accent-cyan) !important;
+}
+
+.cutoff-mode-pill.active .mode-pill-text small {
+  color: var(--text-secondary) !important;
+}
+
+/* Power Telemetry Box */
+.power-telemetry-box {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.power-telemetry-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.telemetry-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.telemetry-val {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
