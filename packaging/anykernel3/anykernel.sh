@@ -558,8 +558,8 @@ fi
 #   At 60: kernel prefers keeping anon pages hot, only swaps under pressure.
 echo 60 > /proc/sys/vm/swappiness 2>/dev/null || true
 
-# VFS_CACHE_PRESSURE: 100 — 1:1 reclaim ratio between dentries/inodes and page cache
-echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
+# VFS_CACHE_PRESSURE: 50 — Keeps app dentries and inodes cached, prevents background app kills
+echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
 
 # MIN_FREE_KBYTES: 16384 (16MB baseline)
 echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
@@ -809,10 +809,13 @@ for q in /sys/block/sd*/queue /sys/block/dm-*/queue; do
     fi
 done
 
-# ZRAM Queue Calibration — 0KB read-ahead, rq_affinity 2
+# ZRAM Queue Calibration — 0KB read-ahead, rq_affinity 2, nomerges 2, no iostats overhead
 if [ -d /sys/block/zram0/queue ]; then
     echo 0 > /sys/block/zram0/queue/read_ahead_kb 2>/dev/null || true
     echo 2 > /sys/block/zram0/queue/rq_affinity 2>/dev/null || true
+    echo 2 > /sys/block/zram0/queue/nomerges 2>/dev/null || true
+    echo 0 > /sys/block/zram0/queue/iostats 2>/dev/null || true
+    echo 0 > /sys/block/zram0/queue/add_random 2>/dev/null || true
 fi
 
     # Re-enforce background cpuset isolation to efficiency cores 0-5

@@ -145,7 +145,7 @@ echo 0 > /sys/kernel/kprofiles/kp_mode 2>/dev/null || true
 # Virtual Memory & ZRAM Swappiness
 echo 60 > /proc/sys/vm/swappiness 2>/dev/null || true
 echo 0 > /proc/sys/vm/page-cluster 2>/dev/null || true
-echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
+echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
 echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
 echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
 echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null || true
@@ -154,6 +154,7 @@ echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null || true
 echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
 echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
 echo 0 > /proc/sys/vm/percpu_pagelist_fraction 2>/dev/null || true
+echo 10 > /proc/sys/vm/stat_interval 2>/dev/null || true
 
 # MGLRU Multigenerational LRU
 if [ -f /sys/kernel/mm/lru_gen/enabled ]; then
@@ -172,11 +173,19 @@ echo 1 > /proc/sys/kernel/sched_burst_smoothness_down 2>/dev/null || true
 echo 60000000 > /proc/sys/kernel/sched_burst_cache_lifetime 2>/dev/null || true
 echo 2 > /proc/sys/kernel/sched_burst_fork_atavistic 2>/dev/null || true
 
-# ZRAM Queue
+# ZRAM Queue Optimization — Zero latency, no merging, no iostats overhead
 if [ -d /sys/block/zram0/queue ]; then
     echo 0 > /sys/block/zram0/queue/read_ahead_kb 2>/dev/null || true
     echo 2 > /sys/block/zram0/queue/rq_affinity 2>/dev/null || true
+    echo 2 > /sys/block/zram0/queue/nomerges 2>/dev/null || true
+    echo 0 > /sys/block/zram0/queue/iostats 2>/dev/null || true
+    echo 0 > /sys/block/zram0/queue/add_random 2>/dev/null || true
 fi
+
+# F2FS In-Place Updates (IPU Policy 18: F2FS_IPU_FORCE | F2FS_IPU_FSYNC)
+for f in /sys/fs/f2fs/*/ipu_policy; do
+    [ -f "$f" ] && echo 18 > "$f" 2>/dev/null || true
+done
 
 # Adreno 612 GPU Baseline
 if [ -d /sys/class/kgsl/kgsl-3d0 ]; then
