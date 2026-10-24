@@ -21,6 +21,7 @@
 #include "runtime/ksud_boot.h"
 #include "feature/kernel_umount.h"
 #include "manager/manager_identity.h"
+#include "manager/throne_tracker.h"
 #include "selinux/selinux.h"
 #include "infra/file_wrapper.h"
 #include "hook/hook_manager.h"
@@ -53,9 +54,11 @@ static int do_get_info(void __user *arg)
 		.version = (KERNEL_SU_VERSION >= 30000) ? KERNEL_SU_VERSION : 30639,
 		.flags = 0,
 		.features = KSU_FEATURE_MAX,
-		.uapi_version = KERNEL_SU_UAPI_VERSION,
+		.uapi_version = 5,
 	};
 	struct ksu_get_info_cmd in_cmd = { 0 };
+	const char *pkg = NULL;
+	uid_t uid = current_uid().val;
 
 	if (ksuver_override) {
 		cmd.version = ksuver_override;
@@ -75,19 +78,31 @@ static int do_get_info(void __user *arg)
 	}
 
 	/*
-	 * Seamless Dual-Manager UAPI Negotiation:
-	 * - Official KernelSU (v3.3.1+ / ksud / backslashxx): UAPI 6
-	 * - KernelSU-Next (rifsxd / datura): UAPI 5 / 6
+	 * Dynamic Isolated Dual-Manager & Tool UAPI Negotiation:
+	 * - Normal / Official KernelSU Manager APK (me.weishu.kernelsu): needs UAPI 6.
+	 * - KernelSU-Next Manager APK (io.github.rifsxd.ksunext / Next): needs UAPI 5.
+	 * - ksud 3.3.1 CLI tool (comm == "ksud"): needs UAPI 5.
 	 *
-	 * If user-space explicitly passes uapi_version == 5 (legacy tool or specific Next build),
-	 * honor it. Otherwise, return UAPI 6 so official KernelSU manager displays full compatibility
-	 * without triggering the "Kernel update required" banner or [LEGACY] badge.
+	 * 1. Check calling manager package: if caller is official KernelSU, default to 6.
+	 * 2. If caller is ksud or KernelSU-Next, default to 5.
+	 * 3. Honor explicit in_cmd.uapi_version if requested.
 	 */
+	pkg = ksu_get_manager_pkg_by_uid(uid);
+	if (pkg && strcmp(pkg, "me.weishu.kernelsu") == 0) {
+		cmd.uapi_version = 6;
+	} else {
+		cmd.uapi_version = 5;
+	}
+
 	if (copy_from_user(&in_cmd, arg, sizeof(in_cmd)) == 0) {
-		if (in_cmd.uapi_version == 5)
-			cmd.uapi_version = 5;
-		else if (in_cmd.uapi_version >= 6)
+		if (in_cmd.uapi_version == 6)
 			cmd.uapi_version = 6;
+		else if (in_cmd.uapi_version == 5)
+			cmd.uapi_version = 5;
+	}
+
+	if (strcmp(current->comm, "ksud") == 0) {
+		cmd.uapi_version = 5;
 	}
 
 #ifndef KSU_NO_PREINIT
@@ -376,8 +391,18 @@ static int do_uid_should_umount(void __user *arg)
 static int do_get_manager_appid(void __user *arg)
 {
 	struct ksu_get_manager_appid_cmd cmd;
+	uid_t current_appid = current_uid().val % KSU_PER_USER_RANGE;
 
-	cmd.appid = ksu_get_manager_appid();
+	/* Dynamic Dual-Manager Isolation:
+	 * If the calling process is ANY valid crowned manager (Next or Official),
+	 * report its own appid so both manager apps recognize themselves as active
+	 * without fighting over the crown or reporting that root is uninstalled.
+	 */
+	if (is_uid_manager(current_uid().val)) {
+		cmd.appid = current_appid;
+	} else {
+		cmd.appid = ksu_get_manager_appid();
+	}
 
 	if (copy_to_user(arg, &cmd, sizeof(cmd))) {
 		pr_err("get_manager_appid: copy_to_user failed\n");

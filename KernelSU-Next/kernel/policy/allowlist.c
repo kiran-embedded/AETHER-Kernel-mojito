@@ -312,8 +312,8 @@ bool ksu_uid_should_umount(uid_t uid)
 {
     struct app_profile *profile;
     bool res;
-    if (likely(ksu_is_manager_appid_valid()) && unlikely(ksu_get_manager_appid() == uid % PER_USER_RANGE)) {
-        // we should not umount on manager!
+    if (likely(ksu_is_manager_appid_valid()) && unlikely(is_uid_manager(uid))) {
+        // we should not umount on ANY crowned manager!
         return false;
     }
 #ifdef CONFIG_KSU_DISABLE_POLICY

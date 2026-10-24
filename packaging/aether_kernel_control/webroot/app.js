@@ -7,19 +7,14 @@ const termLogs = document.getElementById('termLogs');
 const toastBox = document.getElementById('toastBox');
 let logLineCount = 0;
 
-// Live Terminal Logger
+// Live Terminal Logger (Buffered to eliminate layout lag)
+const logBuffer = [];
 function logKernel(msg) {
   const time = new Date().toLocaleTimeString();
-  const line = `[${time}] ${msg}\n`;
-  if (termLogs) {
-    termLogs.textContent += line;
-    logLineCount++;
-    // Keep last 250 lines to prevent DOM stutter
-    if (logLineCount > 250) {
-      const lines = termLogs.textContent.split('\n');
-      termLogs.textContent = lines.slice(lines.length - 150).join('\n');
-      logLineCount = 150;
-    }
+  logBuffer.push(`[${time}] ${msg}\n`);
+  if (logBuffer.length > 150) logBuffer.shift();
+  if (termLogs && termLogs.offsetParent !== null) {
+    termLogs.textContent = logBuffer.join('');
     termLogs.scrollTop = termLogs.scrollHeight;
   }
 }
@@ -1665,18 +1660,45 @@ function updateCutoffLabels() {
   }
 }
 
-// 1. Instant charge hold (the PMIC keeps the USB input path available).
+// 1. Instant charge hold / Bypass Charging (Immediate Real-Time Hardware Execution)
+async function applyInstantBypassRealtime(enable) {
+  triggerHaptic();
+  triggerUserChoice();
+  const val = enable ? '1' : '0';
+  const chgEn = enable ? '0' : '1';
+
+  if (badgeInstantBypass) {
+    badgeInstantBypass.textContent = enable ? '⚡ Charge Hold Active' : 'Off';
+    badgeInstantBypass.className = enable ? 'badge-pill active' : 'badge-pill';
+  }
+  updateCutoffLabels();
+  updateTileBadges();
+
+  const cmds = [
+    `echo "${val}" > /sys/kernel/aether/instant_bypass 2>/dev/null || true`,
+    `echo "${val}" > /sys/kernel/aether/aacc_idle_mode 2>/dev/null || true`,
+    `echo "${chgEn}" > /sys/class/power_supply/battery/charging_enabled 2>/dev/null || true`,
+    `echo "${chgEn}" > /sys/class/power_supply/battery/battery_charging_enabled 2>/dev/null || true`,
+    `echo "0" > /sys/class/power_supply/battery/input_suspend 2>/dev/null || true`,
+    `mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null || true`,
+    `printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${val}\\n" > /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null || true`,
+    `printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${val}\\n" > /data/adb/aether/cutoff.conf 2>/dev/null || true`
+  ].join('; ');
+
+  try {
+    await runCmd(cmds);
+    logKernel(`[POWER] Instant Bypass ${enable ? 'ENGAGED (Battery Charging Halted, Direct USB Power)' : 'RELEASED (Normal Fast Charging Restored)'}`);
+    showToast(enable ? '⚡ Instant Bypass Charging Active' : '⚡ Normal Charging Restored');
+  } catch (e) {
+    logKernel(`[POWER ERR] Bypass command failed: ${e && e.message ? e.message : e}`);
+    showToast('❌ Failed to toggle bypass charging');
+  }
+}
+
 if (chkInstantBypass) {
-  let prevBypass = chkInstantBypass.checked;
-  chkInstantBypass.addEventListener('change', () => {
-    updateCutoffLabels();
-    triggerUserChoice();
+  chkInstantBypass.addEventListener('change', async () => {
     const isBypass = chkInstantBypass.checked;
-    recordPendingChange('instant_bypass', 'Instant Charge Hold', isBypass ? 'Active' : 'Off', () => {
-      chkInstantBypass.checked = prevBypass;
-      updateCutoffLabels();
-      updateTileBadges();
-    });
+    await applyInstantBypassRealtime(isBypass);
   });
 }
 
@@ -3502,7 +3524,6 @@ echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fas
 
     logKernel('[INIT] ✓ Hardware nodes synchronized with AETHER kernel');
     updateTileBadges();
-    refreshSusfsLiveStatus(true);
     await updateTelemetry(true);
   } catch (err) {
     logKernel(`[INIT ERR] ${err && err.message ? err.message : err}`);
