@@ -30,6 +30,5 @@ if command -v magiskpolicy >/dev/null 2>&1; then
     magiskpolicy --live "allow system_app vendor_sysfs_graphics dir search" 2>/dev/null || true
     magiskpolicy --live "allow system_app vendor_sysfs_graphics file { ioctl read write getattr lock append map open watch watch_reads }" 2>/dev/null || true
     magiskpolicy --live "allow system_app sysfs dir search" 2>/dev/null || true
-    magiskpolicy --live "allow system_app sysfs file { ioctl read write getattr lock append map open watch watch_reads }" 2>/dev/null || true
-    magiskpolicy --live "allow untrusted_app sysfs file { ioctl read write getattr lock append map open watch watch_reads }" 2>/dev/null || true
+    magiskpolicy --live "allow system_app sysfs file { ioctl read getattr open }" 2>/dev/null || true
 fi

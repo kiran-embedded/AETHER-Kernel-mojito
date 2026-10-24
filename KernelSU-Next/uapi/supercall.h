@@ -10,7 +10,7 @@
 // 3: scoped su-session driver fd
 // 4: add KSU_GET_INFO_FLAG_BUNDLED
 // 5: add EVENT_SERVICES with a start/skip result
-#define KERNEL_SU_UAPI_VERSION 6
+#define KERNEL_SU_UAPI_VERSION 5
 
 /* Magic numbers for reboot hook to install fd */
 #define KSU_INSTALL_MAGIC1 0xDEADBEEF
