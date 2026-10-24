@@ -65,9 +65,11 @@ static inline bool is_manager(void)
 
 static inline uid_t ksu_get_manager_appid(void)
 {
+	if (ksu_manager_appid != (uid_t)KSU_INVALID_APPID)
+		return ksu_manager_appid;
 	if (ksu_manager_count > 0)
 		return ksu_manager_appids[0];
-	return ksu_manager_appid;
+	return (uid_t)KSU_INVALID_APPID;
 }
 
 static inline void ksu_set_manager_appid(uid_t appid)

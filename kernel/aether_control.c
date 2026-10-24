@@ -347,6 +347,12 @@ bool aether_is_bypass_active(void)
 }
 EXPORT_SYMBOL(aether_is_bypass_active);
 
+void aether_notify_usb_change(void)
+{
+	mod_delayed_work(system_wq, &aether_cutoff_work, 0);
+}
+EXPORT_SYMBOL(aether_notify_usb_change);
+
 static void aether_set_cp_charging_enabled(int enable)
 {
 	struct power_supply *cp_psy;
@@ -371,22 +377,90 @@ static void aether_set_cp_charging_enabled(int enable)
 static int aether_set_hardware_bypass(bool disable)
 {
 	struct votable *chg_dis = find_votable("CHG_DISABLE");
+	struct votable *usb_icl = find_votable("USB_ICL");
+	struct votable *fcc = find_votable("FCC");
 	struct power_supply *batt_psy = power_supply_get_by_name("battery");
-	union power_supply_propval val = { .intval = disable ? 0 : 1 };
+	struct power_supply *usb_psy = power_supply_get_by_name("usb");
+	struct power_supply *bms_psy = power_supply_get_by_name("bms");
+	union power_supply_propval chg_val = { .intval = disable ? 0 : 1 };
+	union power_supply_propval zero_val = { .intval = 0 };
 	int ret = 0;
 
+	/*
+	 * 1. PMIC Battery Charging Gate (CHG_DISABLE):
+	 * When disable == true (Bypass Active):
+	 * Halt current flow into the battery cell at PMIC silicon level.
+	 */
 	if (chg_dis)
 		vote(chg_dis, AETHER_CHARGE_HOLD_CLIENT, disable, 0);
 
-	if (batt_psy) {
-		power_supply_set_property(batt_psy, POWER_SUPPLY_PROP_CHARGING_ENABLED, &val);
-		power_supply_set_property(batt_psy, POWER_SUPPLY_PROP_BATTERY_CHARGING_ENABLED, &val);
-		power_supply_changed(batt_psy);
-		power_supply_put(batt_psy);
-	} else if (!chg_dis) {
-		return -ENODEV;
+	/*
+	 * 2. Battery Fast Charge Current (FCC):
+	 * Set battery charging current limit to 0 when in bypass mode.
+	 */
+	if (fcc)
+		vote(fcc, AETHER_CHARGE_HOLD_CLIENT, disable, 0);
+
+	/*
+	 * 3. Crucial Motherboard Power Keep-Alive (USB_ICL & Input Suspend):
+	 * Xiaomi's stock driver mistakenly shuts down USB input (0mA) if
+	 * BATTERY_CHARGING_ENABLED is set to 0, which cuts USB power and forces
+	 * motherboard drain from battery!
+	 *
+	 * To guarantee 100% DIRECT MOTHERBOARD POWER:
+	 * - Clear MAIN_CHG_SUSPEND_VOTER on USB_ICL!
+	 * - Clear MAIN_ICL_MIN_VOTER on USB_ICL!
+	 * - Clear USER_VOTER on USB_ICL!
+	 * - Keep USB input suspend strictly at 0!
+	 * - Vote AETHER_CHARGE_HOLD_CLIENT with 3000mA (3A) on USB_ICL so
+	 *   the motherboard draws maximum power directly from the charger!
+	 */
+	if (usb_icl) {
+		/* Never suspend the USB input rail */
+		vote(usb_icl, "MAIN_CHG_SUSPEND_VOTER", false, 0);
+		vote(usb_icl, "MAIN_ICL_MIN_VOTER", false, 0);
+		vote(usb_icl, "USER_VOTER", false, 0);
+		if (disable) {
+			/* Keep USB input wide open (up to 3A) for motherboard load */
+			vote(usb_icl, AETHER_CHARGE_HOLD_CLIENT, true, 3000000);
+		} else {
+			vote(usb_icl, AETHER_CHARGE_HOLD_CLIENT, false, 0);
+		}
 	}
 
+	/*
+	 * 4. Power Supply SysFS Properties:
+	 * - Keep input_suspend = 0 (USB VBUS stays connected to VSYS).
+	 * - Set charging_enabled = 0 (PMIC switch open).
+	 * - DO NOT set BATTERY_CHARGING_ENABLED to 0 (which would trigger the suspend voter).
+	 */
+	if (batt_psy) {
+		power_supply_set_property(batt_psy, POWER_SUPPLY_PROP_INPUT_SUSPEND, &zero_val);
+		power_supply_set_property(batt_psy, POWER_SUPPLY_PROP_CHARGING_ENABLED, &chg_val);
+		if (!disable) {
+			/* When restoring normal charging, re-enable battery charging */
+			power_supply_set_property(batt_psy, POWER_SUPPLY_PROP_BATTERY_CHARGING_ENABLED, &chg_val);
+		}
+		power_supply_changed(batt_psy);
+		power_supply_put(batt_psy);
+	}
+
+	if (usb_psy) {
+		power_supply_set_property(usb_psy, POWER_SUPPLY_PROP_INPUT_SUSPEND, &zero_val);
+		power_supply_changed(usb_psy);
+		power_supply_put(usb_psy);
+	}
+
+	if (bms_psy) {
+		power_supply_changed(bms_psy);
+		power_supply_put(bms_psy);
+	}
+
+	/*
+	 * 5. 33W Fastcharge Charge Pump (BQ2597x):
+	 * Disable the secondary direct-to-battery turbo pump during bypass
+	 * so all power routes safely through the primary PMIC to VSYS.
+	 */
 	aether_set_cp_charging_enabled(disable ? 0 : 1);
 
 	return ret;
@@ -490,14 +564,14 @@ static void aether_cutoff_workfunc(struct work_struct *work)
 			target_status = "STOCK_CONTROL (Exact Xiaomi Turbo Charging Active)";
 		}
 
-		/* Apply state transition using Qualcomm hardware votables */
-		if (target_disable && !aether_cutoff_hardware_active) {
+		/* Apply state transition or reinforce hardware keep-alive */
+		if (target_disable) {
 			aether_cutoff_hardware_active = true;
 			if (aether_set_hardware_bypass(true)) {
 				aether_cutoff_hardware_active = false;
 				target_status = "CHARGE_HOLD_ERROR (charger votable unavailable)";
 			}
-		} else if (!target_disable && aether_cutoff_hardware_active) {
+		} else if (aether_cutoff_hardware_active) {
 			aether_cutoff_hardware_active = false;
 			if (aether_set_hardware_bypass(false))
 				target_status = "CHARGE_RESTORE_ERROR (charger votable unavailable)";
@@ -619,8 +693,7 @@ static ssize_t charge_cutoff_limit_store(struct kobject *kobj, struct kobj_attri
 		return -EINVAL;
 
 	aether_charge_cutoff_limit = val;
-	cancel_delayed_work(&aether_cutoff_work);
-	schedule_delayed_work(&aether_cutoff_work, msecs_to_jiffies(1000));
+	mod_delayed_work(system_wq, &aether_cutoff_work, 0);
 	return count;
 }
 static struct kobj_attribute charge_cutoff_limit_attr = __ATTR_RW(charge_cutoff_limit);
@@ -639,8 +712,7 @@ static ssize_t charge_cutoff_mode_store(struct kobject *kobj, struct kobj_attrib
 		return -EINVAL;
 
 	aether_charge_cutoff_mode = !!val;
-	cancel_delayed_work(&aether_cutoff_work);
-	schedule_delayed_work(&aether_cutoff_work, msecs_to_jiffies(1000));
+	mod_delayed_work(system_wq, &aether_cutoff_work, 0);
 	return count;
 }
 static struct kobj_attribute charge_cutoff_mode_attr = __ATTR_RW(charge_cutoff_mode);
@@ -663,15 +735,14 @@ static ssize_t instant_bypass_store(struct kobject *kobj, struct kobj_attribute 
 		aether_cutoff_hardware_active = true;
 		aether_set_hardware_bypass(true);
 		snprintf(aether_cutoff_status_buf, sizeof(aether_cutoff_status_buf),
-			"CHARGE_HOLD_ACTIVE (Instant mode; USB input available)");
+			"CHARGE_HOLD_ACTIVE (Direct Motherboard Power; USB Input Active)");
 	} else {
 		aether_cutoff_hardware_active = false;
 		aether_set_hardware_bypass(false);
 		snprintf(aether_cutoff_status_buf, sizeof(aether_cutoff_status_buf),
 			"STOCK_CONTROL (Exact Xiaomi Turbo Charging Active)");
 	}
-	cancel_delayed_work(&aether_cutoff_work);
-	schedule_delayed_work(&aether_cutoff_work, msecs_to_jiffies(1000));
+	mod_delayed_work(system_wq, &aether_cutoff_work, 0);
 	return count;
 }
 static struct kobj_attribute instant_bypass_attr = __ATTR_RW(instant_bypass);

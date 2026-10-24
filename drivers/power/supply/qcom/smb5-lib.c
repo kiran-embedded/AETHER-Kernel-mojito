@@ -34,6 +34,8 @@
 #ifdef CONFIG_REVERSE_CHARGE
 #include <linux/gpio.h>
 #endif
+extern bool aether_is_bypass_active(void);
+extern void aether_notify_usb_change(void);
 
 
 typedef struct touchscreen_usb_piugin_data{
@@ -756,6 +758,12 @@ int smblib_set_charge_param(struct smb_charger *chg,
 int smblib_set_usb_suspend(struct smb_charger *chg, bool suspend)
 {
 	int rc = 0;
+
+	if (suspend && aether_is_bypass_active()) {
+		/* Keep USB input rail open for direct motherboard power during bypass */
+		suspend = false;
+	}
+
 	if (suspend)
 		vote(chg->icl_irq_disable_votable, USB_SUSPEND_VOTER,
 				true, 0);
@@ -1595,6 +1603,17 @@ int smblib_set_icl_current(struct smb_charger *chg, int icl_ua)
 	/* suspend if 25mA or less is requested */
 	bool suspend = (icl_ua <= USBIN_25MA);
 
+	if (aether_is_bypass_active()) {
+		/*
+		 * In AETHER Bypass mode, ensure wide-open USB input rail (up to 3A)
+		 * to power the motherboard directly under heavy CPU/display workloads
+		 * without draining from the battery.
+		 */
+		suspend = false;
+		if (icl_ua < 3000000)
+			icl_ua = 3000000;
+	}
+
 	/* Do not configure ICL from SW for DAM cables */
 	if (smblib_get_prop_typec_mode(chg) ==
 			    POWER_SUPPLY_TYPEC_SINK_DEBUG_ACCESSORY)
@@ -1861,6 +1880,9 @@ static int smblib_chg_disable_vote_callback(struct votable *votable, void *data,
 {
 	struct smb_charger *chg = data;
 	int rc;
+
+	if (aether_is_bypass_active())
+		chg_disable = 1;
 
 	rc = smblib_masked_write(chg, CHARGING_ENABLE_CMD_REG,
 				 CHARGING_ENABLE_CMD_BIT,
@@ -2176,6 +2198,12 @@ int smblib_get_prop_batt_status(struct smb_charger *chg,
 	int batt_health;
 	int rc, suspend = 0, vbus_now = 0, batt_temp = 0;
 
+	if (aether_is_bypass_active()) {
+		/* AETHER Bypass: Report NOT_CHARGING (honest battery state, device powered via USB) */
+		val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+		return 0;
+	}
+
 	if (chg->use_bq_pump && !chg->six_pin_step_charge_enable
 			&& (get_client_vote_locked(chg->usb_icl_votable,
 				MAIN_CHG_SUSPEND_VOTER) == 0)) {
@@ -2383,6 +2411,11 @@ int smblib_get_prop_batt_charge_type(struct smb_charger *chg,
 {
 	int rc;
 	u8 stat;
+
+	if (aether_is_bypass_active()) {
+		val->intval = POWER_SUPPLY_CHARGE_TYPE_NONE;
+		return 0;
+	}
 
 	rc = smblib_read(chg, BATTERY_CHARGER_STATUS_1_REG, &stat);
 	if (rc < 0) {
@@ -2708,6 +2741,11 @@ int smblib_set_prop_input_suspend(struct smb_charger *chg,
 {
 	int rc;
 
+	if (val->intval && aether_is_bypass_active()) {
+		/* Block USB suspend while AETHER bypass is active - motherboard must run on USB power */
+		return 0;
+	}
+
 	/* vote 0mA when suspended */
 	rc = vote(chg->usb_icl_votable, USER_VOTER, (bool)val->intval, 0);
 	if (rc < 0) {
@@ -2760,6 +2798,13 @@ int smblib_set_prop_battery_charging_enabled(struct smb_charger *chg,
   int rc;
 
   smblib_dbg(chg, PR_MISC, "%s intval= %x\n",__FUNCTION__,val->intval);
+
+  if (aether_is_bypass_active()) {
+	  /* In bypass mode, battery charging cell gate is strictly kept OFF */
+	  rc = smblib_masked_write(chg, CHARGING_ENABLE_CMD_REG,
+		  CHARGING_ENABLE_CMD_BIT, 0);
+	  return rc;
+  }
 
   if (1 == val->intval) {
 	  rc = smblib_masked_write(chg, CHARGING_ENABLE_CMD_REG,
@@ -4090,6 +4135,14 @@ int smblib_get_prop_usb_online(struct smb_charger *chg,
 	u8 stat;
 	int usb_present = 0;
 	union power_supply_propval pval = {0, };
+
+	if (aether_is_bypass_active()) {
+		rc = smblib_get_prop_usb_present(chg, &pval);
+		if (rc >= 0 && pval.intval) {
+			val->intval = true;
+			return 0;
+		}
+	}
 
 	if (get_client_vote_locked(chg->usb_icl_votable, USER_VOTER) == 0) {
 		val->intval = false;
@@ -6595,6 +6648,8 @@ irqreturn_t usb_plugin_irq_handler(int irq, void *data)
 		smblib_usb_plugin_hard_reset_locked(chg);
 	else
 		smblib_usb_plugin_locked(chg);
+
+	aether_notify_usb_change();
 
 	return IRQ_HANDLED;
 }

@@ -43,8 +43,6 @@ const char *ksu_get_manager_pkg_by_uid(uid_t uid)
 		if (ksu_managers[i].uid % KSU_PER_USER_RANGE == appid)
 			return ksu_managers[i].package;
 	}
-	if (ksu_crowned_count > 0)
-		return ksu_managers[0].package;
 	return NULL;
 }
 
@@ -52,6 +50,8 @@ const char *ksu_get_manager_pkg(void)
 {
 	return manager_pkg;
 }
+
+
 
 #define SYSTEM_PACKAGES_LIST_PATH "/data/system/packages.list"
 
@@ -460,6 +460,16 @@ void track_throne(bool prune_only)
 		pr_info("Searching manager in /data/app (crowned=%d)...\n", ksu_crowned_count);
 		search_manager("/data/app", 2, &uid_list);
 		pr_info("Search finished. Crowned count: %d\n", ksu_crowned_count);
+
+		/* Re-sync ksu_manager_appids and manager_pkg after search_manager discovered managers */
+		ksu_manager_count = 0;
+		for (i = 0; i < ksu_crowned_count && i < KSU_MAX_MANAGERS; i++) {
+			ksu_manager_appids[ksu_manager_count++] = ksu_managers[i].uid;
+		}
+		if (ksu_crowned_count > 0) {
+			ksu_manager_appid = ksu_managers[0].uid;
+			strscpy(manager_pkg, ksu_managers[0].package, sizeof(manager_pkg));
+		}
 	}
 
 prune:

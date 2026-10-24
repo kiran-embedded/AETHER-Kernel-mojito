@@ -111,69 +111,10 @@ check_tool() {
 # 4. Command Handling (clean, menuconfig, build)
 # ------------------------------------------------------------------------------
 
-# ── KSU variant pre-processing ─────────────────────────────────────────────
-# Usage:  ./build_aether.sh [build] [--ksu=next|stock]
-#         ./build_aether.sh --ksu=stock
-# Default: next  (KernelSU-Next — current behaviour unchanged)
+# ── KernelSU-Next Root Configuration ─────────────────────────────────────────
 KSU_VARIANT="next"
-
-for _arg in "$@"; do
-    case "$_arg" in
-        --ksu=next)  KSU_VARIANT="next"  ;;
-        --ksu=stock) KSU_VARIANT="stock" ;;
-        --ksu=*)
-            echo "Unknown --ksu value: $_arg"
-            echo "Valid options: --ksu=next  --ksu=stock"
-            exit 1
-            ;;
-    esac
-done
-
-# Filter out --ksu=* before passing remaining args to the main case
-_CLEAN_ARGS=()
-for _arg in "$@"; do
-    [[ "$_arg" == --ksu=* ]] || _CLEAN_ARGS+=("$_arg")
-done
-set -- "${_CLEAN_ARGS[@]}"
-
-info "KSU Variant: ${KSU_VARIANT^^}"
-
-# Inject variant choice into defconfig fragment for this build
-_DEFCONFIG_ORIG="arch/arm64/configs/${DEFCONFIG}"
-_DEFCONFIG_TMP="${OUT_DIR}/.aether_ksu_fragment.config"
-mkdir -p "${OUT_DIR}"
-
-if [[ "${KSU_VARIANT}" == "stock" ]]; then
-    info "Configuring KernelSU stock (UAPI v6) variant..."
-    # Write a config fragment that enables stock and disables Next
-    cat > "${_DEFCONFIG_TMP}" <<'KFRAG'
-# KSU variant: stock (tiann / UAPI v6)
-CONFIG_KSU=y
-# CONFIG_KSU_VARIANT_NEXT is not set
-CONFIG_KSU_VARIANT_STOCK=y
-CONFIG_KSU_STOCK=y
-# CONFIG_KSU_STOCK_DEBUG is not set
-CONFIG_KSU_STOCK_SUSFS=y
-# KSU-Next specific options disabled for stock build
-# CONFIG_KSU_MANUAL_HOOK is not set
-# CONFIG_KSU_DEBUG is not set
-KFRAG
-    MAKE_ARGS+=("KCONFIG_ALLCONFIG=${_DEFCONFIG_TMP}")
-    # Adjust ZIP name for stock variant
-    export AETHER_KSU_TAG="ksustock-uapiv6"
-else
-    info "Configuring KernelSU-Next variant (default)..."
-    # Write fragment that enforces Next is active
-    cat > "${_DEFCONFIG_TMP}" <<'KFRAG'
-# KSU variant: KernelSU-Next
-CONFIG_KSU=y
-CONFIG_KSU_VARIANT_NEXT=y
-# CONFIG_KSU_VARIANT_STOCK is not set
-CONFIG_KSU_MANUAL_HOOK=y
-KFRAG
-    MAKE_ARGS+=("KCONFIG_ALLCONFIG=${_DEFCONFIG_TMP}")
-    export AETHER_KSU_TAG="ksunext"
-fi
+export AETHER_KSU_TAG="ksunext"
+info "Configuring dedicated KernelSU-Next (Native UAPI v5 + SuSFS v2.3.0)..."
 
 case "${1:-build}" in
     clean)

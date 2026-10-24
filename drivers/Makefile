@@ -192,8 +192,6 @@ obj-$(CONFIG_ESOC)              += esoc/
 obj-$(CONFIG_GNSS_SIRF)		+= gnsssirf/
 obj-$(CONFIG_GNSS)		+= gnss/
 
-# ── Aether Dual-KSU Dynamic Dispatch ──────────────────────────────────
-# CONFIG_KSU_VARIANT_NEXT  → KernelSU-Next  (via kernelsu/ symlink)
-# CONFIG_KSU_VARIANT_STOCK → KernelSU stock (KernelSU/kernel/)
-# The dispatch/ sub-Makefile routes to the correct variant source tree.
-obj-$(CONFIG_KSU) += kernelsu-dispatch/
+# ── KernelSU-Next Root Subsystem ──────────────────────────────────────
+obj-$(CONFIG_KSU) += kernelsu/
+

@@ -37,14 +37,14 @@ function ksuExecBridge(command, options = {}) {
     const callbackName = `ksu_exec_cb_${Date.now()}_${callbackCounter++}`;
     let isResolved = false;
 
-    // Safety watchdog: never freeze or hang
+    // Safety watchdog: never freeze or hang (6s for heavier I/O)
     const watchdog = setTimeout(() => {
       if (!isResolved) {
         isResolved = true;
         try { delete window[callbackName]; } catch (e) {}
-        resolve({ errno: -1, stdout: '', stderr: 'Execution timeout (1.5s)' });
+        resolve({ errno: -1, stdout: '', stderr: 'Execution timeout (6s)' });
       }
-    }, 1500);
+    }, 6000);
 
     // Official KernelSU callback receiver
     window[callbackName] = (errno, stdout, stderr) => {
@@ -138,10 +138,19 @@ function ksuExecBridge(command, options = {}) {
   });
 }
 
-// Low-level command runner
+let ksuCmdQueue = Promise.resolve();
+function ksuExecBridgeQueued(command, options = {}) {
+  ksuCmdQueue = ksuCmdQueue.then(() => ksuExecBridge(command, options)).catch(err => {
+    logKernel(`[EXEC QUEUE ERR] ${err && err.message ? err.message : err}`);
+    return { errno: -1, stdout: '', stderr: String(err) };
+  });
+  return ksuCmdQueue;
+}
+
+// Low-level command runner (serialized root execution)
 async function runCmd(cmd, silent = false) {
   if (!silent) logKernel(`> ${cmd}`);
-  const res = await ksuExecBridge(cmd);
+  const res = await ksuExecBridgeQueued(cmd);
   const out = (res.stdout || '').trim();
   if (out && !silent) logKernel(`< ${out}`);
   if (res.stderr && res.stderr.trim() && !silent) logKernel(`[STDERR] ${res.stderr.trim()}`);
@@ -314,6 +323,24 @@ function restoreAllState(savedState) {
   if (!savedState) return false;
 
   try {
+    // 1. Critical Hardware Battery Care & Bypass: Always restore regardless of profile
+    if (savedState.chargeCutoff !== undefined && typeof selectedChargeCutoff !== 'undefined') {
+      selectedChargeCutoff = String(savedState.chargeCutoff);
+      document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === selectedChargeCutoff);
+      });
+    }
+    if (savedState.cutoffMode !== undefined && typeof selectedCutoffMode !== 'undefined') {
+      selectedCutoffMode = String(savedState.cutoffMode);
+      document.querySelectorAll('#gridCutoffMode .cutoff-mode-pill').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === selectedCutoffMode);
+      });
+    }
+    if (savedState.instantBypass !== undefined && typeof chkInstantBypass !== 'undefined' && chkInstantBypass) {
+      chkInstantBypass.checked = Boolean(savedState.instantBypass);
+    }
+    if (typeof updateCutoffLabels === 'function') updateCutoffLabels();
+
     if (savedState.userCustomized !== undefined) {
       userCustomized = Boolean(savedState.userCustomized);
     } else if (savedState.profile && savedState.profile !== 'default') {
@@ -490,7 +517,7 @@ function restoreAllState(savedState) {
       if (lblAdcGain) lblAdcGain.innerText = `${rngAdcGain.value} (${rngAdcGain.value <= 10 ? 'Quiet' : (rngAdcGain.value <= 12 ? 'Stock 30dB' : (rngAdcGain.value <= 13 ? 'Warm 33dB' : (rngAdcGain.value <= 14 ? 'Studio 35dB' : 'Max Safe 38dB')))})`;
       syncChips('#adcChips', String(rngAdcGain.value));
     }
-    if (typeof chkToggleBypass !== 'undefined' && chkToggleBypass && savedState.bypass !== undefined) chkToggleBypass.checked = savedState.bypass;
+    // instantBypass handled at top of restoreAllState
     if (typeof chkToggleTurboOverride !== 'undefined' && chkToggleTurboOverride && savedState.turbo !== undefined) chkToggleTurboOverride.checked = savedState.turbo;
     if (typeof chkToggleGlove !== 'undefined' && chkToggleGlove && savedState.glove !== undefined) chkToggleGlove.checked = savedState.glove;
     if (typeof chkToggleDcDim !== 'undefined' && chkToggleDcDim && savedState.dcDim !== undefined) chkToggleDcDim.checked = savedState.dcDim;
@@ -620,7 +647,7 @@ if (btnToggleTouchGuard) {
 // Intercept control taps when hard-locked
 document.addEventListener('click', (e) => {
   if (isTouchGuardLocked && e.target) {
-    if (e.target.closest('#btnToggleTouchGuard') || e.target.closest('#safetyGuardBar') || e.target.closest('.tab-item') || e.target.closest('#btnThemeToggle')) {
+    if (e.target.closest('#btnToggleTouchGuard') || e.target.closest('#safetyGuardBar') || e.target.closest('.tab-item') || e.target.closest('#btnThemeToggle') || e.target.closest('#cardBatteryProtection') || e.target.closest('.cutoff-pill') || e.target.closest('.cutoff-mode-pill') || e.target.closest('.toggle-switch')) {
       return;
     }
     const isControl = e.target.closest('.custom-slider') ||
@@ -641,69 +668,70 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ========================================================
-// PENDING CHANGES BAR (ZERO-LAG STAGING ARCHITECTURE)
+// LIVE RING-0 DIRECT & FLOATING REVERT-TO-DEFAULT POPUP
 // ========================================================
-const pendingChanges = new Map();
-const pendingChangesBar = document.getElementById('pendingChangesBar');
-const pendingCountNum = document.getElementById('pendingCountNum');
-const btnDiscardPending = document.getElementById('btnDiscardPending');
-const btnApplyPending = document.getElementById('btnApplyPending');
+const revertActionPopup = document.getElementById('revertActionPopup');
+const revertPopupTitle = document.getElementById('revertItemTitle') || document.getElementById('revertPopupTitle');
+const revertPopupVal = document.getElementById('revertItemVal') || document.getElementById('revertPopupVal');
+const btnRevertAction = document.getElementById('btnRevertAction');
+const btnRevertClose = document.getElementById('btnRevertClose');
 
-function recordPendingChange(key, displayName, newVal, revertFn) {
-  pendingChanges.set(key, { displayName, newVal, revertFn });
-  updatePendingBarUI();
+let activeRevertFn = null;
+let revertPopupTimer = null;
+
+function showLiveRevertPopup(displayName, newVal, revertFn) {
+  if (!revertActionPopup) return;
+  activeRevertFn = revertFn;
+  if (revertPopupTitle) revertPopupTitle.innerText = displayName || 'Setting Updated';
+  if (revertPopupVal) revertPopupVal.innerText = newVal || 'Live Applied';
+  revertActionPopup.classList.add('show');
+
+  clearTimeout(revertPopupTimer);
+  revertPopupTimer = setTimeout(() => {
+    revertActionPopup.classList.remove('show');
+  }, 4500);
 }
 
-function clearPendingChange(key) {
-  pendingChanges.delete(key);
-  updatePendingBarUI();
+if (btnRevertClose) {
+  btnRevertClose.addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearTimeout(revertPopupTimer);
+    if (revertActionPopup) revertActionPopup.classList.remove('show');
+  });
 }
 
-function clearAllPending() {
-  pendingChanges.clear();
-  updatePendingBarUI();
-}
-
-function updatePendingBarUI() {
-  const count = pendingChanges.size;
-  if (pendingCountNum) pendingCountNum.innerText = String(count);
-
-  if (count > 0) {
-    if (pendingChangesBar) pendingChangesBar.classList.add('show');
-    if (typeof btnApplyAll !== 'undefined' && btnApplyAll) {
-      btnApplyAll.innerText = `Apply Settings (${count} Pending) ⚡`;
-      btnApplyAll.classList.add('has-pending');
-    }
-  } else {
-    if (pendingChangesBar) pendingChangesBar.classList.remove('show');
-    if (typeof btnApplyAll !== 'undefined' && btnApplyAll) {
-      btnApplyAll.innerText = 'Apply Tweaks Now';
-      btnApplyAll.classList.remove('has-pending');
-    }
-  }
-}
-
-if (btnDiscardPending) {
-  btnDiscardPending.addEventListener('click', () => {
-    pendingChanges.forEach(item => {
-      if (typeof item.revertFn === 'function') {
-        try { item.revertFn(); } catch (e) {}
+if (btnRevertAction) {
+  btnRevertAction.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    clearTimeout(revertPopupTimer);
+    if (revertActionPopup) revertActionPopup.classList.remove('show');
+    if (typeof activeRevertFn === 'function') {
+      try {
+        await activeRevertFn();
+        triggerHapticTestClick(20);
+        showToast('↺ Reverted to default');
+        await executeApply(true);
+      } catch (err) {
+        logKernel(`[REVERT ERR] ${err && err.message ? err.message : err}`);
       }
-    });
-    pendingChanges.clear();
-    updatePendingBarUI();
-    triggerHapticTestClick(15);
-    showToast('↺ Discarded all accidental edits. Staged settings reset.');
+    }
   });
 }
 
-if (btnApplyPending) {
-  btnApplyPending.addEventListener('click', async () => {
-    await executeApply(false);
-    pendingChanges.clear();
-    updatePendingBarUI();
-  });
+// Debounced live applier for smooth 60fps slider updates
+const debouncedLiveApply = debounce(async () => {
+  await executeApply(true);
+}, 220);
+
+// Modernized live record: executes immediately live and shows Revert Popup
+function recordPendingChange(key, displayName, newVal, revertFn) {
+  showLiveRevertPopup(displayName, newVal, revertFn);
+  debouncedLiveApply();
 }
+
+function clearPendingChange(key) {}
+function clearAllPending() {}
+function updatePendingBarUI() {}
 
 // ========================================================
 // 1. THEME SWITCHER (Light & Dark Mode)
@@ -800,6 +828,7 @@ const statusCpuBoostTile = document.getElementById('statusCpuBoostTile');
 const statusGpuTile = document.getElementById('statusGpuTile');
 const statusBbr = document.getElementById('statusBbr');
 
+let isUserActionExecuting = false;
 let isTelemetryRunning = false;
 let telemetryTimer = null;
 let isPageVisible = !document.hidden;
@@ -808,7 +837,16 @@ let isPageVisible = !document.hidden;
 const BATCH_HARDWARE_CMD = `c=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo 1804000); g=$(cat /sys/class/kgsl/kgsl-3d0/gpuclk 2>/dev/null || cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq 2>/dev/null || echo 610000000); gb=$(cat /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage 2>/dev/null || echo 0); t=$(cat /sys/class/power_supply/battery/temp 2>/dev/null || echo 280); cap=$(cat /sys/class/power_supply/battery/capacity 2>/dev/null || echo 80); cyc=$(cat /sys/class/power_supply/bms/cycle_count 2>/dev/null || cat /sys/class/power_supply/battery/cycle_count 2>/dev/null || echo 142); hlth=$(cat /sys/class/power_supply/battery/health 2>/dev/null || cat /sys/class/power_supply/bms/health 2>/dev/null || echo Good); cstat=$(cat /sys/kernel/aether/charge_cutoff_status 2>/dev/null || echo "STOCK_CONTROL"); ibat=$(cat /sys/class/power_supply/battery/current_now 2>/dev/null || cat /sys/class/power_supply/bms/current_now 2>/dev/null || echo 0); fps=$(cat /sys/devices/platform/soc/ae00000.qcom,mdss_mdp/drm/card0/sde-crtc-0/measured_fps 2>/dev/null || cat /sys/class/graphics/fb0/measured_fps 2>/dev/null || echo 60.0); kp=$(cat /sys/kernel/kprofiles/kp_mode 2>/dev/null || echo 0); dc=$(cat /sys/kernel/aether/anti_flicker 2>/dev/null || echo 0); mavail=0; cached=0; while read -r k v _; do case "$k" in MemAvailable:) mavail=$v;; Cached:) cached=$v;; esac; done < /proc/meminfo; echo "$c|$g|$gb|$t|$cap|$cyc|$hlth|$cstat|$ibat|$fps|$kp|$dc|$mavail|$cached"`;
 
 async function updateTelemetry(force = false) {
-  if ((!isPageVisible && !force) || isTelemetryRunning) return;
+  if (!isPageVisible && !force) return;
+  if (isUserActionExecuting && !force) return;
+  if (isTelemetryRunning && !force) return;
+  if (isTelemetryRunning && force) {
+    let waitCount = 0;
+    while (isTelemetryRunning && waitCount < 10) {
+      await new Promise(r => setTimeout(r, 60));
+      waitCount++;
+    }
+  }
   isTelemetryRunning = true;
 
   try {
@@ -1614,15 +1652,17 @@ let selectedReadAhead = '512';
 function updateCutoffLabels() {
   if (badgeInstantBypass && chkInstantBypass) {
     if (chkInstantBypass.checked) {
-      badgeInstantBypass.innerText = '⚡ Charge Hold Active';
+      badgeInstantBypass.innerText = '⚡ Bypass ON';
       badgeInstantBypass.style.background = 'rgba(16, 185, 129, 0.2)';
       badgeInstantBypass.style.color = '#34d399';
       badgeInstantBypass.style.borderColor = '#10b981';
+      badgeInstantBypass.className = 'badge-pill active';
     } else {
       badgeInstantBypass.innerText = 'Off';
       badgeInstantBypass.style.background = 'var(--bg-input)';
       badgeInstantBypass.style.color = 'var(--text-muted)';
       badgeInstantBypass.style.borderColor = 'var(--border-subtle)';
+      badgeInstantBypass.className = 'badge-pill';
     }
   }
 
@@ -1643,7 +1683,7 @@ function updateCutoffLabels() {
 
   if (statusCutoffEngine) {
     if (chkInstantBypass && chkInstantBypass.checked) {
-      statusCutoffEngine.innerText = '⚡ Instant Charge Hold Active';
+      statusCutoffEngine.innerText = '⚡ Instant Bypass Active (Direct Power)';
       statusCutoffEngine.style.color = '#34d399';
     } else if (selectedChargeCutoff === '100') {
       const modeStr = selectedCutoffMode === '1' ? 'USB Hold' : 'Charge Pause';
@@ -1665,38 +1705,36 @@ async function applyInstantBypassRealtime(enable) {
   triggerHaptic();
   triggerUserChoice();
   const val = enable ? '1' : '0';
-  const chgEn = enable ? '0' : '1';
 
-  if (badgeInstantBypass) {
-    badgeInstantBypass.textContent = enable ? '⚡ Charge Hold Active' : 'Off';
-    badgeInstantBypass.className = enable ? 'badge-pill active' : 'badge-pill';
-  }
+  if (chkInstantBypass) chkInstantBypass.checked = enable;
   updateCutoffLabels();
-  updateTileBadges();
 
   const cmds = [
     `echo "${val}" > /sys/kernel/aether/instant_bypass 2>/dev/null || true`,
     `echo "${val}" > /sys/kernel/aether/aacc_idle_mode 2>/dev/null || true`,
-    `echo "${chgEn}" > /sys/class/power_supply/battery/charging_enabled 2>/dev/null || true`,
-    `echo "${chgEn}" > /sys/class/power_supply/battery/battery_charging_enabled 2>/dev/null || true`,
     `echo "0" > /sys/class/power_supply/battery/input_suspend 2>/dev/null || true`,
     `mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null || true`,
-    `printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${val}\\n" > /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null || true`,
-    `printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${val}\\n" > /data/adb/aether/cutoff.conf 2>/dev/null || true`
+    `printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${val}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`
   ].join('; ');
 
   try {
+    isUserActionExecuting = true;
     await runCmd(cmds);
-    logKernel(`[POWER] Instant Bypass ${enable ? 'ENGAGED (Battery Charging Halted, Direct USB Power)' : 'RELEASED (Normal Fast Charging Restored)'}`);
-    showToast(enable ? '⚡ Instant Bypass Charging Active' : '⚡ Normal Charging Restored');
+    saveAllState();
+    logKernel(`[POWER] Instant Bypass ${enable ? 'ENGAGED (Battery Charging Halted, Direct Motherboard Power)' : 'RELEASED (Normal Fast Charging Restored)'}`);
+    showToast(enable ? '⚡ Direct Motherboard Power Active' : '⚡ Normal Fast Charging Restored');
+    await updateTelemetry(true);
   } catch (e) {
     logKernel(`[POWER ERR] Bypass command failed: ${e && e.message ? e.message : e}`);
     showToast('❌ Failed to toggle bypass charging');
+  } finally {
+    isUserActionExecuting = false;
   }
 }
 
 if (chkInstantBypass) {
-  chkInstantBypass.addEventListener('change', async () => {
+  chkInstantBypass.addEventListener('change', async (e) => {
+    e.stopPropagation();
     const isBypass = chkInstantBypass.checked;
     await applyInstantBypassRealtime(isBypass);
   });
@@ -1707,12 +1745,14 @@ const statusKpMode = document.getElementById('statusKpMode');
 const chkToggleAutoKp = document.getElementById('chkToggleAutoKp');
 
 document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', (e) => {
+    const pill = btn || e.currentTarget || (e.target ? e.target.closest('.cutoff-pill') : null);
+    if (!pill) return;
     const prevActive = document.querySelector('#gridKpMode .cutoff-pill.active');
     const prevVal = prevActive ? prevActive.dataset.val : '0';
     document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const val = btn.dataset.val;
+    pill.classList.add('active');
+    const val = pill.dataset.val;
     const labels = ['Disabled (0)', 'Battery (1)', 'Balanced (2)', 'Performance (3)'];
     if (statusKpMode) {
       statusKpMode.innerText = labels[parseInt(val, 10)] || `Mode ${val}`;
@@ -1740,41 +1780,83 @@ if (chkToggleAutoKp) {
   });
 }
 
-// 2. Target Cutoff Limit Uniform Pills (Staged)
+// 2. Target Cutoff Limit Uniform Pills (Immediate Real-Time Hardware Execution)
+async function applyCutoffLimitRealtime(limitVal) {
+  const isInstBypass = (chkInstantBypass && chkInstantBypass.checked) ? '1' : '0';
+  const cmds = [
+    `echo "${limitVal}" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null || true`,
+    `mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null || true`,
+    `printf "CUTOFF_LIMIT=${limitVal}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`
+  ].join('; ');
+
+  try {
+    isUserActionExecuting = true;
+    await runCmd(cmds);
+    saveAllState();
+    logKernel(`[POWER] Target Cutoff Limit set to ${limitVal === '0' ? 'Off (Raw Stock)' : limitVal + '%'}`);
+    showToast(limitVal === '0' ? '⚡ Cutoff Disabled (Stock Turbo)' : `⚡ Hardware Cutoff Limit: ${limitVal}%`);
+    await updateTelemetry(true);
+  } catch (e) {
+    logKernel(`[POWER ERR] Cutoff limit command failed: ${e && e.message ? e.message : e}`);
+    showToast('❌ Failed to set cutoff limit');
+  } finally {
+    isUserActionExecuting = false;
+  }
+}
+
 document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const prev = selectedChargeCutoff;
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const pill = btn || e.currentTarget || (e.target ? e.target.closest('.cutoff-pill') : null);
+    const val = pill ? pill.dataset.val : null;
+    if (val === null || val === undefined) return;
     document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedChargeCutoff = btn.dataset.val;
-    updateCutoffLabels();
+    pill.classList.add('active');
+    selectedChargeCutoff = val;
+    triggerHaptic();
     triggerUserChoice();
-    recordPendingChange('charge_cutoff', 'Target Charge Cutoff', selectedChargeCutoff === '0' ? 'Off (Stock)' : `${selectedChargeCutoff}%`, () => {
-      selectedChargeCutoff = prev;
-      document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => {
-        b.classList.toggle('active', b.dataset.val === prev);
-      });
-      updateCutoffLabels();
-    });
+    updateCutoffLabels();
+    await applyCutoffLimitRealtime(val);
   });
 });
 
-// 3. Cutoff Behavior Mode Selector Pills (Staged)
+// 3. Cutoff Behavior Mode Selector Pills (Immediate Real-Time Hardware Execution)
+async function applyCutoffModeRealtime(modeVal) {
+  const isInstBypass = (chkInstantBypass && chkInstantBypass.checked) ? '1' : '0';
+  const cmds = [
+    `echo "${modeVal}" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null || true`,
+    `mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null || true`,
+    `printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${modeVal}\\nINSTANT_BYPASS=${isInstBypass}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`
+  ].join('; ');
+
+  try {
+    isUserActionExecuting = true;
+    await runCmd(cmds);
+    saveAllState();
+    logKernel(`[POWER] Cutoff Mode set to ${modeVal === '1' ? 'USB-Powered Hold' : 'Charge Pause'}`);
+    showToast(modeVal === '1' ? '⚡ Mode: USB-Powered Hold' : '❄️ Mode: PMIC Charge Pause');
+    await updateTelemetry(true);
+  } catch (e) {
+    logKernel(`[POWER ERR] Cutoff mode command failed: ${e && e.message ? e.message : e}`);
+    showToast('❌ Failed to set cutoff mode');
+  } finally {
+    isUserActionExecuting = false;
+  }
+}
+
 document.querySelectorAll('.cutoff-mode-pill').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const prev = selectedCutoffMode;
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const pill = btn || e.currentTarget || (e.target ? e.target.closest('.cutoff-mode-pill') : null);
+    const val = pill ? pill.dataset.val : null;
+    if (val === null || val === undefined) return;
     document.querySelectorAll('.cutoff-mode-pill').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedCutoffMode = btn.dataset.val;
-    updateCutoffLabels();
+    pill.classList.add('active');
+    selectedCutoffMode = val;
+    triggerHaptic();
     triggerUserChoice();
-    recordPendingChange('cutoff_mode', 'Cutoff Action Mode', selectedCutoffMode === '1' ? 'USB Hold' : 'Pause', () => {
-      selectedCutoffMode = prev;
-      document.querySelectorAll('.cutoff-mode-pill').forEach(b => {
-        b.classList.toggle('active', b.dataset.val === prev);
-      });
-      updateCutoffLabels();
-    });
+    updateCutoffLabels();
+    await applyCutoffModeRealtime(val);
   });
 });
 
@@ -1945,12 +2027,7 @@ document.querySelectorAll('.seg-btn-ra').forEach(btn => {
 
 // Dynamic Hardware Tile Badges
 function updateTileBadges() {
-  const statusBypass = document.getElementById('statusBypass') || document.getElementById('badgeInstantBypass');
-  const bypassChk = chkToggleBypass || chkInstantBypass;
-  if (statusBypass && bypassChk) {
-    statusBypass.innerText = bypassChk.checked ? 'Bypass ON (Zero Heat)' : 'Standard Charging';
-  }
-  if (typeof updateInstantBypassBadge === 'function') updateInstantBypassBadge();
+  if (typeof updateCutoffLabels === 'function') updateCutoffLabels();
 
 
   if (statusAudioProfile) {
@@ -3530,6 +3607,69 @@ echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fas
   }
 }
 
+// Fast live hardware ground truth synchronization for Battery & Cutoff Engine
+async function syncHardwareGroundTruth() {
+  try {
+    const raw = await runCmd(`
+      instb=$(cat /sys/kernel/aether/instant_bypass 2>/dev/null)
+      cutlim=$(cat /sys/kernel/aether/charge_cutoff_limit 2>/dev/null)
+      cutmod=$(cat /sys/kernel/aether/charge_cutoff_mode 2>/dev/null)
+      cstat=$(cat /sys/kernel/aether/charge_cutoff_status 2>/dev/null)
+      if [ -z "$instb" ] || [ "$instb" = "0" ]; then
+        if [ -f /data/adb/aether/cutoff.conf ]; then
+          . /data/adb/aether/cutoff.conf 2>/dev/null
+        elif [ -f /mnt/vendor/persist/aether/cutoff.conf ]; then
+          . /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null
+        fi
+        [ -n "$INSTANT_BYPASS" ] && instb="$INSTANT_BYPASS"
+        [ -z "$cutlim" ] && [ -n "$CUTOFF_LIMIT" ] && cutlim="$CUTOFF_LIMIT"
+        [ -z "$cutmod" ] && [ -n "$CUTOFF_MODE" ] && cutmod="$CUTOFF_MODE"
+      fi
+      echo "\${instb:-0}|\${cutlim:-100}|\${cutmod:-1}|\${cstat:-STOCK_CONTROL}"
+    `.trim(), true);
+
+    if (raw && raw.includes('|')) {
+      const parts = raw.trim().split('|');
+      const instb = (parts[0] || '').trim();
+      const cutlim = (parts[1] || '').trim();
+      const cutmod = (parts[2] || '').trim();
+      const cstat = (parts[3] || '').trim();
+
+      if (chkInstantBypass) {
+        chkInstantBypass.checked = (instb === '1');
+      }
+      if (cutlim && !isNaN(parseInt(cutlim, 10))) {
+        selectedChargeCutoff = String(parseInt(cutlim, 10));
+        document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => {
+          b.classList.toggle('active', b.dataset.val === selectedChargeCutoff);
+        });
+      }
+      if (cutmod && !isNaN(parseInt(cutmod, 10))) {
+        selectedCutoffMode = String(parseInt(cutmod, 10));
+        document.querySelectorAll('#gridCutoffMode .cutoff-mode-pill').forEach(b => {
+          b.classList.toggle('active', b.dataset.val === selectedCutoffMode);
+        });
+      }
+      if (typeof updateCutoffLabels === 'function') updateCutoffLabels();
+
+      if (valLiveCutoffStatus && cstat) {
+        valLiveCutoffStatus.innerText = cstat;
+        if (cstat.includes('CHARGE_HOLD_ACTIVE')) {
+          valLiveCutoffStatus.style.color = '#34d399';
+        } else if (cstat.includes('STANDBY_SUSPENDED')) {
+          valLiveCutoffStatus.style.color = '#fbbf24';
+        } else if (cstat.includes('CHARGING_ACTIVE')) {
+          valLiveCutoffStatus.style.color = 'var(--accent-cyan)';
+        } else {
+          valLiveCutoffStatus.style.color = 'var(--text-muted)';
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('syncHardwareGroundTruth err:', e);
+  }
+}
+
 // Initial Sync and Telemetry Start
 (async function initStartup() {
   // 1. Immediately restore state from localStorage (fast UI render)
@@ -3550,16 +3690,14 @@ echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fas
     }
   } catch (e) {}
 
-  // 3. Initialize Touch Guard accidental protection
-  try {
-    const savedTouchGuard = localStorage.getItem('touchGuardLocked');
-    isTouchGuardLocked = (savedTouchGuard === 'true');
-  } catch (e) {
-    isTouchGuardLocked = false;
-  }
+  // 3. Initialize Touch Guard accidental protection (defaults to active/interactive tweaking)
+  isTouchGuardLocked = false;
   updateTouchGuardUI();
 
+  // 4. Query live kernel power nodes as ultimate ground truth immediately
+  await syncHardwareGroundTruth();
+
   updateTileBadges();
-  setTimeout(initialHardwareSync, 350);
-  setTimeout(startTelemetryLoop, 700);
+  setTimeout(initialHardwareSync, 300);
+  setTimeout(startTelemetryLoop, 600);
 })();

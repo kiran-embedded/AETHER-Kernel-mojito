@@ -40,6 +40,7 @@
 #include <linux/notifier.h>
 #include <linux/msm_drm_notify.h>
 #include <linux/fb.h>
+extern bool aether_is_bypass_active(void);
 union power_supply_propval lct_therm_lvl_reserved;
 union power_supply_propval lct_therm_level;
 union power_supply_propval lct_therm_call_level = {LCT_THERM_CALL_LEVEL,};
@@ -891,6 +892,13 @@ static int smb5_usb_get_prop(struct power_supply *psy,
 		rc = smblib_get_prop_usb_present(chg, val);
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
+		if (aether_is_bypass_active()) {
+			rc = smblib_get_prop_usb_present(chg, val);
+			if (rc >= 0 && val->intval) {
+				val->intval = 1;
+				break;
+			}
+		}
 		rc = smblib_get_prop_usb_online(chg, val);
 		if (!val->intval)
 			break;
@@ -1945,9 +1953,17 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		val->intval = chg->fcc_stepper_enable;
 		break;
 	case POWER_SUPPLY_PROP_BATTERY_CHARGING_ENABLED:
+		if (aether_is_bypass_active()) {
+			val->intval = 0;
+			break;
+		}
 		rc = smblib_get_prop_battery_charging_enabled(chg, val);
 		break;
 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		if (aether_is_bypass_active()) {
+			val->intval = 0;
+			break;
+		}
 		rc = smblib_get_prop_charging_enabled(chg, val);
 		break;
 	case POWER_SUPPLY_PROP_BATTERY_CHARGING_LIMITED:
@@ -1997,6 +2013,11 @@ static int smb5_batt_set_prop(struct power_supply *psy,
 		rc = smblib_set_prop_batt_status(chg, val);
 		break;
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
+		if (val->intval && aether_is_bypass_active()) {
+			/* Block input suspend during AETHER hardware bypass - motherboard must stay powered from USB */
+			rc = 0;
+			break;
+		}
 		rc = smblib_set_prop_input_suspend(chg, val);
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
@@ -2086,6 +2107,12 @@ static int smb5_batt_set_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_BATTERY_CHARGING_ENABLED:
 		if (chg->use_bq_pump) {
 			if (val->intval == 0) {
+				if (aether_is_bypass_active()) {
+					/* Keep USB input open during AETHER bypass - direct motherboard power */
+					vote(chg->usb_icl_votable, MAIN_CHG_SUSPEND_VOTER, false, 0);
+					vote(chg->usb_icl_votable, MAIN_ICL_MIN_VOTER, false, 0);
+					break;
+				}
 				if (chg->six_pin_step_charge_enable)
 					vote(chg->usb_icl_votable, MAIN_ICL_MIN_VOTER,
 								true, MAIN_ICL_MIN);

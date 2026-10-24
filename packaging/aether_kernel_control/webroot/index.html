@@ -27,17 +27,17 @@
       </div>
     </header>
 
-    <!-- Hardware Safety Bar: Accidental Touch & Staging Protection -->
+    <!-- Master Hardware Safety Lock (Accidental Touch Protection) -->
     <section class="safety-guard-bar" id="safetyGuardBar">
       <div class="safety-guard-title">
-        <span class="safety-guard-icon" id="safetyGuardIcon">🛡️</span>
+        <span class="safety-guard-icon" id="safetyGuardIcon">🔓</span>
         <div>
-          <span class="safety-guard-heading" id="safetyGuardHeading">Accidental Protection: Active</span>
-          <span class="safety-guard-sub" id="safetyGuardSub">Tweak freely. Changes stage safely until "Apply Settings"</span>
+          <span class="safety-guard-heading" id="safetyGuardHeading">Live Hardware Control: Unlocked</span>
+          <span class="safety-guard-sub" id="safetyGuardSub">Live updates active. Changes write instantly to kernel.</span>
         </div>
       </div>
-      <button class="safety-guard-btn is-unlocked" id="btnToggleTouchGuard" title="Toggle Hard Touch Lock">
-        <span id="btnTouchGuardIcon">🔓</span> <span id="btnTouchGuardText">Touch Active</span>
+      <button class="safety-guard-btn is-unlocked" id="btnToggleTouchGuard" title="Toggle Accidental Touch Lock">
+        <span id="btnTouchGuardIcon">🔓</span> <span id="btnTouchGuardText">Unlocked</span>
       </button>
     </section>
 
@@ -1248,23 +1248,17 @@
 [Ready] Awaiting user input...</pre>
     </section>
 
-    <!-- Floating Pending Changes Bar (Zero-Lag Accidental Change Prevention) -->
-    <div class="pending-changes-bar" id="pendingChangesBar">
-      <div class="pending-changes-info">
-        <span class="pending-dot-pulse"></span>
-        <div class="pending-text-wrap">
-          <span class="pending-count-label"><strong id="pendingCountNum">0</strong> Pending Changes</span>
-          <span class="pending-sub-label">Staged safely • Tap to apply to kernel</span>
-        </div>
+    <!-- Floating Live Revert Popup (Interactive Instant Feedback) -->
+    <div class="revert-toast-popup" id="revertActionPopup">
+      <div class="revert-popup-badge">⚡ LIVE</div>
+      <div class="revert-popup-body">
+        <span class="revert-popup-title" id="revertItemTitle">Setting Updated</span>
+        <span class="revert-popup-val" id="revertItemVal">Applied to kernel</span>
       </div>
-      <div class="pending-actions">
-        <button class="btn-pending btn-discard" id="btnDiscardPending" title="Discard unapplied changes">
-          ↺ Discard
-        </button>
-        <button class="btn-pending btn-apply" id="btnApplyPending" title="Commit staged changes">
-          ⚡ Apply Settings
-        </button>
-      </div>
+      <button class="btn-revert-action" id="btnRevertAction" title="Revert setting to kernel stock default">
+        ↺ Revert
+      </button>
+      <button class="btn-revert-close" id="btnRevertClose" title="Dismiss">✕</button>
     </div>
 
     <!-- STICKY ACTION BAR -->
@@ -1279,14 +1273,14 @@
 
       <div class="dock-btn-row">
         <button class="btn-action btn-danger" id="btnResetDefaults" title="Restore factory safe settings">
-          🔄 Reset Defaults
+          🔄 Reset All Defaults
         </button>
-        <button class="btn-action btn-primary" id="btnApplyAll">
-          Apply Tweaks Now
-        </button>
+        <div class="live-hardware-badge" id="badgeLiveStatus">
+          <span class="pulse-dot"></span> Live Ring-0 Direct
+        </div>
       </div>
       <div class="toast-popup" id="toastBox">Settings applied successfully!</div>
-      <div class="touch-lock-toast" id="touchLockToast"><span>🛡️</span> Touch Locked: Tap "Touch Active" above to edit</div>
+      <div class="touch-lock-toast" id="touchLockToast"><span>🔒</span> Controls Locked: Tap "Unlocked" at top to adjust hardware</div>
     </footer>
 
   </div>

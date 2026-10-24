@@ -5942,31 +5942,13 @@ CONFIG_SBITMAP=y
 # CONFIG_STRING_SELFTEST is not set
 
 #
-# Aether Dual-KSU — Dynamic Variant Selection
-# ────────────────────────────────────────────
-# To switch variants, change KSU_VARIANT_NEXT → KSU_VARIANT_STOCK
-# (and vice-versa).  Only ONE variant may be set to =y at a time.
-#
-# VARIANT A — KernelSU-Next (default, current)
+# ── KernelSU-Next & SuSFS v2.3.0 ────────────────────────────────────
 CONFIG_KSU=y
-CONFIG_KSU_VARIANT_NEXT=y
-# CONFIG_KSU_VARIANT_STOCK is not set
-#
-# VARIANT B — KernelSU stock (tiann, UAPI v6)
-# To activate: set KSU_VARIANT_STOCK=y, comment out KSU_VARIANT_NEXT
-# CONFIG_KSU_VARIANT_STOCK=y
-# CONFIG_KSU_STOCK=y
-# CONFIG_KSU_STOCK_DEBUG is not set
-# CONFIG_KSU_STOCK_SUSFS=y
-#
-# ── KernelSU-Next options (active when KSU_VARIANT_NEXT=y) ──────────
 CONFIG_KSU_MANUAL_HOOK=y
 # CONFIG_KSU_DEBUG is not set
 # CONFIG_KSU_DISABLE_MANAGER is not set
 # CONFIG_KSU_DISABLE_POLICY is not set
 # CONFIG_KSU_ALLOWLIST_WORKAROUND is not set
-#
-# ── SUSFS (shared by both variants when supported) ──────────────────
 CONFIG_KSU_SUSFS=y
 CONFIG_KSU_SUSFS_SUS_PATH=y
 CONFIG_KSU_SUSFS_SUS_MOUNT=y

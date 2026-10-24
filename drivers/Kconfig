@@ -235,8 +235,6 @@ config TARGET_PROJECT_K7_CAMERA
         bool "Target Projet K7 CAMERA"
         default n
 
-# ── Aether Dual-KSU Dynamic Dispatch ──────────────────────────────
-# Provides CONFIG_KSU_VARIANT_NEXT / CONFIG_KSU_VARIANT_STOCK choice.
-# Both variants expose CONFIG_KSU=y for backwards compatibility.
-source "drivers/kernelsu-dispatch/Kconfig"
+# ── KernelSU-Next Root Subsystem ──────────────────────────────────
+source "drivers/kernelsu/Kconfig"
 endmenu

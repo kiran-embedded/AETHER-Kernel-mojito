@@ -858,20 +858,23 @@ input:checked + .toggle-track:before {
   transform: scale(0.95);
 }
 
-/* Hard Lock State when user specifically toggles lock */
+/* Hard Lock State when user specifically toggles lock (CPU/GPU sliders only) */
 body.sliders-locked .custom-slider,
-body.sliders-locked .chip-btn,
-body.sliders-locked select,
-body.sliders-locked .toggle-switch input,
-body.sliders-locked .seg-btn,
-body.sliders-locked .seg-btn-ra,
-body.sliders-locked .seg-btn-charge,
-body.sliders-locked .cutoff-pill,
-body.sliders-locked .cutoff-mode-pill {
+body.sliders-locked select {
   pointer-events: none !important;
   opacity: 0.55;
   filter: grayscale(0.5);
   cursor: not-allowed;
+}
+
+/* Critical Hardware Safety Controls: Always Interactive */
+.cutoff-pill,
+.cutoff-mode-pill,
+.toggle-switch,
+.toggle-switch input,
+#cardBatteryProtection,
+#cardBatteryProtection * {
+  pointer-events: auto !important;
 }
 
 body.sliders-locked .preset-row {
@@ -907,130 +910,124 @@ body.sliders-locked .preset-row {
   transform: translateX(-50%) translateY(0);
 }
 
-/* Floating Pending Changes Bar (Zero-Lag Staging) */
-.pending-changes-bar {
+/* Floating Live Revert Popup (Instant Hardware Response & Safe Undo) */
+.revert-toast-popup {
   position: fixed;
   bottom: 84px;
   left: 50%;
   transform: translateX(-50%) translateY(140%);
   width: calc(100% - 24px);
-  max-width: 580px;
-  background: rgba(2, 6, 16, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid #00d4ff;
-  box-shadow: 0 0 25px rgba(0, 212, 255, 0.35), 0 12px 30px rgba(0, 0, 0, 0.9);
+  max-width: 540px;
+  background: rgba(10, 18, 36, 0.96);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(0, 212, 255, 0.6);
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.3), 0 12px 32px rgba(0, 0, 0, 0.85);
   border-radius: var(--radius-md);
   padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  z-index: 1000;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s;
+  gap: 12px;
+  z-index: 9999;
+  transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.26s ease;
   opacity: 0;
   pointer-events: none;
 }
 
-.pending-changes-bar.show {
+.revert-toast-popup.show {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
   pointer-events: auto;
 }
 
-.pending-changes-info {
+.revert-popup-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  background: rgba(0, 212, 255, 0.15);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  padding: 4px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  gap: 4px;
 }
 
-.pending-dot-pulse {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background-color: #00d4ff;
-  box-shadow: 0 0 10px #00d4ff;
-  animation: pendingPulse 1.4s infinite;
-  flex-shrink: 0;
-}
-
-@keyframes pendingPulse {
-  0% { transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7); }
-  70% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 0 8px rgba(0, 212, 255, 0); }
-  100% { transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
-}
-
-.pending-text-wrap {
+.revert-popup-body {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 
-.pending-count-label {
-  font-size: 12.5px;
-  font-weight: 800;
-  color: #ffffff;
-  white-space: nowrap;
-}
-
-.pending-count-label strong {
-  color: #00d4ff;
-}
-
-.pending-sub-label {
-  font-size: 10px;
-  color: #94a3b8;
+.revert-popup-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.pending-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+.revert-popup-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.btn-pending {
-  padding: 8px 13px;
+.btn-revert-action {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 7px 12px;
   border-radius: var(--radius-sm);
   font-size: 11.5px;
   font-weight: 800;
   cursor: pointer;
-  border: none;
-  transition: transform var(--transition-fast), filter var(--transition-fast);
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--transition-fast);
 }
 
-.btn-pending:active {
+.btn-revert-action:active {
   transform: scale(0.95);
+  background: rgba(239, 68, 68, 0.32);
 }
 
-.btn-pending.btn-discard {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.35);
+.btn-revert-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
 }
 
-.btn-pending.btn-apply {
-  background: linear-gradient(135deg, #0284c7 0%, #00d4ff 100%);
-  color: #ffffff;
-  box-shadow: 0 0 14px rgba(0, 212, 255, 0.4);
+.btn-revert-close:hover {
+  color: var(--text-primary);
 }
 
-/* Pulsing on sticky Apply Tweaks button when changes pending */
-.btn-primary.has-pending {
-  background: linear-gradient(135deg, #0284c7 0%, #00d4ff 100%) !important;
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.5) !important;
-  animation: pendingBtnPulse 2s infinite;
-}
-
-@keyframes pendingBtnPulse {
-  0% { box-shadow: 0 0 10px rgba(0, 212, 255, 0.3); }
-  50% { box-shadow: 0 0 24px rgba(0, 212, 255, 0.65); }
-  100% { box-shadow: 0 0 10px rgba(0, 212, 255, 0.3); }
+.live-hardware-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: rgba(0, 212, 255, 0.08);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  white-space: nowrap;
 }
 
 /* ========================================================

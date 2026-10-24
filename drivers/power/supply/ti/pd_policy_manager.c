@@ -27,6 +27,8 @@
 
 #include "pd_policy_manager.h"
 
+extern bool aether_is_bypass_active(void);
+
 #define PD_SRC_PDO_TYPE_FIXED		0
 #define PD_SRC_PDO_TYPE_BATTERY		1
 #define PD_SRC_PDO_TYPE_VARIABLE	2
@@ -851,6 +853,24 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 	int thermal_level = 0;
 	static int curr_fcc_lmt, curr_ibus_lmt, retry_count;
 
+	if (aether_is_bypass_active()) {
+		if (pdpm->cp.charge_enabled) {
+			usbpd_pm_enable_cp(pdpm, false);
+			usbpd_pm_check_cp_enabled(pdpm);
+		}
+		if (pm_config.cp_sec_enable && pdpm->cp_sec.charge_enabled) {
+			usbpd_pm_enable_cp_sec(pdpm, false);
+			usbpd_pm_check_cp_sec_enabled(pdpm);
+		}
+		if (!pdpm->sw.charge_enabled || pdpm->sw.charge_limited) {
+			usbpd_pm_enable_sw(pdpm, true);
+			usbpd_pm_limit_sw(pdpm, false);
+			usbpd_pm_update_sw_status(pdpm);
+		}
+		usbpd_pm_move_state(pdpm, PD_PM_STATE_ENTRY);
+		return 1;
+	}
+
 	switch (pdpm->state) {
 	case PD_PM_STATE_ENTRY:
 		stop_sw = false;
@@ -1092,6 +1112,24 @@ static void usbpd_pm_workfunc(struct work_struct *work)
 	struct usbpd_pm *pdpm = container_of(work, struct usbpd_pm,
 					pm_work.work);
 
+	if (aether_is_bypass_active()) {
+		if (pdpm->cp.charge_enabled) {
+			usbpd_pm_enable_cp(pdpm, false);
+			usbpd_pm_check_cp_enabled(pdpm);
+		}
+		if (pm_config.cp_sec_enable && pdpm->cp_sec.charge_enabled) {
+			usbpd_pm_enable_cp_sec(pdpm, false);
+			usbpd_pm_check_cp_sec_enabled(pdpm);
+		}
+		if (!pdpm->sw.charge_enabled || pdpm->sw.charge_limited) {
+			usbpd_pm_enable_sw(pdpm, true);
+			usbpd_pm_limit_sw(pdpm, false);
+			usbpd_pm_update_sw_status(pdpm);
+		}
+		usbpd_pm_move_state(pdpm, PD_PM_STATE_ENTRY);
+		return;
+	}
+
 	usbpd_pm_update_sw_status(pdpm);
 	usbpd_pm_update_cp_status(pdpm);
 	usbpd_pm_update_cp_sec_status(pdpm);
@@ -1140,6 +1178,10 @@ static void usbpd_pd_contact(struct usbpd_pm *pdpm, bool connected)
 
 
 	if (connected) {
+		if (aether_is_bypass_active()) {
+			usbpd_pm_disconnect(pdpm);
+			return;
+		}
 		usbpd_pm_evaluate_src_caps(pdpm);
 		if (pdpm->pps_supported)
 			schedule_delayed_work(&pdpm->pm_work, 0);

@@ -54,6 +54,8 @@
 
 #include "cp_qc30.h"
 
+extern bool aether_is_bypass_active(void);
+
 #define BATT_MAX_CHG_VOLT		4400
 #define BATT_FAST_CHG_CURR		5400
 #define	BUS_OVP_THRESHOLD		12000
@@ -825,6 +827,20 @@ void cp_statemachine(unsigned int port)
 	int thermal_level = 0, usb_icl_value = 0;
 	static bool recovery;
 
+	if (aether_is_bypass_active()) {
+		if (pm_state.bq2597x.charge_enabled) {
+			cp_enable_fc(false);
+			cp_check_fc_enabled();
+		}
+		if (!pm_state.sw_chager.charge_enabled || pm_state.sw_chager.charge_limited) {
+			cp_reset_vbus_volt();
+			cp_enable_sw(true);
+			cp_update_sw_status();
+		}
+		cp_move_state(CP_STATE_DISCONNECT);
+		return;
+	}
+
 	if (!pm_state.bq2597x.vbus_pres) {
 		pm_state.state = CP_STATE_DISCONNECT;
 		recovery = true;
@@ -1118,6 +1134,20 @@ void cp_statemachine(unsigned int port)
 
 static void cp_workfunc(struct work_struct *work)
 {
+	if (aether_is_bypass_active()) {
+		if (pm_state.bq2597x.charge_enabled) {
+			cp_enable_fc(false);
+			cp_check_fc_enabled();
+		}
+		if (!pm_state.sw_chager.charge_enabled || pm_state.sw_chager.charge_limited) {
+			cp_reset_vbus_volt();
+			cp_enable_sw(true);
+			cp_update_sw_status();
+		}
+		cp_move_state(CP_STATE_DISCONNECT);
+		return;
+	}
+
 	cp_get_usb_type();
 
 	cp_update_sw_status();
@@ -1145,6 +1175,9 @@ static int cp_qc30_notifier_call(struct notifier_block *nb,
 	struct power_supply *psy = v;
 	static bool usb_hvdcp3_on;
 	if (ev != PSY_EVENT_PROP_CHANGED)
+		return NOTIFY_OK;
+
+	if (aether_is_bypass_active())
 		return NOTIFY_OK;
 
 	if (strcmp(psy->desc->name, "usb") == 0) {
