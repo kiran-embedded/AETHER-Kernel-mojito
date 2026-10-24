@@ -45,11 +45,16 @@ do
 done
 
 # Hardware Charge Cutoff & Bypass Persistence (Offline & Normal Boot)
+if [ -f /data/adb/aether/cutoff.conf ]; then
+    . /data/adb/aether/cutoff.conf 2>/dev/null
+fi
 if [ -f /mnt/vendor/persist/aether/cutoff.conf ]; then
     . /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null
-    [ -n "$CUTOFF_LIMIT" ] && echo "$CUTOFF_LIMIT" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null || true
-    [ -n "$CUTOFF_MODE" ] && echo "$CUTOFF_MODE" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null || true
 fi
+[ -n "$CUTOFF_LIMIT" ] && echo "$CUTOFF_LIMIT" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null || true
+[ -n "$CUTOFF_MODE" ] && echo "$CUTOFF_MODE" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null || true
+[ -n "$INSTANT_BYPASS" ] && echo "$INSTANT_BYPASS" > /sys/kernel/aether/instant_bypass 2>/dev/null || true
+
 
 # ── Userspace Framework Memory & LMKD Configuration ─────────────
 # Applied once at boot completion

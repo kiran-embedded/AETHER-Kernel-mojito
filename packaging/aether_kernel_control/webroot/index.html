@@ -327,19 +327,19 @@
         </div>
 
         <div class="btn-cutoff-grid" id="gridKpMode" style="grid-template-columns: repeat(4, 1fr);">
-          <button class="cutoff-pill active" data-val="0" id="kpBtn0">
+          <button class="cutoff-pill kp-pill active" data-val="0" id="kpBtn0">
             <span class="cutoff-pill-val">Off</span>
             <span class="cutoff-pill-sub">Default (0)</span>
           </button>
-          <button class="cutoff-pill" data-val="1" id="kpBtn1">
+          <button class="cutoff-pill kp-pill" data-val="1" id="kpBtn1">
             <span class="cutoff-pill-val">Battery</span>
             <span class="cutoff-pill-sub">Power (1)</span>
           </button>
-          <button class="cutoff-pill" data-val="2" id="kpBtn2">
+          <button class="cutoff-pill kp-pill" data-val="2" id="kpBtn2">
             <span class="cutoff-pill-val">Balanced</span>
             <span class="cutoff-pill-sub">Smooth (2)</span>
           </button>
-          <button class="cutoff-pill" data-val="3" id="kpBtn3">
+          <button class="cutoff-pill kp-pill" data-val="3" id="kpBtn3">
             <span class="cutoff-pill-val">Turbo</span>
             <span class="cutoff-pill-sub">Perf (3)</span>
           </button>
@@ -635,6 +635,12 @@
           </div>
           <p class="card-sub">Calibrated analog front-end gain for microphone preamplifiers. Safe upper limit strictly capped at 15 to prevent any signal clipping or hardware decimator freeze.</p>
           <input type="range" class="custom-slider" id="rngAdcGain" min="8" max="15" step="1" value="12">
+          <div class="preset-row" id="adcChips" style="margin-top: 8px;">
+            <button class="chip-btn" data-val="10" onclick="setAdcGainPreset('10')">10 (Quiet)</button>
+            <button class="chip-btn active" data-val="12" onclick="setAdcGainPreset('12')">12 (Stock 30dB)</button>
+            <button class="chip-btn" data-val="14" onclick="setAdcGainPreset('14')">14 (Studio 35dB)</button>
+            <button class="chip-btn" data-val="15" onclick="setAdcGainPreset('15')">15 (Max Safe)</button>
+          </div>
         </div>
 
         <!-- 6. Top Secondary Mic Gain -->
@@ -651,6 +657,12 @@
           <div class="slider-container">
             <input type="range" class="custom-slider" id="rngTopMic" min="-6" max="10" step="2" value="0">
           </div>
+          <div class="preset-row" id="topMicChips" style="margin-top: 8px;">
+            <button class="chip-btn" data-val="-2" onclick="setTopMicGain('-2')">-2 dB</button>
+            <button class="chip-btn active" data-val="0" onclick="setTopMicGain('0')">0 dB (Normal)</button>
+            <button class="chip-btn" data-val="2" onclick="setTopMicGain('2')">+2 dB (High Ref)</button>
+            <button class="chip-btn" data-val="4" onclick="setTopMicGain('4')">+4 dB</button>
+          </div>
         </div>
 
         <!-- 7. Bottom Primary Mic Gain -->
@@ -666,6 +678,12 @@
           <p class="card-sub">Fine-tunes digital decimator gain for primary talk mic. Strictly protected with a 96-integer ceiling (+12dB) to prevent any audio mute or decimator overflow.</p>
           <div class="slider-container">
             <input type="range" class="custom-slider" id="rngBottomMic" min="-6" max="10" step="2" value="0">
+          </div>
+          <div class="preset-row" id="bottomMicChips" style="margin-top: 8px;">
+            <button class="chip-btn active" data-val="0" onclick="setBottomMicGain('0')">0 dB (Stock)</button>
+            <button class="chip-btn" data-val="4" onclick="setBottomMicGain('4')">+4 dB (Voice)</button>
+            <button class="chip-btn" data-val="6" onclick="setBottomMicGain('6')">+6 dB (Loud)</button>
+            <button class="chip-btn" data-val="8" onclick="setBottomMicGain('8')">+8 dB (Studio)</button>
           </div>
         </div>
 
@@ -985,6 +1003,13 @@
           <span class="badge-val" id="lblMglruTtl">0 ms</span>
         </div>
         <input type="range" class="custom-slider" id="rngMglruTtl" min="0" max="3000" step="100" value="0">
+        <div class="preset-row" id="mglruChips" style="margin-top: 8px;">
+          <button class="chip-btn active" data-val="0" onclick="setMglruPreset('0')">0 ms (Stock)</button>
+          <button class="chip-btn" data-val="500" onclick="setMglruPreset('500')">500 ms (Gaming)</button>
+          <button class="chip-btn" data-val="1000" onclick="setMglruPreset('1000')">1000 ms (Fluid UI)</button>
+          <button class="chip-btn" data-val="2000" onclick="setMglruPreset('2000')">2000 ms (Multitask)</button>
+          <button class="chip-btn" data-val="3000" onclick="setMglruPreset('3000')">3000 ms (Max Retention)</button>
+        </div>
 
         <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">

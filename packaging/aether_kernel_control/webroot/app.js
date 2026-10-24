@@ -280,6 +280,8 @@ function getUiState() {
     ioSched: (typeof selIoSched !== 'undefined' && selIoSched) ? selIoSched.value : 'mq-deadline',
     schedtuneIdle: (typeof chkSchedtuneIdle !== 'undefined' && chkSchedtuneIdle) ? chkSchedtuneIdle.checked : true,
     tcpLowat: (typeof chkTcpLowat !== 'undefined' && chkTcpLowat) ? chkTcpLowat.checked : true,
+    kpMode: (document.querySelector('#gridKpMode .cutoff-pill.active') ? document.querySelector('#gridKpMode .cutoff-pill.active').dataset.val : '0'),
+    autoKp: (typeof chkToggleAutoKp !== 'undefined' && chkToggleAutoKp) ? chkToggleAutoKp.checked : true,
   };
 }
 
@@ -365,7 +367,7 @@ function restoreAllState(savedState) {
     }
     if (savedState.chargeCutoff !== undefined && typeof selectedChargeCutoff !== 'undefined') {
       selectedChargeCutoff = String(savedState.chargeCutoff);
-      document.querySelectorAll('.cutoff-pill').forEach(b => {
+      document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => {
         b.classList.toggle('active', b.dataset.val === selectedChargeCutoff);
       });
     }
@@ -506,6 +508,19 @@ function restoreAllState(savedState) {
       chkAudioBypass.checked = true;
     }
     updateAudioBypassUI();
+
+    if (savedState.kpMode !== undefined) {
+      document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === String(savedState.kpMode));
+      });
+      if (statusKpMode) {
+        const labels = ['Disabled (0)', 'Battery (1)', 'Balanced (2)', 'Performance (3)'];
+        statusKpMode.innerText = labels[parseInt(savedState.kpMode, 10)] || `Mode ${savedState.kpMode}`;
+      }
+    }
+    if (savedState.autoKp !== undefined && typeof chkToggleAutoKp !== 'undefined' && chkToggleAutoKp) {
+      chkToggleAutoKp.checked = Boolean(savedState.autoKp);
+    }
 
     updateTileBadges();
     userSettingsRestored = true;
@@ -1693,21 +1708,18 @@ if (chkToggleAutoKp) {
 }
 
 // 2. Target Cutoff Limit Uniform Pills (Staged)
-document.querySelectorAll('.cutoff-pill').forEach(btn => {
-  if (btn.closest('#gridKpMode')) return;
+document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(btn => {
   btn.addEventListener('click', () => {
     const prev = selectedChargeCutoff;
-    document.querySelectorAll('.cutoff-pill').forEach(b => {
-      if (!b.closest('#gridKpMode')) b.classList.remove('active');
-    });
+    document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedChargeCutoff = btn.dataset.val;
     updateCutoffLabels();
     triggerUserChoice();
     recordPendingChange('charge_cutoff', 'Target Charge Cutoff', selectedChargeCutoff === '0' ? 'Off (Stock)' : `${selectedChargeCutoff}%`, () => {
       selectedChargeCutoff = prev;
-      document.querySelectorAll('.cutoff-pill').forEach(b => {
-        if (!b.closest('#gridKpMode')) b.classList.toggle('active', b.dataset.val === prev);
+      document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === prev);
       });
       updateCutoffLabels();
     });
@@ -2541,8 +2553,12 @@ async function applyProfile(mode) {
     if (chkAudioBypass) chkAudioBypass.checked = true;
     updateAudioBypassUI();
     selectedChargeCutoff = '0';
-    document.querySelectorAll('.cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '0'));
+    document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '0'));
     updateCutoffLabels();
+
+    document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '0'));
+    if (statusKpMode) statusKpMode.innerText = 'Disabled (0)';
+    if (chkToggleAutoKp) chkToggleAutoKp.checked = true;
 
     clearAllPending();
 
@@ -2690,6 +2706,15 @@ async function applyProfile(mode) {
   if (rngBottomMic) syncChips('#bottomMicChips', rngBottomMic.value);
   if (rngTopMic) syncChips('#topMicChips', rngTopMic.value);
 
+  const activeKpVal = mode === 'gaming' ? '3' : (mode === 'battery' ? '1' : '2');
+  document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === activeKpVal);
+  });
+  if (statusKpMode) {
+    const kpLabels = ['Disabled (0)', 'Battery (1)', 'Balanced (2)', 'Performance (3)'];
+    statusKpMode.innerText = kpLabels[parseInt(activeKpVal, 10)] || `Mode ${activeKpVal}`;
+  }
+
   currentProfileMode = mode;
   updateTileBadges();
   if (typeof updateCutoffLabels === 'function') updateCutoffLabels();
@@ -2794,12 +2819,22 @@ function buildHardwareScript() {
   cmds.push(`echo "${selectedCutoffMode}" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null`);
   const chargeLimitVal = selectedChargeLimit === '0' ? '6000000' : selectedChargeLimit;
   cmds.push(`echo "${chargeLimitVal}" > /sys/class/power_supply/battery/constant_charge_current_max 2>/dev/null`);
-  cmds.push(`if [ -d /mnt/vendor/persist/aether ]; then echo "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}" > /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null || true; fi`);
+  cmds.push(`echo "${chargeLimitVal}" > /sys/kernel/aether/charge_current_limit 2>/dev/null`);
+  cmds.push(`mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null || true`);
+  cmds.push(`printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" > /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null || true`);
+  cmds.push(`printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" > /data/adb/aether/cutoff.conf 2>/dev/null || true`);
 
   // Turbo Fastcharge Protocol Override
   const turboOverride = (chkToggleTurboOverride && chkToggleTurboOverride.checked) ? '1' : '0';
   cmds.push(`echo "${turboOverride}" > /sys/class/power_supply/battery/fastcharge_mode 2>/dev/null`);
-  cmds.push('echo "[OK] Power supply & charging limiters set"');
+
+  // KProfiles Ring-0 Hardware Governor & Auto-Battery
+  const activeKpBtn = document.querySelector('#gridKpMode .cutoff-pill.active');
+  const kpVal = activeKpBtn ? activeKpBtn.dataset.val : '0';
+  cmds.push(`[ -f /sys/kernel/kprofiles/kp_mode ] && echo "${kpVal}" > /sys/kernel/kprofiles/kp_mode 2>/dev/null`);
+  const isAutoKp = (chkToggleAutoKp && chkToggleAutoKp.checked) ? '1' : '0';
+  cmds.push(`[ -f /sys/module/kprofiles/parameters/auto_kp ] && echo "${isAutoKp}" > /sys/module/kprofiles/parameters/auto_kp 2>/dev/null`);
+  cmds.push('echo "[OK] Power supply, KProfiles driver & charging limiters set"');
 
   // Touch Glove Mode
   const glove = (chkToggleGlove && chkToggleGlove.checked) ? '1' : '0';
@@ -3232,7 +3267,9 @@ abypass=$(cat /sys/kernel/aether/audio_bypass_mode 2>/dev/null)
 tcpcc=$(cat /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null)
 glove=$(cat /sys/devices/platform/soc/*.i2c/i2c-*/1-*/fts_glove_mode 2>/dev/null || cat /sys/bus/i2c/drivers/fts_ts/*/fts_glove_mode 2>/dev/null || cat /sys/bus/i2c/drivers/ft3418_ts/*/fts_glove_mode 2>/dev/null || cat /sys/class/input/input*/fts_glove_mode 2>/dev/null || echo 0)
 mhpf=$(cat /sys/kernel/aether/mic_hpf_mode 2>/dev/null)
-echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fastm;;$dcdim;;$hbmv;;$uprt;;$bfreq;;$swapn;;$vfsc;;$mglrut;;$ra;;$iosched;;$stune;;$tcplow;;$tfo;;$ccur;;$abypass;;$tcpcc;;$glove;;$mhpf"
+kpmode=$(cat /sys/kernel/kprofiles/kp_mode 2>/dev/null || echo 0)
+autokp=$(cat /sys/module/kprofiles/parameters/auto_kp 2>/dev/null || echo 1)
+echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fastm;;$dcdim;;$hbmv;;$uprt;;$bfreq;;$swapn;;$vfsc;;$mglrut;;$ra;;$iosched;;$stune;;$tcplow;;$tfo;;$ccur;;$abypass;;$tcpcc;;$glove;;$mhpf;;$kpmode;;$autokp"
 `.trim();
 
     const raw = await runCmd(BATCH_INIT_CMD, true);
@@ -3302,7 +3339,7 @@ echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fas
       }
       if (kCutoffLimit && !isNaN(parseInt(kCutoffLimit, 10))) {
         selectedChargeCutoff = String(parseInt(kCutoffLimit, 10));
-        document.querySelectorAll('.cutoff-pill').forEach(b => {
+        document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => {
           b.classList.toggle('active', b.dataset.val === selectedChargeCutoff);
         });
       }
@@ -3434,6 +3471,20 @@ echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fas
         if (lblHpfVal) {
           lblHpfVal.innerText = hpfPreset === 'CF_NEG_3DB_150HZ' ? '150 Hz Filter' : (hpfPreset === 'CF_NEG_3DB_4HZ' ? '4 Hz Filter' : '75 Hz Filter');
         }
+      }
+      const kpmode = p[27]?.trim();
+      const autokp = p[28]?.trim();
+      if (kpmode && ['0', '1', '2', '3'].includes(kpmode)) {
+        document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => {
+          b.classList.toggle('active', b.dataset.val === kpmode);
+        });
+        if (statusKpMode) {
+          const kpLabels = ['Disabled (0)', 'Battery (1)', 'Balanced (2)', 'Performance (3)'];
+          statusKpMode.innerText = kpLabels[parseInt(kpmode, 10)] || `Mode ${kpmode}`;
+        }
+      }
+      if (chkToggleAutoKp && autokp) {
+        chkToggleAutoKp.checked = (autokp === '1');
       }
     }
 
