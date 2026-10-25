@@ -1009,13 +1009,13 @@
 
         <div class="slider-head" style="margin-top: 14px;">
           <label class="form-label">Multi-Gen LRU (MGLRU) Cache Protection TTL</label>
-          <span class="badge-val" id="lblMglruTtl">1000 ms</span>
+          <span class="badge-val" id="lblMglruTtl">0 ms</span>
         </div>
-        <input type="range" class="custom-slider" id="rngMglruTtl" min="0" max="3000" step="100" value="1000">
+        <input type="range" class="custom-slider" id="rngMglruTtl" min="0" max="3000" step="100" value="0">
         <div class="preset-row" id="mglruChips" style="margin-top: 8px;">
-          <button class="chip-btn" data-val="0" onclick="setMglruPreset('0')">0 ms (Stock)</button>
+          <button class="chip-btn active" data-val="0" onclick="setMglruPreset('0')">0 ms (Optimal)</button>
           <button class="chip-btn" data-val="500" onclick="setMglruPreset('500')">500 ms (Gaming)</button>
-          <button class="chip-btn active" data-val="1000" onclick="setMglruPreset('1000')">1000 ms (Fluid UI)</button>
+          <button class="chip-btn" data-val="1000" onclick="setMglruPreset('1000')">1000 ms (Fluid UI)</button>
           <button class="chip-btn" data-val="2000" onclick="setMglruPreset('2000')">2000 ms (Multitask)</button>
           <button class="chip-btn" data-val="3000" onclick="setMglruPreset('3000')">3000 ms (Max Retention)</button>
         </div>
