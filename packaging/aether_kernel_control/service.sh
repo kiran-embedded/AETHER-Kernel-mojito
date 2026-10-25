@@ -140,17 +140,17 @@ echo 1 > /sys/module/kprofiles/parameters/auto_kp 2>/dev/null || true
 echo 0 > /sys/kernel/kprofiles/kp_mode 2>/dev/null || true
 
 # 10. Core Memory & Scheduler Hardware Calibrations
-# Virtual Memory & ZRAM Swappiness (100 swappiness keeps plenty of RAM free via ZRAM)
-echo 100 > /proc/sys/vm/swappiness 2>/dev/null || true
+# Virtual Memory & ZRAM Swappiness (160 swappiness keeps plenty of RAM free via ZRAM under MGLRU)
+echo 160 > /proc/sys/vm/swappiness 2>/dev/null || true
 echo 0 > /proc/sys/vm/page-cluster 2>/dev/null || true
 echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
-echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
+echo 200 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
 echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
 echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null || true
 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null || true
 echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null || true
-echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
-echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
+echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
+echo 24576 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
 echo 0 > /proc/sys/vm/percpu_pagelist_fraction 2>/dev/null || true
 echo 1 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
 echo 0 > /proc/sys/vm/oom_dump_tasks 2>/dev/null || true

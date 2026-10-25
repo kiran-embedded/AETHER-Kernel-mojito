@@ -373,7 +373,7 @@ static void cp_update_fc_status(void)
 		pm_state.bq2597x.ibat_curr = pm_state.ibat_now;
 	}
 
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CHARGE_ENABLED, &val);
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CHARGING_ENABLED, &val);
 	if (!ret)
 		pm_state.bq2597x.charge_enabled = val.intval;
 
@@ -578,11 +578,11 @@ static int cp_reset_vbus_volt(void)
 		pr_err("vbat=%d,vbus=%d\n", pm_state.bq2597x.vbat_volt, pm_state.bq2597x.vbus_volt);
 		while (pm_state.bq2597x.vbus_volt > 6550) {
 			cp_tune_vbus_volt(VOLT_DOWN);
+			msleep(35);
 			cp_update_fc_status();
 			qc3p5_reset_vbus_retry++;
-			usleep_range(10000, 10010);
 			pr_err("qc3p5_reset_vbus_retry=%d,vbus=%d\n", qc3p5_reset_vbus_retry, pm_state.bq2597x.vbus_volt);
-			if (qc3p5_reset_vbus_retry > 300) {
+			if (qc3p5_reset_vbus_retry > 50) {
 				pr_err("Failed to reset qc3.5 adapter volt to 6.55v or less\n");
 				break;
 			}
@@ -763,6 +763,21 @@ static int cp_flash2_charge(unsigned int port)
 
 	cp_check_fc_enabled();
 
+	/* Seamless Handover Logic: Hand off from switching buck to charge pump smoothly */
+	if (pm_state.bq2597x.ibus_curr >= 500 && pm_state.sw_chager.charge_enabled) {
+		if (pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5) {
+			cp_enable_sw(false);
+			cp_update_sw_status();
+			pr_info("Charge pump active (ibus=%d mA), suspended switching charger\n",
+				pm_state.bq2597x.ibus_curr);
+		}
+	} else if (pm_state.bq2597x.ibus_curr < 250 && !pm_state.sw_chager.charge_enabled) {
+		cp_enable_sw(true);
+		cp_update_sw_status();
+		pr_info("Charge pump current low (ibus=%d mA), keeping switching charger active\n",
+			pm_state.bq2597x.ibus_curr);
+	}
+
 	/* battery overheat, stop charge */
 	if (pm_state.bq2597x.bat_therm_fault)
 		return -ADC_ERR;
@@ -860,6 +875,10 @@ void cp_statemachine(unsigned int port)
 		if (pm_state.fcc_votable)
 			vote(pm_state.fcc_votable, QC3P5_BQ_TAPER_FCC_VOTER,
 					false, 0);
+		if (!pm_state.usb_icl_votable)
+			pm_state.usb_icl_votable = find_votable("USB_ICL");
+		if (pm_state.usb_icl_votable)
+			vote(pm_state.usb_icl_votable, MAIN_CHG_VOTER, false, 0);
 		if (pm_state.bq2597x.charge_enabled) {
 			cp_enable_fc(false);
 			cp_check_fc_enabled();
@@ -939,8 +958,9 @@ void cp_statemachine(unsigned int port)
 		pr_err("vbat=%d,vbus=%d\n", pm_state.bq2597x.vbat_volt, pm_state.bq2597x.vbus_volt);
 		pr_info("enable sw charger and check enable\n");
 		cp_enable_sw(true);
-		usb_icl_value = cp_get_effective_usb_icl_val();
-		if (pm_state.usb_icl_votable && (usb_icl_value < QC3_MAIN_CHARGER_ICL))
+		if (!pm_state.usb_icl_votable)
+			pm_state.usb_icl_votable = find_votable("USB_ICL");
+		if (pm_state.usb_icl_votable)
 			vote(pm_state.usb_icl_votable, MAIN_CHG_VOTER, true, QC3_MAIN_CHARGER_ICL);
 
 		cp_update_sw_status();
@@ -1019,51 +1039,50 @@ void cp_statemachine(unsigned int port)
 		}
 		break;
 
-	case CP_STATE_FLASH2_ENTRY_1:
-		if (pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5) {
-			cp_update_fc_status();
-			pr_err("vbat=%d,vbus=%d\n", pm_state.bq2597x.vbat_volt, pm_state.bq2597x.vbus_volt);
-			while (pm_state.bq2597x.vbus_volt < (pm_state.bq2597x.vbat_volt * 2 + BUS_VOLT_INIT_UP - 50)) {
-				cp_tune_vbus_volt(VOLT_UP);
-				usleep_range(10000, 10010);
-				cp_update_fc_status();
-				tune_vbus_retry++;
-				pr_err("tune_vbus_retry=%d,vbus=%d\n", tune_vbus_retry, pm_state.bq2597x.vbus_volt);
-				if (tune_vbus_retry > 300) {
-					pr_err("Failed to tune qc3.5 adapter volt into valid range, charge with switching charger\n");
-					pm_state.sw_fc2_init_fail = true;
-					cp_move_state(CP_STATE_SW_ENTRY);
-					break;
-				}
-			}
-			cp_move_state(CP_STATE_FLASH2_ENTRY_3);
-		} else {
-			cp_update_fc_status();
-			if (pm_state.bq2597x.vbus_volt < (pm_state.bq2597x.vbat_volt * 2 + BUS_VOLT_INIT_UP - 50)) {
-				tune_vbus_retry++;
-				cp_tune_vbus_volt(VOLT_UP);
-			} else {
-				pr_err("voltage tuned above expected voltage, retry %d times\n", tune_vbus_retry);
-				cp_move_state(CP_STATE_FLASH2_ENTRY_3);
-				break;
-			}
+	case CP_STATE_FLASH2_ENTRY_1: {
+		int target_vbus;
 
-		if (tune_vbus_retry > 23) {
-			pr_err("Failed to tune adapter volt into valid range, charge with switching charger\n");
+		cp_update_fc_status();
+		target_vbus = pm_state.bq2597x.vbat_volt * 2 + BUS_VOLT_INIT_UP;
+		pr_info("FLASH2_ENTRY_1: vbat=%d, vbus=%d, target=%d, retry=%d\n",
+			pm_state.bq2597x.vbat_volt, pm_state.bq2597x.vbus_volt, target_vbus, tune_vbus_retry);
+
+		if (pm_state.bq2597x.vbus_volt < (target_vbus - 50)) {
+			tune_vbus_retry++;
+			cp_tune_vbus_volt(VOLT_UP);
+		} else if (pm_state.bq2597x.vbus_volt > (target_vbus + 200)) {
+			tune_vbus_retry++;
+			cp_tune_vbus_volt(VOLT_DOWN);
+		} else {
+			pr_info("vbus tuned to target window (%d mV, target %d mV), retry %d times\n",
+				pm_state.bq2597x.vbus_volt, target_vbus, tune_vbus_retry);
+			tune_vbus_retry = 0;
+			cp_move_state(CP_STATE_FLASH2_ENTRY_3);
+			break;
+		}
+
+		if (tune_vbus_retry > 35) {
+			pr_err("Failed to tune adapter volt into valid range (%d mV, target %d mV), charge with switching charger\n",
+				pm_state.bq2597x.vbus_volt, target_vbus);
 			pm_state.sw_fc2_init_fail = true;
 			recovery = true;
+			cp_enable_sw(true);
 			cp_move_state(CP_STATE_SW_ENTRY);
-		 }
 		}
 		break;
+	}
 
 	case CP_STATE_FLASH2_ENTRY_3:
 		if (pm_state.bq2597x.vbus_volt >
 				(pm_state.bq2597x.vbat_volt * 2 + BUS_VOLT_INIT_UP + 200)) {
-			pr_err("vbus volt is too high, wait it down\n");
-			/* voltage is too high, wait for voltage down, keep charge disabled to discharge */
+			pr_info("vbus volt is too high (%d mV), tune down\n", pm_state.bq2597x.vbus_volt);
+			cp_tune_vbus_volt(VOLT_DOWN);
+		} else if (pm_state.bq2597x.vbus_volt <
+				(pm_state.bq2597x.vbat_volt * 2 + BUS_VOLT_INIT_UP - 100)) {
+			pr_info("vbus volt is too low (%d mV), tune up\n", pm_state.bq2597x.vbus_volt);
+			cp_tune_vbus_volt(VOLT_UP);
 		} else {
-			pr_err("vbat volt is ok, enable flash charging\n");
+			pr_info("vbat volt is ok, enable flash charging\n");
 			if (!pm_state.bq2597x.charge_enabled) {
 				cp_enable_fc(true);
 				cp_check_fc_enabled();
@@ -1071,16 +1090,15 @@ void cp_statemachine(unsigned int port)
 					if (retry_enable_bq_count > 0)
 						retry_enable_bq_count = 0;
 					cp_move_state(CP_STATE_FLASH2_TUNE);
-					if (pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5) {
-						cp_enable_sw(false);
-						cp_update_sw_status();
-					}
+					/* Keep switching charger alive for seamless handover until BQ2597x draws current */
 				} else {
 					retry_enable_bq_count++;
 					if (retry_enable_bq_count < 5)
 						cp_move_state(CP_STATE_FLASH2_ENTRY_3);
-					else
+					else {
+						cp_enable_sw(true);
 						cp_move_state(CP_STATE_SW_ENTRY);
+					}
 				}
 			}
 			ibus_lmt_change_timer = 0;
@@ -1096,6 +1114,7 @@ void cp_statemachine(unsigned int port)
 			break;
 		} else if (ret == -CP_ENABLE_FAIL || ret == TAPER_DONE) {
 			pr_err("Move to switch charging:%d\n", ret);
+			cp_enable_sw(true);
 			cp_move_state(CP_STATE_SW_ENTRY);
 			break;
 		} else if (ret == CP_ENABLE_FAIL) {
@@ -1103,6 +1122,7 @@ void cp_statemachine(unsigned int port)
 			pr_err("Move to switch charging, will try to recover to flash charging:%d\n",
 					ret);
 			recovery = true;
+			cp_enable_sw(true);
 			cp_move_state(CP_STATE_SW_ENTRY);
 		} else {// normal tune adapter output
 			cp_move_state(CP_STATE_FLASH2_DELAY);

@@ -160,10 +160,11 @@ struct scan_control {
  * From 0 .. 100.  Higher means more swappy.
  */
 /*
- * AETHER: 100 swappiness enables seamless, balanced anonymous paging to
- * 4KB granular ZRAM (page-cluster = 0) without latency spikes or app kills.
+ * AETHER: 160 swappiness enables MGLRU to aggressively compress cold anonymous
+ * app pages (Contacts, Dialer, Settings) into ZRAM while keeping active file
+ * cache (page cache) hot in physical RAM, eliminating UI stutter and app kills.
  */
-int vm_swappiness = 100;
+int vm_swappiness = 160;
 /*
  * The total number of pages which are beyond the high watermark within all
  * zones.

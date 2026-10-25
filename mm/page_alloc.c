@@ -314,15 +314,15 @@ compound_page_dtor * const compound_page_dtors[] = {
 
 /*
  * AETHER In-Kernel Predictive Memory Architecture:
- * 48MB min_free_kbytes guarantees emergency allocation headroom.
- * 32MB extra_free_kbytes provides early kswapd proactive reclaim without
- * locking 400MB+ in artificial zone reserves.
- * 150 watermark_scale_factor (1.5%) creates smooth background paging increments.
+ * 32MB min_free_kbytes guarantees emergency allocation headroom for Camera/CMA.
+ * 24MB extra_free_kbytes provides early kswapd proactive reclaim without
+ * locking excessive RAM in artificial zone reserves.
+ * 200 watermark_scale_factor (2.0%) creates smooth background paging increments.
  */
-int min_free_kbytes = 16384;
+int min_free_kbytes = 32768;
 int user_min_free_kbytes = -1;
-int watermark_scale_factor = 150;
-int extra_free_kbytes = 0;
+int watermark_scale_factor = 200;
+int extra_free_kbytes = 24576;
 
 static unsigned long __meminitdata nr_kernel_pages;
 static unsigned long __meminitdata nr_all_pages;
@@ -7315,10 +7315,10 @@ int __meminit init_per_zone_wmark_min(void)
 	new_min_free_kbytes = int_sqrt(lowmem_kbytes * 16);
 
 	if (user_min_free_kbytes <= 0) {
-		/* AETHER: In-Kernel Predictive Memory Architecture Baseline (PDF Section 3.1 & 3.4) */
-		min_free_kbytes = 16384;
-		extra_free_kbytes = 0;
-		watermark_scale_factor = 150;
+		/* AETHER: In-Kernel Predictive Memory Architecture Baseline */
+		min_free_kbytes = 32768;
+		extra_free_kbytes = 24576;
+		watermark_scale_factor = 200;
 		percpu_pagelist_fraction = 0;
 	} else {
 		min_free_kbytes = user_min_free_kbytes;

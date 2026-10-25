@@ -74,8 +74,8 @@ enum hvdcp3_type {
 };
 
 #define MAIN_CHG_VOTER                  "MAIN_CHG_VOTER"
-#define QC3_MAIN_CHARGER_ICL            2000000
-#define QC3_CHARGER_ICL                 500000
+#define QC3_MAIN_CHARGER_ICL            3000000
+#define QC3_CHARGER_ICL                 1500000
 
 #define QC3P5_BQ_TAPER_FCC_VOTER       "QC3P5_BQ_TAPER_FCC_VOTER"
 #define QC3P5_BQ_TAPER_HYS_MV                  30
