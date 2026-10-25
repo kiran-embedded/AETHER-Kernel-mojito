@@ -275,6 +275,7 @@ static inline bool lru_gen_del_page(struct lruvec *lruvec, struct page *page, bo
 {
 	unsigned long flags;
 	int gen = page_lru_gen(page);
+	int old_gen = gen;
 
 	if (gen < 0)
 		return false;
@@ -286,6 +287,8 @@ static inline bool lru_gen_del_page(struct lruvec *lruvec, struct page *page, bo
 	flags = !reclaiming && lru_gen_is_active(lruvec, gen) ? BIT(PG_active) : 0;
 	flags = set_mask_bits(&page->flags, LRU_GEN_MASK, flags);
 	gen = ((flags & LRU_GEN_MASK) >> LRU_GEN_PGOFF) - 1;
+	if (gen < 0)
+		gen = old_gen;
 
 	lru_gen_update_size(lruvec, page, gen, -1);
 	list_del(&page->lru);
