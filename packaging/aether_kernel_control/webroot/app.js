@@ -179,8 +179,8 @@ function mockKernelResponse(cmd) {
   if (cmd.includes('input_boost_freq')) return '0:1017600 6:0';
   if (cmd.includes('charging_enabled')) return '1';
   if (cmd.includes('tcp_congestion_control')) return 'bbr';
-  if (cmd.includes('swappiness')) return '100';
-  if (cmd.includes('vfs_cache_pressure')) return '50';
+  if (cmd.includes('swappiness')) return '160';
+  if (cmd.includes('vfs_cache_pressure')) return '100';
   if (cmd.includes('min_ttl_ms')) return '0';
   if (cmd.includes('read_ahead_kb')) return '512';
   if (cmd.includes('fts_glove_mode')) return '0';
@@ -260,7 +260,7 @@ function getUiState() {
     boostDur: (typeof rngBoostDur !== 'undefined' && rngBoostDur) ? rngBoostDur.value : '64',
     boreState: (typeof selBoreState !== 'undefined' && selBoreState) ? selBoreState.value : '1',
     boreScale: (typeof selBoreScale !== 'undefined' && selBoreScale) ? selBoreScale.value : '1380',
-    swappiness: (typeof rngSwappiness !== 'undefined' && rngSwappiness) ? rngSwappiness.value : '100',
+    swappiness: (typeof rngSwappiness !== 'undefined' && rngSwappiness) ? rngSwappiness.value : '160',
     vfsCache: (typeof rngVfsCache !== 'undefined' && rngVfsCache) ? rngVfsCache.value : '100',
     mglruTtl: (typeof rngMglruTtl !== 'undefined' && rngMglruTtl) ? rngMglruTtl.value : '0',
     micDelay: (typeof rngMicDelay !== 'undefined' && rngMicDelay) ? rngMicDelay.value : '40',
@@ -2246,7 +2246,7 @@ const profileWarningDetails = {
     badge: 'Hardware Tuning Calibration',
     intro: 'You are activating the <strong>Stable Multitask</strong> profile calibrated from the hardware optimization report:',
     thermal: 'Dev pre-calibrated 180MHz GPU baseline with 66ms idle delay. Keeps device cool during prolonged multitasking.',
-    battery: 'Calibrated MGLRU 1000ms and Swappiness 60 balances memory retention without excessive background battery drain.',
+    battery: 'Calibrated MGLRU and Swappiness 160 balances memory retention to ZRAM without excessive background battery drain.',
     stability: 'BORE CFS 1280 scale and Sultan boost 64ms ensure smooth frame delivery while preventing wallpaper crashes.'
   },
   balanced: {
@@ -2431,16 +2431,16 @@ async function applyProfile(mode) {
     await runCmd('echo 60000000 > /proc/sys/kernel/sched_burst_cache_lifetime 2>/dev/null');
 
     // 6. Revert VM / MGLRU / UFS I/O to developer in-kernel calibrations
-    await runCmd('echo 100 > /proc/sys/vm/swappiness 2>/dev/null');
+    await runCmd('echo 160 > /proc/sys/vm/swappiness 2>/dev/null');
     await runCmd('echo 0 > /proc/sys/vm/page-cluster 2>/dev/null');
     await runCmd('echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null');
-    await runCmd('echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null');
+    await runCmd('echo 200 > /proc/sys/vm/watermark_scale_factor 2>/dev/null');
     await runCmd('echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null');
     await runCmd('echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null');
     await runCmd('echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null');
     await runCmd('echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null');
-    await runCmd('echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null');
-    await runCmd('echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null');
+    await runCmd('echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null');
+    await runCmd('echo 24576 > /proc/sys/vm/extra_free_kbytes 2>/dev/null');
     await runCmd('echo 1 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null');
     await runCmd('echo 0 > /proc/sys/vm/oom_dump_tasks 2>/dev/null');
     await runCmd('[ -f /sys/kernel/mm/lru_gen/min_ttl_ms ] && echo 0 > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null');
@@ -2458,7 +2458,7 @@ async function applyProfile(mode) {
     if (typeof selCpuMaxLittle !== 'undefined' && selCpuMaxLittle) selCpuMaxLittle.value = '1804800';
     if (typeof selCpuGovBig !== 'undefined' && selCpuGovBig) selCpuGovBig.value = 'schedutil';
     if (typeof selCpuMaxBig !== 'undefined' && selCpuMaxBig) selCpuMaxBig.value = '2208000';
-    if (rngSwappiness) { rngSwappiness.value = 100; if (lblSwappiness) lblSwappiness.innerText = '100'; }
+    if (rngSwappiness) { rngSwappiness.value = 160; if (lblSwappiness) lblSwappiness.innerText = '160'; }
     if (rngVfsCache) { rngVfsCache.value = 100; if (lblVfsCache) lblVfsCache.innerText = '100'; }
     if (rngMglruTtl) { rngMglruTtl.value = 0; if (lblMglruTtl) lblMglruTtl.innerText = '0 ms'; syncChips('#mglruChips', '0'); }
     if (selIoSched) selIoSched.value = 'mq-deadline';
@@ -2518,7 +2518,7 @@ async function applyProfile(mode) {
       if (rngMicDelay) rngMicDelay.value = 40;
       if (rngBottomMic) rngBottomMic.value = 6;
       if (rngTopMic) rngTopMic.value = 0;
-      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngSwappiness) rngSwappiness.value = 160;
       if (rngVfsCache) rngVfsCache.value = 100;
       if (rngMglruTtl) rngMglruTtl.value = 0;
       if (chkSchedtuneIdle) chkSchedtuneIdle.checked = true;
@@ -2543,7 +2543,7 @@ async function applyProfile(mode) {
       if (rngMicDelay) rngMicDelay.value = 40;
       if (rngBottomMic) rngBottomMic.value = 6;
       if (rngTopMic) rngTopMic.value = 0;
-      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngSwappiness) rngSwappiness.value = 160;
       if (rngVfsCache) rngVfsCache.value = 100;
       if (rngMglruTtl) rngMglruTtl.value = 0;
       if (selBoreScale) selBoreScale.value = '1380';
@@ -2564,7 +2564,7 @@ async function applyProfile(mode) {
       if (rngBoostDur) rngBoostDur.value = 80;
       if (chkToggleBypass) chkToggleBypass.checked = false;
       if (chkToggleBbr) chkToggleBbr.checked = true;
-      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngSwappiness) rngSwappiness.value = 160;
       if (rngVfsCache) rngVfsCache.value = 100;
       if (rngMglruTtl) rngMglruTtl.value = 0;
       if (rngMicDelay) rngMicDelay.value = 40;
@@ -2586,7 +2586,7 @@ async function applyProfile(mode) {
       if (selBoostHp) selBoostHp.value = '652800';
       if (rngBoostDur) rngBoostDur.value = 20;
       if (chkToggleBypass) chkToggleBypass.checked = false;
-      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngSwappiness) rngSwappiness.value = 160;
       if (rngVfsCache) rngVfsCache.value = 100;
       if (rngMglruTtl) rngMglruTtl.value = 0;
       selectedReadAhead = '256';
@@ -2605,7 +2605,7 @@ async function applyProfile(mode) {
       if (selBoostHp) selBoostHp.value = '1209600';
       if (rngBoostDur) rngBoostDur.value = 40;
       if (chkToggleBbr) chkToggleBbr.checked = true;
-      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngSwappiness) rngSwappiness.value = 160;
       if (rngVfsCache) rngVfsCache.value = 100;
       if (rngMglruTtl) rngMglruTtl.value = 0;
       selectedReadAhead = '384';
@@ -3187,8 +3187,8 @@ hbm_raw=$(cat /sys/devices/platform/soc/soc:qcom,dsi-display/hbm 2>/dev/null || 
 case "$hbm_raw" in 1|[Yy]*) hbmv=1 ;; *) hbmv=0 ;; esac
 uprt=$(cat /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null || cat /sys/devices/system/cpu/cpufreq/schedutil/up_rate_limit_us 2>/dev/null | tr -d "\\r\\n"); uprt=\${uprt:-500}
 bfreq=$(cat /sys/module/cpu_boost/parameters/input_boost_freq 2>/dev/null | tr "\\n" " " | tr -s " "); bfreq=\${bfreq:-0:1017600 6:0}
-swapn=$(cat /proc/sys/vm/swappiness 2>/dev/null | tr -d "\\r\\n"); swapn=\${swapn:-100}
-vfsc=$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null | tr -d "\\r\\n"); vfsc=\${vfsc:-50}
+swapn=$(cat /proc/sys/vm/swappiness 2>/dev/null | tr -d "\\r\\n"); swapn=\${swapn:-160}
+vfsc=$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null | tr -d "\\r\\n"); vfsc=\${vfsc:-100}
 mglrut=$(cat /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null | tr -d "\\r\\n"); mglrut=\${mglrut:-0}
 ra=$(cat /sys/block/sda/queue/read_ahead_kb 2>/dev/null | tr -d "\\r\\n"); ra=\${ra:-512}
 iosched=$(cat /sys/block/sda/queue/scheduler 2>/dev/null | grep -o "\\[.*\\]" | tr -d "[]" || echo "deadline"); iosched=\${iosched:-deadline}

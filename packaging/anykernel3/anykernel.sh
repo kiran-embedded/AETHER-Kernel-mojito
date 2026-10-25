@@ -553,21 +553,21 @@ if [ -b /dev/block/zram0 ]; then
 fi
 
 # ── 2. Virtual Memory — Core Tunables (PDF Section 3.1) ─────────────
-# SWAPPINESS: 100
-#   Allows MGLRU to seamlessly migrate cold anon pages to ZRAM without thrashing.
-echo 100 > /proc/sys/vm/swappiness 2>/dev/null || true
+# SWAPPINESS: 160
+#   Allows MGLRU to seamlessly migrate cold anon pages to ZRAM while preserving file cache.
+echo 160 > /proc/sys/vm/swappiness 2>/dev/null || true
 
 # VFS_CACHE_PRESSURE: 100 — Maintains balanced 1:1 reclaim ratio between dentry/inode caches and page cache
 echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
 
-# MIN_FREE_KBYTES: 16384 (16MB baseline)
-echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
+# MIN_FREE_KBYTES: 32768 (32MB baseline for smooth Camera/CMA allocation headroom)
+echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
 
-# EXTRA_FREE_KBYTES: 0 (default baseline)
-echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
+# EXTRA_FREE_KBYTES: 24576 (24MB early kswapd proactive reclaim buffer)
+echo 24576 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
 
-# WATERMARK_SCALE_FACTOR: 150 — widens free buffer gap to 1.5%-2.0%, eliminates direct reclaim freezes
-echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
+# WATERMARK_SCALE_FACTOR: 200 — widens free buffer gap to 2.0%, eliminates direct reclaim freezes
+echo 200 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
 
 # DIRTY WRITEBACK: Tuned for UFS + F2FS
 echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
