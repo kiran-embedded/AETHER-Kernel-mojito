@@ -160,10 +160,10 @@ struct scan_control {
  * From 0 .. 100.  Higher means more swappy.
  */
 /*
- * AETHER: 60 swappiness keeps anonymous pages hot while allowing gentle,
- * balanced paging to ZRAM under pressure, eliminating swap thrash and CPU spikes.
+ * AETHER: 100 swappiness enables seamless, balanced anonymous paging to
+ * 4KB granular ZRAM (page-cluster = 0) without latency spikes or app kills.
  */
-int vm_swappiness = 60;
+int vm_swappiness = 100;
 /*
  * The total number of pages which are beyond the high watermark within all
  * zones.

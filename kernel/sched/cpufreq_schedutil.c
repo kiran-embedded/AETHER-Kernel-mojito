@@ -967,9 +967,9 @@ static int sugov_init(struct cpufreq_policy *policy)
 		goto stop_kthread;
 	}
 
-	/* Avoid short burst frequency ping-pong on SM6150 while keeping UI wakeups responsive. */
-	tunables->up_rate_limit_us = 1000;
-	tunables->down_rate_limit_us = 30000;
+	/* AETHER: 500us up-rate delivers 0.5ms ultra-fast frequency ramp for stutter-free UI interactions */
+	tunables->up_rate_limit_us = 500;
+	tunables->down_rate_limit_us = 20000;
 	tunables->hispeed_load = DEFAULT_HISPEED_LOAD;
 	tunables->hispeed_freq = 0;
 

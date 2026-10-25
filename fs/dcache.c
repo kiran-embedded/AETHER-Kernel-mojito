@@ -81,8 +81,8 @@
  *   dentry1->d_lock
  *     dentry2->d_lock
  */
-/* AETHER: 50 cache pressure keeps app directory/inode handles cached, preventing background app kills on multitask */
-int sysctl_vfs_cache_pressure __read_mostly = 50;
+/* AETHER: 100 cache pressure balances page cache and dentry/inode reclaim smoothly */
+int sysctl_vfs_cache_pressure __read_mostly = 100;
 EXPORT_SYMBOL_GPL(sysctl_vfs_cache_pressure);
 
 __cacheline_aligned_in_smp DEFINE_SEQLOCK(rename_lock);
