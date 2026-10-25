@@ -137,12 +137,32 @@ done
 echo 1 > /proc/sys/kernel/sched_energy_aware 2>/dev/null || true
 echo 0 > /proc/sys/kernel/sched_walt_rotate_big_tasks 2>/dev/null || true
 echo 1 > /proc/sys/kernel/sched_cstate_aware 2>/dev/null || true
+echo 0 > /proc/sys/kernel/timer_migration 2>/dev/null || true
 echo 1 > /sys/module/workqueue/parameters/power_efficient 2>/dev/null || true
 echo 1 > /sys/module/printk/parameters/console_suspend 2>/dev/null || true
 echo "4 4 1 7" > /proc/sys/kernel/printk 2>/dev/null || true
+
+# Suspend & Freezer Acceleration: Drop into deep sleep in 1.5s instead of 20s
+echo 1 > /sys/power/pm_async 2>/dev/null || true
+echo 1500 > /sys/power/pm_freeze_timeout 2>/dev/null || true
+
+# Qualcomm LPM & C-State Deep Sleep Permissions (AOSS / RPM Power Collapse)
 echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled 2>/dev/null || true
 echo 1 > /sys/module/lpm_levels/parameters/lpm_prediction 2>/dev/null || true
 echo 1 > /sys/module/lpm_levels/parameters/lpm_ipi_prediction 2>/dev/null || true
+for s in /sys/module/lpm_levels/system/*/* /sys/module/lpm_levels/system/*/*/* /sys/module/lpm_levels/system/*/*/*/*; do
+    [ -f "$s/suspend_enabled" ] && echo Y > "$s/suspend_enabled" 2>/dev/null || true
+done
+
+# Android Fast Doze / Deep Sleep Calibration (Enters deep sleep in 30s instead of 30min)
+cmd device_config put device_idle light_after_inactive_to 15000 2>/dev/null || true
+cmd device_config put device_idle inactive_to 30000 2>/dev/null || true
+cmd device_config put device_idle sensing_to 0 2>/dev/null || true
+cmd device_config put device_idle locating_to 0 2>/dev/null || true
+cmd device_config put device_idle location_accuracy 20.0 2>/dev/null || true
+cmd device_config put device_idle motion_inactive_to 0 2>/dev/null || true
+cmd device_config put device_idle idle_after_inactive_to 0 2>/dev/null || true
+
 echo 1 > /sys/module/kprofiles/parameters/auto_kp 2>/dev/null || true
 echo 0 > /sys/kernel/kprofiles/kp_mode 2>/dev/null || true
 
@@ -160,6 +180,7 @@ echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
 echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
 echo 0 > /proc/sys/vm/percpu_pagelist_fraction 2>/dev/null || true
 echo 0 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
+echo 0 > /proc/sys/vm/oom_dump_tasks 2>/dev/null || true
 echo 10 > /proc/sys/vm/stat_interval 2>/dev/null || true
 
 # MGLRU Multigenerational LRU
