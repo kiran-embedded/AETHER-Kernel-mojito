@@ -159,6 +159,7 @@ echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null || true
 echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
 echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
 echo 0 > /proc/sys/vm/percpu_pagelist_fraction 2>/dev/null || true
+echo 0 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
 echo 10 > /proc/sys/vm/stat_interval 2>/dev/null || true
 
 # MGLRU Multigenerational LRU
@@ -167,7 +168,8 @@ if [ -f /sys/kernel/mm/lru_gen/enabled ]; then
     echo 1000 > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null || true
 fi
 
-# BORE Scheduler
+# BORE Scheduler & Schedstats Overhead Elimination
+echo 0 > /proc/sys/kernel/sched_schedstats 2>/dev/null || true
 echo 1 > /proc/sys/kernel/sched_bore 2>/dev/null || true
 echo 1380 > /proc/sys/kernel/sched_burst_penalty_scale 2>/dev/null || true
 echo 22 > /proc/sys/kernel/sched_burst_penalty_offset 2>/dev/null || true
@@ -205,6 +207,7 @@ fi
 # Network TCP Lowat Pacing & Fast Open
 echo 16384 > /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null || true
 echo 3 > /proc/sys/net/ipv4/tcp_fastopen 2>/dev/null || true
+setprop wifi.supplicant_scan_interval 180 2>/dev/null || true
 
 # Purge any legacy generic override scripts to guarantee dev-set kernel values are never overwritten
 rm -f /data/adb/aether/aether_tweaks.sh 2>/dev/null || true
@@ -258,10 +261,12 @@ fi
 # front_merges=1: deadline coalesces adjacent sequential writes
 # async_depth=32: 32 write requests in flight
 # write_expire=2000: wider window for write batching
-for _q in /sys/block/sda/queue /sys/block/sdb/queue /sys/block/sdc/queue; do
+for _q in /sys/block/sd*/queue; do
     [ -d "$_q" ] || continue
+    [ -f "$_q/scheduler" ] && echo mq-deadline > "$_q/scheduler" 2>/dev/null || true
     echo 0    > "$_q/add_random"                 2>/dev/null || true
     echo 0    > "$_q/iostats"                    2>/dev/null || true
+    echo 2    > "$_q/rq_affinity"                2>/dev/null || true
     echo 512  > "$_q/read_ahead_kb"              2>/dev/null || true
     echo 64   > "$_q/nr_requests"                2>/dev/null || true
     echo 1    > "$_q/iosched/front_merges"       2>/dev/null || true
