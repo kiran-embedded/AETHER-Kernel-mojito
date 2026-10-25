@@ -3819,11 +3819,11 @@ static bool age_lruvec(struct lruvec *lruvec, struct scan_control *sc, unsigned 
 }
 
 /*
- * AETHER: 1000ms (1 * HZ) minimum generation residency time.
- * Protects active working sets against aggressive eviction and thrashing
- * immediately at early boot before userspace sysfs scripts run.
+ * A non-zero TTL can turn ordinary memory pressure into an OOM kill when the
+ * protected working set is larger than available RAM. Leave it disabled by
+ * default; userspace may opt in temporarily for a latency-sensitive workload.
  */
-static unsigned long lru_gen_min_ttl __read_mostly = 1 * HZ;
+static unsigned long lru_gen_min_ttl __read_mostly;
 
 static void lru_gen_age_node(struct pglist_data *pgdat, struct scan_control *sc)
 {

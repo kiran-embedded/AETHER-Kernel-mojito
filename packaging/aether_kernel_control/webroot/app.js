@@ -179,13 +179,13 @@ function mockKernelResponse(cmd) {
   if (cmd.includes('input_boost_freq')) return '0:1017600 6:0';
   if (cmd.includes('charging_enabled')) return '1';
   if (cmd.includes('tcp_congestion_control')) return 'bbr';
-  if (cmd.includes('swappiness')) return '60';
+  if (cmd.includes('swappiness')) return '100';
   if (cmd.includes('vfs_cache_pressure')) return '50';
-  if (cmd.includes('min_ttl_ms')) return '1000';
+  if (cmd.includes('min_ttl_ms')) return '0';
   if (cmd.includes('read_ahead_kb')) return '512';
   if (cmd.includes('fts_glove_mode')) return '0';
-  if (cmd.includes('charge_cutoff_status')) return 'CHARGE_HOLD_ACTIVE (100% Full Cutoff; USB input available)';
-  if (cmd.includes('charge_cutoff_limit')) return '100';
+  if (cmd.includes('charge_cutoff_status')) return 'STOCK_CONTROL (Exact Xiaomi Turbo Charging Active)';
+  if (cmd.includes('charge_cutoff_limit')) return '0';
   if (cmd.includes('charge_cutoff_mode')) return '1';
   if (cmd.includes('instant_bypass')) return '0';
   if (cmd.includes('anti_flicker')) return '0';
@@ -244,7 +244,7 @@ function getUiState() {
     userCustomized: !!userCustomized,
     readAhead: typeof selectedReadAhead !== 'undefined' ? selectedReadAhead : '512',
     chargeLimit: typeof selectedChargeLimit !== 'undefined' ? selectedChargeLimit : '0',
-    chargeCutoff: typeof selectedChargeCutoff !== 'undefined' ? selectedChargeCutoff : '100',
+    chargeCutoff: typeof selectedChargeCutoff !== 'undefined' ? selectedChargeCutoff : '0',
     cutoffMode: typeof selectedCutoffMode !== 'undefined' ? selectedCutoffMode : '1',
     instantBypass: (typeof chkInstantBypass !== 'undefined' && chkInstantBypass) ? chkInstantBypass.checked : false,
     gpuGov: (typeof selGpuGov !== 'undefined' && selGpuGov) ? selGpuGov.value : 'msm-adreno-tz',
@@ -2431,7 +2431,7 @@ async function applyProfile(mode) {
     await runCmd('echo 60000000 > /proc/sys/kernel/sched_burst_cache_lifetime 2>/dev/null');
 
     // 6. Revert VM / MGLRU / UFS I/O to developer in-kernel calibrations
-    await runCmd('echo 60 > /proc/sys/vm/swappiness 2>/dev/null');
+    await runCmd('echo 100 > /proc/sys/vm/swappiness 2>/dev/null');
     await runCmd('echo 0 > /proc/sys/vm/page-cluster 2>/dev/null');
     await runCmd('echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null');
     await runCmd('echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null');
@@ -2439,7 +2439,7 @@ async function applyProfile(mode) {
     await runCmd('echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null');
     await runCmd('echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null');
     await runCmd('echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null');
-    await runCmd('[ -f /sys/kernel/mm/lru_gen/min_ttl_ms ] && echo 1000 > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null');
+    await runCmd('[ -f /sys/kernel/mm/lru_gen/min_ttl_ms ] && echo 0 > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null');
     await runCmd('[ -f /sys/block/sda/queue/read_ahead_kb ] && echo 512 > /sys/block/sda/queue/read_ahead_kb 2>/dev/null');
     await runCmd('[ -f /sys/block/sda/queue/scheduler ] && echo mq-deadline > /sys/block/sda/queue/scheduler 2>/dev/null || echo deadline > /sys/block/sda/queue/scheduler 2>/dev/null');
     await runCmd('[ -f /dev/stune/top-app/schedtune.prefer_idle ] && echo 1 > /dev/stune/top-app/schedtune.prefer_idle 2>/dev/null');
@@ -2454,9 +2454,9 @@ async function applyProfile(mode) {
     if (typeof selCpuMaxLittle !== 'undefined' && selCpuMaxLittle) selCpuMaxLittle.value = '1804800';
     if (typeof selCpuGovBig !== 'undefined' && selCpuGovBig) selCpuGovBig.value = 'schedutil';
     if (typeof selCpuMaxBig !== 'undefined' && selCpuMaxBig) selCpuMaxBig.value = '2208000';
-    if (rngSwappiness) { rngSwappiness.value = 60; if (lblSwappiness) lblSwappiness.innerText = '60'; }
+    if (rngSwappiness) { rngSwappiness.value = 100; if (lblSwappiness) lblSwappiness.innerText = '100'; }
     if (rngVfsCache) { rngVfsCache.value = 50; if (lblVfsCache) lblVfsCache.innerText = '50'; }
-    if (rngMglruTtl) { rngMglruTtl.value = 1000; if (lblMglruTtl) lblMglruTtl.innerText = '1000 ms'; syncChips('#mglruChips', '1000'); }
+    if (rngMglruTtl) { rngMglruTtl.value = 0; if (lblMglruTtl) lblMglruTtl.innerText = '0 ms'; syncChips('#mglruChips', '0'); }
     if (selIoSched) selIoSched.value = 'mq-deadline';
     selectedReadAhead = '512';
     document.querySelectorAll('.seg-btn-ra').forEach(b => b.classList.toggle('active', b.dataset.val === '512'));
@@ -2475,8 +2475,8 @@ async function applyProfile(mode) {
     if (chkToggleHbm) chkToggleHbm.checked = false;
     if (chkAudioBypass) chkAudioBypass.checked = true;
     updateAudioBypassUI();
-    selectedChargeCutoff = '100';
-    document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '100'));
+    selectedChargeCutoff = '0';
+    document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '0'));
     updateCutoffLabels();
 
     document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '0'));
@@ -3170,7 +3170,7 @@ bore=$(cat /proc/sys/kernel/sched_bore 2>/dev/null | tr -d "\\r\\n"); bore=\${bo
 bscale=$(cat /proc/sys/kernel/sched_burst_penalty_scale 2>/dev/null | tr -d "\\r\\n"); bscale=\${bscale:-1380}
 bdur=$(cat /sys/module/cpu_boost/parameters/input_boost_ms 2>/dev/null || cat /sys/module/cpu_input_boost/parameters/input_boost_duration 2>/dev/null | tr -d "\\r\\n"); bdur=\${bdur:-64}
 instb=$(cat /sys/kernel/aether/instant_bypass 2>/dev/null | tr -d "\\r\\n"); instb=\${instb:-0}
-cutlim=$(cat /sys/kernel/aether/charge_cutoff_limit 2>/dev/null | tr -d "\\r\\n"); cutlim=\${cutlim:-100}
+cutlim=$(cat /sys/kernel/aether/charge_cutoff_limit 2>/dev/null | tr -d "\\r\\n"); cutlim=\${cutlim:-0}
 cutmod=$(cat /sys/kernel/aether/charge_cutoff_mode 2>/dev/null | tr -d "\\r\\n"); cutmod=\${cutmod:-1}
 fastm=$(cat /sys/class/power_supply/battery/fastcharge_mode 2>/dev/null | tr -d "\\r\\n"); fastm=\${fastm:-0}
 dcdim_raw=$(cat /sys/kernel/aether/anti_flicker 2>/dev/null || cat /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker 2>/dev/null)
@@ -3179,9 +3179,9 @@ hbm_raw=$(cat /sys/devices/platform/soc/soc:qcom,dsi-display/hbm 2>/dev/null || 
 case "$hbm_raw" in 1|[Yy]*) hbmv=1 ;; *) hbmv=0 ;; esac
 uprt=$(cat /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null || cat /sys/devices/system/cpu/cpufreq/schedutil/up_rate_limit_us 2>/dev/null | tr -d "\\r\\n"); uprt=\${uprt:-500}
 bfreq=$(cat /sys/module/cpu_boost/parameters/input_boost_freq 2>/dev/null | tr "\\n" " " | tr -s " "); bfreq=\${bfreq:-0:1017600 6:0}
-swapn=$(cat /proc/sys/vm/swappiness 2>/dev/null | tr -d "\\r\\n"); swapn=\${swapn:-60}
+swapn=$(cat /proc/sys/vm/swappiness 2>/dev/null | tr -d "\\r\\n"); swapn=\${swapn:-100}
 vfsc=$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null | tr -d "\\r\\n"); vfsc=\${vfsc:-50}
-mglrut=$(cat /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null | tr -d "\\r\\n"); mglrut=\${mglrut:-1000}
+mglrut=$(cat /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null | tr -d "\\r\\n"); mglrut=\${mglrut:-0}
 ra=$(cat /sys/block/sda/queue/read_ahead_kb 2>/dev/null | tr -d "\\r\\n"); ra=\${ra:-512}
 iosched=$(cat /sys/block/sda/queue/scheduler 2>/dev/null | grep -o "\\[.*\\]" | tr -d "[]" || echo "deadline"); iosched=\${iosched:-deadline}
 stune=$(cat /dev/stune/top-app/schedtune.prefer_idle 2>/dev/null | tr -d "\\r\\n"); stune=\${stune:-1}

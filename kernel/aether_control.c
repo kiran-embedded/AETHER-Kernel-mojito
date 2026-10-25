@@ -331,7 +331,7 @@ static ssize_t status_show(struct kobject *kobj, struct kobj_attribute *attr, ch
 static struct kobj_attribute status_attr = __ATTR_RO(status);
 
 /* 8. Native Xiaomi PMIC charge-hold controller */
-static int aether_charge_cutoff_limit = 100; /* Default 100% Inbuilt Safety Cutoff, 50 - 100%, 0 = Disabled */
+static int aether_charge_cutoff_limit = 0; /* Default 0 = Stock 33W Turbo Charging (Disabled) */
 static int aether_charge_cutoff_mode = 1;  /* 0 = Cool Standby, 1 = Real Hardware Bypass */
 static int aether_instant_bypass;      /* 0 = Normal, 1 = Instant Direct USB Power */
 static bool aether_cutoff_hardware_active;
@@ -403,25 +403,13 @@ static int aether_set_hardware_bypass(bool disable)
 
 	/*
 	 * 3. Crucial Motherboard Power Keep-Alive (USB_ICL & Input Suspend):
-	 * Xiaomi's stock driver mistakenly shuts down USB input (0mA) if
-	 * BATTERY_CHARGING_ENABLED is set to 0, which cuts USB power and forces
-	 * motherboard drain from battery!
-	 *
-	 * To guarantee 100% DIRECT MOTHERBOARD POWER:
-	 * - Clear MAIN_CHG_SUSPEND_VOTER on USB_ICL!
-	 * - Clear MAIN_ICL_MIN_VOTER on USB_ICL!
-	 * - Clear USER_VOTER on USB_ICL!
-	 * - Keep USB input suspend strictly at 0!
-	 * - Vote AETHER_CHARGE_HOLD_CLIENT with 3000mA (3A) on USB_ICL so
-	 *   the motherboard draws maximum power directly from the charger!
+	 * In bypass mode, vote 3A on USB_ICL so motherboard draws maximum power.
+	 * In normal charging mode, release our vote so Qualcomm/Xiaomi algorithms dictate current.
+	 * (Never touch MAIN_CHG_SUSPEND_VOTER, MAIN_ICL_MIN_VOTER, or USER_VOTER as they are
+	 * dedicated to Xiaomi's BQ2597x 33W Charge Pump and USB suspend state machine).
 	 */
 	if (usb_icl) {
-		/* Never suspend the USB input rail */
-		vote(usb_icl, "MAIN_CHG_SUSPEND_VOTER", false, 0);
-		vote(usb_icl, "MAIN_ICL_MIN_VOTER", false, 0);
-		vote(usb_icl, "USER_VOTER", false, 0);
 		if (disable) {
-			/* Keep USB input wide open (up to 3A) for motherboard load */
 			vote(usb_icl, AETHER_CHARGE_HOLD_CLIENT, true, 3000000);
 		} else {
 			vote(usb_icl, AETHER_CHARGE_HOLD_CLIENT, false, 0);
@@ -430,9 +418,6 @@ static int aether_set_hardware_bypass(bool disable)
 
 	/*
 	 * 4. Power Supply SysFS Properties:
-	 * - Keep input_suspend = 0 (USB VBUS stays connected to VSYS).
-	 * - Set charging_enabled = 0 (PMIC switch open).
-	 * - DO NOT set BATTERY_CHARGING_ENABLED to 0 (which would trigger the suspend voter).
 	 */
 	if (batt_psy) {
 		power_supply_set_property(batt_psy, POWER_SUPPLY_PROP_INPUT_SUSPEND, &zero_val);
@@ -458,10 +443,12 @@ static int aether_set_hardware_bypass(bool disable)
 
 	/*
 	 * 5. 33W Fastcharge Charge Pump (BQ2597x):
-	 * Disable the secondary direct-to-battery turbo pump during bypass
-	 * so all power routes safely through the primary PMIC to VSYS.
+	 * Only disable during active bypass. When restoring charging, do NOT
+	 * force enable here; let Xiaomi's PD/QC policy manager enable it safely
+	 * after voltage tuning.
 	 */
-	aether_set_cp_charging_enabled(disable ? 0 : 1);
+	if (disable)
+		aether_set_cp_charging_enabled(0);
 
 	return ret;
 }
@@ -517,15 +504,10 @@ static void aether_cutoff_workfunc(struct work_struct *work)
 	int soc = -1;
 	bool power_connected = aether_is_power_connected();
 
-	bool is_full = false;
 	batt_psy = power_supply_get_by_name("battery");
 	if (batt_psy) {
 		if (power_supply_get_property(batt_psy, POWER_SUPPLY_PROP_CAPACITY, &pval) == 0)
 			soc = pval.intval;
-		if (power_supply_get_property(batt_psy, POWER_SUPPLY_PROP_STATUS, &pval) == 0) {
-			if (pval.intval == POWER_SUPPLY_STATUS_FULL)
-				is_full = true;
-		}
 		power_supply_put(batt_psy);
 	}
 
@@ -548,8 +530,8 @@ static void aether_cutoff_workfunc(struct work_struct *work)
 		if (aether_instant_bypass) {
 			target_disable = true;
 			target_status = "CHARGE_HOLD_ACTIVE (Instant mode; USB input available)";
-		} else if (aether_charge_cutoff_limit > 0 && (soc > 0 || is_full)) {
-			if (soc >= aether_charge_cutoff_limit || (aether_charge_cutoff_limit == 100 && is_full)) {
+		} else if (aether_charge_cutoff_limit > 0 && soc > 0) {
+			if (soc >= aether_charge_cutoff_limit) {
 				target_disable = true;
 				target_status = "CHARGE_HOLD_ACTIVE (Target reached; USB input available)";
 			} else if (aether_cutoff_hardware_active && soc > (aether_charge_cutoff_limit - 3)) {
@@ -589,7 +571,7 @@ reschedule:
 		 * - No features active + unplugged: STOP entirely (0 CPU wakes, allows SoC PC3/AOSS)
 		 * - Unplugged + cutoff configured: 60s (passive wait for charger reconnect)
 		 * - Unplugged + instant bypass forced: 30s (bypass without cable is a no-op)
-		 * - Plugged + no cutoff/bypass: 15s (lazy charger monitoring)
+		 * - Plugged + no cutoff/bypass: 30s (lazy charger monitoring)
 		 * - Bypass active: 10s (hardware votable holding steady)
 		 * - Plugged + approaching cutoff threshold: 5s (precise SOC cutoff)
 		 */
@@ -601,7 +583,7 @@ reschedule:
 		} else if (!power_connected && aether_instant_bypass) {
 			delay_ms = 30000; /* 30s: bypass without cable */
 		} else if (aether_charge_cutoff_limit <= 0 && !aether_instant_bypass) {
-			delay_ms = 15000; /* 15s: plugged but no cutoff/bypass */
+			delay_ms = 30000; /* 30s: plugged but no cutoff/bypass */
 		} else if (aether_cutoff_hardware_active) {
 			delay_ms = 10000; /* 10s: bypass holding steady */
 		} else {

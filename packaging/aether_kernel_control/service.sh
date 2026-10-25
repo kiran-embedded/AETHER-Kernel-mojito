@@ -88,15 +88,15 @@ resetprop -n dalvik.vm.heaptargetutilization 0.75 2>/dev/null || setprop dalvik.
 resetprop -n dalvik.vm.heapminfree 2m 2>/dev/null || setprop dalvik.vm.heapminfree 2m 2>/dev/null || true
 resetprop -n dalvik.vm.heapmaxfree 8m 2>/dev/null || setprop dalvik.vm.heapmaxfree 8m 2>/dev/null || true
 
-# 5. LMKD Configuration (Keep cached app limits without forcing wallpaper kills)
-resetprop -n ro.sys.fw.bg_apps_limit 36 2>/dev/null || setprop ro.sys.fw.bg_apps_limit 36 2>/dev/null || true
-resetprop -n persist.sys.lmk.cached_apps_limit 36 2>/dev/null || setprop persist.sys.lmk.cached_apps_limit 36 2>/dev/null || true
-resetprop -n ro.config.max_starting_bg 8 2>/dev/null || setprop ro.config.max_starting_bg 8 2>/dev/null || true
-resetprop -n ro.lmk.kill_timeout_ms 100 2>/dev/null || setprop ro.lmk.kill_timeout_ms 100 2>/dev/null || true
-resetprop -n ro.lmk.psi_partial_stall_ms 70 2>/dev/null || setprop ro.lmk.psi_partial_stall_ms 70 2>/dev/null || true
+# 5. LMKD Configuration (Generous thresholds for rock-solid multitasking and no app kills)
+resetprop -n ro.sys.fw.bg_apps_limit 64 2>/dev/null || setprop ro.sys.fw.bg_apps_limit 64 2>/dev/null || true
+resetprop -n persist.sys.lmk.cached_apps_limit 64 2>/dev/null || setprop persist.sys.lmk.cached_apps_limit 64 2>/dev/null || true
+resetprop -n ro.config.max_starting_bg 16 2>/dev/null || setprop ro.config.max_starting_bg 16 2>/dev/null || true
+resetprop -n ro.lmk.kill_timeout_ms 250 2>/dev/null || setprop ro.lmk.kill_timeout_ms 250 2>/dev/null || true
+resetprop -n ro.lmk.psi_partial_stall_ms 200 2>/dev/null || setprop ro.lmk.psi_partial_stall_ms 200 2>/dev/null || true
 resetprop -n ro.lmk.psi_complete_stall_ms 700 2>/dev/null || setprop ro.lmk.psi_complete_stall_ms 700 2>/dev/null || true
-resetprop -n ro.lmk.swap_util_max 85 2>/dev/null || setprop ro.lmk.swap_util_max 85 2>/dev/null || true
-resetprop -n ro.lmk.thrashing_limit 30 2>/dev/null || setprop ro.lmk.thrashing_limit 30 2>/dev/null || true
+resetprop -n ro.lmk.swap_util_max 95 2>/dev/null || setprop ro.lmk.swap_util_max 95 2>/dev/null || true
+resetprop -n ro.lmk.thrashing_limit 50 2>/dev/null || setprop ro.lmk.thrashing_limit 50 2>/dev/null || true
 resetprop -n ro.lmk.thrashing_limit_decay 25 2>/dev/null || setprop ro.lmk.thrashing_limit_decay 25 2>/dev/null || true
 
 # 6. Background CPUset confinement (keep low-priority work on Silver cores 0-5)
@@ -137,38 +137,35 @@ done
 echo 1 > /proc/sys/kernel/sched_energy_aware 2>/dev/null || true
 echo 0 > /proc/sys/kernel/sched_walt_rotate_big_tasks 2>/dev/null || true
 echo 1 > /proc/sys/kernel/sched_cstate_aware 2>/dev/null || true
-echo 0 > /proc/sys/kernel/timer_migration 2>/dev/null || true
+echo 1 > /proc/sys/kernel/timer_migration 2>/dev/null || true
 echo 1 > /sys/module/workqueue/parameters/power_efficient 2>/dev/null || true
 echo 1 > /sys/module/printk/parameters/console_suspend 2>/dev/null || true
 echo "4 4 1 7" > /proc/sys/kernel/printk 2>/dev/null || true
 
-# Suspend & Freezer Acceleration: Drop into deep sleep in 1.5s instead of 20s
+# Suspend & Device Deep Sleep Settings
 echo 1 > /sys/power/pm_async 2>/dev/null || true
-echo 1500 > /sys/power/pm_freeze_timeout 2>/dev/null || true
+echo 20000 > /sys/power/pm_freeze_timeout 2>/dev/null || true
 
-# Qualcomm LPM & C-State Deep Sleep Permissions (AOSS / RPM Power Collapse)
+# Qualcomm LPM & C-State Deep Sleep (AOSS / RPM Power Collapse with stable WLAN)
 echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled 2>/dev/null || true
 echo 1 > /sys/module/lpm_levels/parameters/lpm_prediction 2>/dev/null || true
 echo 1 > /sys/module/lpm_levels/parameters/lpm_ipi_prediction 2>/dev/null || true
-for s in /sys/module/lpm_levels/system/*/* /sys/module/lpm_levels/system/*/*/* /sys/module/lpm_levels/system/*/*/*/*; do
-    [ -f "$s/suspend_enabled" ] && echo Y > "$s/suspend_enabled" 2>/dev/null || true
-done
 
-# Android Fast Doze / Deep Sleep Calibration (Enters deep sleep in 30s instead of 30min)
-cmd device_config put device_idle light_after_inactive_to 15000 2>/dev/null || true
-cmd device_config put device_idle inactive_to 30000 2>/dev/null || true
-cmd device_config put device_idle sensing_to 0 2>/dev/null || true
-cmd device_config put device_idle locating_to 0 2>/dev/null || true
-cmd device_config put device_idle location_accuracy 20.0 2>/dev/null || true
-cmd device_config put device_idle motion_inactive_to 0 2>/dev/null || true
-cmd device_config put device_idle idle_after_inactive_to 0 2>/dev/null || true
+# Android Balanced Deep Sleep / Doze (Calibrated to 10 minutes interval, zero WiFi drop)
+cmd device_config put device_idle light_after_inactive_to 300000 2>/dev/null || true
+cmd device_config put device_idle inactive_to 600000 2>/dev/null || true
+cmd device_config delete device_idle sensing_to 2>/dev/null || true
+cmd device_config delete device_idle locating_to 2>/dev/null || true
+cmd device_config delete device_idle location_accuracy 2>/dev/null || true
+cmd device_config delete device_idle motion_inactive_to 2>/dev/null || true
+cmd device_config delete device_idle idle_after_inactive_to 2>/dev/null || true
 
 echo 1 > /sys/module/kprofiles/parameters/auto_kp 2>/dev/null || true
 echo 0 > /sys/kernel/kprofiles/kp_mode 2>/dev/null || true
 
 # 10. Core Memory & Scheduler Hardware Calibrations
-# Virtual Memory & ZRAM Swappiness
-echo 60 > /proc/sys/vm/swappiness 2>/dev/null || true
+# Virtual Memory & ZRAM Swappiness (100 swappiness keeps plenty of RAM free via ZRAM)
+echo 100 > /proc/sys/vm/swappiness 2>/dev/null || true
 echo 0 > /proc/sys/vm/page-cluster 2>/dev/null || true
 echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
 echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
@@ -179,14 +176,14 @@ echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null || true
 echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
 echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
 echo 0 > /proc/sys/vm/percpu_pagelist_fraction 2>/dev/null || true
-echo 0 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
+echo 1 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
 echo 0 > /proc/sys/vm/oom_dump_tasks 2>/dev/null || true
 echo 10 > /proc/sys/vm/stat_interval 2>/dev/null || true
 
-# MGLRU Multigenerational LRU
+# MGLRU Multigenerational LRU (min_ttl_ms = 0 to eliminate premature OOM kills)
 if [ -f /sys/kernel/mm/lru_gen/enabled ]; then
     echo 7 > /sys/kernel/mm/lru_gen/enabled 2>/dev/null || echo y > /sys/kernel/mm/lru_gen/enabled 2>/dev/null || true
-    echo 1000 > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null || true
+    echo 0 > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null || true
 fi
 
 # BORE Scheduler & Schedstats Overhead Elimination

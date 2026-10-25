@@ -879,16 +879,16 @@ fi
     resetprop -n dalvik.vm.heapmaxfree 8m 2>/dev/null || setprop dalvik.vm.heapmaxfree 8m 2>/dev/null || true
 
     # Framework App Limits
-    resetprop -n ro.sys.fw.bg_apps_limit 36 2>/dev/null || setprop ro.sys.fw.bg_apps_limit 36 2>/dev/null || true
-    resetprop -n persist.sys.lmk.cached_apps_limit 36 2>/dev/null || setprop persist.sys.lmk.cached_apps_limit 36 2>/dev/null || true
-    resetprop -n ro.config.max_starting_bg 8 2>/dev/null || setprop ro.config.max_starting_bg 8 2>/dev/null || true
+    resetprop -n ro.sys.fw.bg_apps_limit 64 2>/dev/null || setprop ro.sys.fw.bg_apps_limit 64 2>/dev/null || true
+    resetprop -n persist.sys.lmk.cached_apps_limit 64 2>/dev/null || setprop persist.sys.lmk.cached_apps_limit 64 2>/dev/null || true
+    resetprop -n ro.config.max_starting_bg 16 2>/dev/null || setprop ro.config.max_starting_bg 16 2>/dev/null || true
 
     # LMKD Configuration
-    resetprop -n ro.lmk.kill_timeout_ms 100 2>/dev/null || setprop ro.lmk.kill_timeout_ms 100 2>/dev/null || true
-    resetprop -n ro.lmk.psi_partial_stall_ms 70 2>/dev/null || setprop ro.lmk.psi_partial_stall_ms 70 2>/dev/null || true
+    resetprop -n ro.lmk.kill_timeout_ms 250 2>/dev/null || setprop ro.lmk.kill_timeout_ms 250 2>/dev/null || true
+    resetprop -n ro.lmk.psi_partial_stall_ms 200 2>/dev/null || setprop ro.lmk.psi_partial_stall_ms 200 2>/dev/null || true
     resetprop -n ro.lmk.psi_complete_stall_ms 700 2>/dev/null || setprop ro.lmk.psi_complete_stall_ms 700 2>/dev/null || true
-    resetprop -n ro.lmk.swap_util_max 85 2>/dev/null || setprop ro.lmk.swap_util_max 85 2>/dev/null || true
-    resetprop -n ro.lmk.thrashing_limit 30 2>/dev/null || setprop ro.lmk.thrashing_limit 30 2>/dev/null || true
+    resetprop -n ro.lmk.swap_util_max 95 2>/dev/null || setprop ro.lmk.swap_util_max 95 2>/dev/null || true
+    resetprop -n ro.lmk.thrashing_limit 50 2>/dev/null || setprop ro.lmk.thrashing_limit 50 2>/dev/null || true
     resetprop -n ro.lmk.thrashing_limit_decay 25 2>/dev/null || setprop ro.lmk.thrashing_limit_decay 25 2>/dev/null || true
 
     # ┌─────────────────────────────────────────────────────────────┐
