@@ -552,14 +552,13 @@ if [ -b /dev/block/zram0 ]; then
     swapon /dev/block/zram0 -p 32767 2>/dev/null || true
 fi
 
-# ── 2. Virtual Memory — Core Tunables ─────────────────────────────
-# SWAPPINESS: 60
-#   Android with ZRAM: 60 = balanced. Higher = more swap thrash = jank.
-#   At 60: kernel prefers keeping anon pages hot, only swaps under pressure.
-echo 60 > /proc/sys/vm/swappiness 2>/dev/null || true
+# ── 2. Virtual Memory — Core Tunables (PDF Section 3.1) ─────────────
+# SWAPPINESS: 100
+#   Allows MGLRU to seamlessly migrate cold anon pages to ZRAM without thrashing.
+echo 100 > /proc/sys/vm/swappiness 2>/dev/null || true
 
-# VFS_CACHE_PRESSURE: 50 — Keeps app dentries and inodes cached, prevents background app kills
-echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
+# VFS_CACHE_PRESSURE: 100 — Maintains balanced 1:1 reclaim ratio between dentry/inode caches and page cache
+echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
 
 # MIN_FREE_KBYTES: 16384 (16MB baseline)
 echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
@@ -576,8 +575,11 @@ echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null || true
 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null || true
 echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null || true
 
-# PAGE CLUSTER: 0 (keep for ZRAM, avoid swap readahead penalty)
+# PAGE CLUSTER: 0 (single 4KB page reads, zero decompression stalls on relaunch)
 echo 0 > /proc/sys/vm/page-cluster 2>/dev/null || true
+
+# COMPACT_UNEVICTABLE_ALLOWED: 1 (safe memory compaction without unevictable locks)
+echo 1 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
 
 # COMPACTION PROACTIVENESS: 20
 echo 20 > /proc/sys/vm/compaction_proactiveness 2>/dev/null || true
@@ -830,26 +832,7 @@ fi
     # Tuned memory limits and background compaction.
 
     # ┌─────────────────────────────────────────────────────────────┐
-    # │  Layer 1: ZRAM Pool Compaction                              │
-    # └─────────────────────────────────────────────────────────────┘
-    # Compact ZRAM pools and trigger idle page compaction.
-    echo 1 > /sys/block/zram0/compact 2>/dev/null || true
-
-    if [ -f /sys/block/zram0/idle ]; then
-        echo all > /sys/block/zram0/idle 2>/dev/null || true
-    fi
-
-    # ┌─────────────────────────────────────────────────────────────┐
-    # │  Layer 2: USAP Zygote Pool Limits                           │
-    # └─────────────────────────────────────────────────────────────┘
-    # Restrict pre-forked template count to bounded pool size.
-    resetprop -n persist.device_config.runtime_native.usap_pool_enabled true 2>/dev/null || setprop persist.device_config.runtime_native.usap_pool_enabled true 2>/dev/null || true
-    resetprop -n dalvik.vm.usap_pool_size_max 2 2>/dev/null || setprop dalvik.vm.usap_pool_size_max 2 2>/dev/null || true
-    resetprop -n dalvik.vm.usap_pool_size_min 1 2>/dev/null || setprop dalvik.vm.usap_pool_size_min 1 2>/dev/null || true
-    resetprop -n dalvik.vm.usap_pool_refill_threshold 1 2>/dev/null || setprop dalvik.vm.usap_pool_refill_threshold 1 2>/dev/null || true
-
-    # ┌─────────────────────────────────────────────────────────────┐
-    # │  Layer 3: Logcat Buffer Bounds                              │
+    # │  Layer 1: Logcat Buffer Bounds                              │
     # └─────────────────────────────────────────────────────────────┘
     # Stock MIUI runs 4-16MB ring buffers per logcat channel (main, radio,
     # system, crash) plus dumpstate, ramdump listeners and system tracing.
@@ -870,26 +853,6 @@ fi
     # Disable debug malloc (leak tracker) in native daemons
     resetprop -n libc.debug.malloc 0 2>/dev/null || setprop libc.debug.malloc 0 2>/dev/null || true
     resetprop -n persist.libc.debug.malloc 0 2>/dev/null || setprop persist.libc.debug.malloc 0 2>/dev/null || true
-
-    # Dalvik VM Heap Constraints
-    resetprop -n dalvik.vm.heapsize 512m 2>/dev/null || setprop dalvik.vm.heapsize 512m 2>/dev/null || true
-    resetprop -n dalvik.vm.heapgrowthlimit 256m 2>/dev/null || setprop dalvik.vm.heapgrowthlimit 256m 2>/dev/null || true
-    resetprop -n dalvik.vm.heaptargetutilization 0.75 2>/dev/null || setprop dalvik.vm.heaptargetutilization 0.75 2>/dev/null || true
-    resetprop -n dalvik.vm.heapminfree 2m 2>/dev/null || setprop dalvik.vm.heapminfree 2m 2>/dev/null || true
-    resetprop -n dalvik.vm.heapmaxfree 8m 2>/dev/null || setprop dalvik.vm.heapmaxfree 8m 2>/dev/null || true
-
-    # Framework App Limits
-    resetprop -n ro.sys.fw.bg_apps_limit 64 2>/dev/null || setprop ro.sys.fw.bg_apps_limit 64 2>/dev/null || true
-    resetprop -n persist.sys.lmk.cached_apps_limit 64 2>/dev/null || setprop persist.sys.lmk.cached_apps_limit 64 2>/dev/null || true
-    resetprop -n ro.config.max_starting_bg 16 2>/dev/null || setprop ro.config.max_starting_bg 16 2>/dev/null || true
-
-    # LMKD Configuration
-    resetprop -n ro.lmk.kill_timeout_ms 250 2>/dev/null || setprop ro.lmk.kill_timeout_ms 250 2>/dev/null || true
-    resetprop -n ro.lmk.psi_partial_stall_ms 200 2>/dev/null || setprop ro.lmk.psi_partial_stall_ms 200 2>/dev/null || true
-    resetprop -n ro.lmk.psi_complete_stall_ms 700 2>/dev/null || setprop ro.lmk.psi_complete_stall_ms 700 2>/dev/null || true
-    resetprop -n ro.lmk.swap_util_max 95 2>/dev/null || setprop ro.lmk.swap_util_max 95 2>/dev/null || true
-    resetprop -n ro.lmk.thrashing_limit 50 2>/dev/null || setprop ro.lmk.thrashing_limit 50 2>/dev/null || true
-    resetprop -n ro.lmk.thrashing_limit_decay 25 2>/dev/null || setprop ro.lmk.thrashing_limit_decay 25 2>/dev/null || true
 
     # ┌─────────────────────────────────────────────────────────────┐
     # │  Layer 7: 60 FPS Animation & SurfaceFlinger Pacing          │

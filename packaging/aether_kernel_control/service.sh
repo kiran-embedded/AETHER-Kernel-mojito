@@ -56,16 +56,10 @@ fi
 [ -n "$INSTANT_BYPASS" ] && echo "$INSTANT_BYPASS" > /sys/kernel/aether/instant_bypass 2>/dev/null || true
 
 
-# ── Userspace Framework Memory & LMKD Configuration ─────────────
+# ── Userspace Framework Logging & Debug Optimization ─────────────
 # Applied once at boot completion
 
-# 1. Zygote USAP Pool Configuration
-resetprop -n persist.device_config.runtime_native.usap_pool_enabled true 2>/dev/null || setprop persist.device_config.runtime_native.usap_pool_enabled true 2>/dev/null || true
-resetprop -n dalvik.vm.usap_pool_size_max 2 2>/dev/null || setprop dalvik.vm.usap_pool_size_max 2 2>/dev/null || true
-resetprop -n dalvik.vm.usap_pool_size_min 1 2>/dev/null || setprop dalvik.vm.usap_pool_size_min 1 2>/dev/null || true
-resetprop -n dalvik.vm.usap_pool_refill_threshold 1 2>/dev/null || setprop dalvik.vm.usap_pool_refill_threshold 1 2>/dev/null || true
-
-# 2. Logcat & Debug Logging Buffer Bounds
+# 1. Logcat & Debug Logging Buffer Bounds
 logcat -G 256K 2>/dev/null || true
 resetprop -n persist.logd.size 262144 2>/dev/null || setprop persist.logd.size 262144 2>/dev/null || true
 resetprop -n persist.logd.size.main 262144 2>/dev/null || setprop persist.logd.size.main 262144 2>/dev/null || true
@@ -73,31 +67,13 @@ resetprop -n persist.logd.size.system 131072 2>/dev/null || setprop persist.logd
 resetprop -n persist.logd.size.radio 131072 2>/dev/null || setprop persist.logd.size.radio 131072 2>/dev/null || true
 resetprop -n persist.logd.size.crash 262144 2>/dev/null || setprop persist.logd.size.crash 262144 2>/dev/null || true
 
-# 3. Disable debug tracing & StrictMode overhead
+# 2. Disable debug tracing & StrictMode overhead
 resetprop -n persist.traced.enable 0 2>/dev/null || setprop persist.traced.enable 0 2>/dev/null || true
 resetprop -n persist.sys.assert.enable false 2>/dev/null || setprop persist.sys.assert.enable false 2>/dev/null || true
 resetprop -n persist.sys.strictmode.visual 0 2>/dev/null || setprop persist.sys.strictmode.visual 0 2>/dev/null || true
 resetprop -n persist.sys.strictmode.disable 1 2>/dev/null || setprop persist.sys.strictmode.disable 1 2>/dev/null || true
 resetprop -n libc.debug.malloc 0 2>/dev/null || setprop libc.debug.malloc 0 2>/dev/null || true
 resetprop -n persist.libc.debug.malloc 0 2>/dev/null || setprop persist.libc.debug.malloc 0 2>/dev/null || true
-
-# 4. Dalvik VM Heap Growth Capping (keeps 512m max, prevents lazy anonymous RAM bloat)
-resetprop -n dalvik.vm.heapsize 512m 2>/dev/null || setprop dalvik.vm.heapsize 512m 2>/dev/null || true
-resetprop -n dalvik.vm.heapgrowthlimit 256m 2>/dev/null || setprop dalvik.vm.heapgrowthlimit 256m 2>/dev/null || true
-resetprop -n dalvik.vm.heaptargetutilization 0.75 2>/dev/null || setprop dalvik.vm.heaptargetutilization 0.75 2>/dev/null || true
-resetprop -n dalvik.vm.heapminfree 2m 2>/dev/null || setprop dalvik.vm.heapminfree 2m 2>/dev/null || true
-resetprop -n dalvik.vm.heapmaxfree 8m 2>/dev/null || setprop dalvik.vm.heapmaxfree 8m 2>/dev/null || true
-
-# 5. LMKD Configuration (Generous thresholds for rock-solid multitasking and no app kills)
-resetprop -n ro.sys.fw.bg_apps_limit 64 2>/dev/null || setprop ro.sys.fw.bg_apps_limit 64 2>/dev/null || true
-resetprop -n persist.sys.lmk.cached_apps_limit 64 2>/dev/null || setprop persist.sys.lmk.cached_apps_limit 64 2>/dev/null || true
-resetprop -n ro.config.max_starting_bg 16 2>/dev/null || setprop ro.config.max_starting_bg 16 2>/dev/null || true
-resetprop -n ro.lmk.kill_timeout_ms 250 2>/dev/null || setprop ro.lmk.kill_timeout_ms 250 2>/dev/null || true
-resetprop -n ro.lmk.psi_partial_stall_ms 200 2>/dev/null || setprop ro.lmk.psi_partial_stall_ms 200 2>/dev/null || true
-resetprop -n ro.lmk.psi_complete_stall_ms 700 2>/dev/null || setprop ro.lmk.psi_complete_stall_ms 700 2>/dev/null || true
-resetprop -n ro.lmk.swap_util_max 95 2>/dev/null || setprop ro.lmk.swap_util_max 95 2>/dev/null || true
-resetprop -n ro.lmk.thrashing_limit 50 2>/dev/null || setprop ro.lmk.thrashing_limit 50 2>/dev/null || true
-resetprop -n ro.lmk.thrashing_limit_decay 25 2>/dev/null || setprop ro.lmk.thrashing_limit_decay 25 2>/dev/null || true
 
 # 6. Background CPUset confinement (keep low-priority work on Silver cores 0-5)
 if [ -d /dev/cpuset/background ]; then
@@ -167,7 +143,7 @@ echo 0 > /sys/kernel/kprofiles/kp_mode 2>/dev/null || true
 # Virtual Memory & ZRAM Swappiness (100 swappiness keeps plenty of RAM free via ZRAM)
 echo 100 > /proc/sys/vm/swappiness 2>/dev/null || true
 echo 0 > /proc/sys/vm/page-cluster 2>/dev/null || true
-echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
+echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
 echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
 echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
 echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null || true
@@ -198,7 +174,7 @@ echo 1 > /proc/sys/kernel/sched_burst_smoothness_down 2>/dev/null || true
 echo 60000000 > /proc/sys/kernel/sched_burst_cache_lifetime 2>/dev/null || true
 echo 2 > /proc/sys/kernel/sched_burst_fork_atavistic 2>/dev/null || true
 
-# ZRAM Queue Optimization — Zero latency, no merging, no iostats overhead
+# ZRAM Queue Optimization — Zero latency, no merging, no iostats overhead (PDF Section 3.2)
 if [ -d /sys/block/zram0/queue ]; then
     echo 0 > /sys/block/zram0/queue/read_ahead_kb 2>/dev/null || true
     echo 2 > /sys/block/zram0/queue/rq_affinity 2>/dev/null || true
@@ -222,10 +198,18 @@ if [ -d /sys/class/kgsl/kgsl-3d0 ]; then
     echo 0 > /sys/class/kgsl/kgsl-3d0/force_rail_on 2>/dev/null || true
 fi
 
-# Network TCP Lowat Pacing & Fast Open
-echo 16384 > /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null || true
+# Network & TCP Bufferbloat Mitigation Stack (PDF Section 9)
+echo "fq" > /proc/sys/net/core/default_qdisc 2>/dev/null || true
+echo "bbr" > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null || true
 echo 3 > /proc/sys/net/ipv4/tcp_fastopen 2>/dev/null || true
-setprop wifi.supplicant_scan_interval 180 2>/dev/null || true
+echo 0 > /proc/sys/net/ipv4/tcp_slow_start_after_idle 2>/dev/null || true
+echo 2 > /proc/sys/net/ipv4/tcp_ecn 2>/dev/null || true
+echo 16384 > /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null || true
+echo 1 > /proc/sys/net/ipv4/tcp_autocorking 2>/dev/null || true
+echo 2097152 > /proc/sys/net/core/rmem_max 2>/dev/null || true
+echo 2097152 > /proc/sys/net/core/wmem_max 2>/dev/null || true
+echo "4096 87380 2097152" > /proc/sys/net/ipv4/tcp_rmem 2>/dev/null || true
+echo "4096 65536 2097152" > /proc/sys/net/ipv4/tcp_wmem 2>/dev/null || true
 
 # Purge any legacy generic override scripts to guarantee dev-set kernel values are never overwritten
 rm -f /data/adb/aether/aether_tweaks.sh 2>/dev/null || true

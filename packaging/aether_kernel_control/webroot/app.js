@@ -260,7 +260,7 @@ function getUiState() {
     boostDur: (typeof rngBoostDur !== 'undefined' && rngBoostDur) ? rngBoostDur.value : '64',
     boreState: (typeof selBoreState !== 'undefined' && selBoreState) ? selBoreState.value : '1',
     boreScale: (typeof selBoreScale !== 'undefined' && selBoreScale) ? selBoreScale.value : '1380',
-    swappiness: (typeof rngSwappiness !== 'undefined' && rngSwappiness) ? rngSwappiness.value : '60',
+    swappiness: (typeof rngSwappiness !== 'undefined' && rngSwappiness) ? rngSwappiness.value : '100',
     vfsCache: (typeof rngVfsCache !== 'undefined' && rngVfsCache) ? rngVfsCache.value : '50',
     mglruTtl: (typeof rngMglruTtl !== 'undefined' && rngMglruTtl) ? rngMglruTtl.value : '1000',
     micDelay: (typeof rngMicDelay !== 'undefined' && rngMicDelay) ? rngMicDelay.value : '40',
@@ -2433,12 +2433,16 @@ async function applyProfile(mode) {
     // 6. Revert VM / MGLRU / UFS I/O to developer in-kernel calibrations
     await runCmd('echo 100 > /proc/sys/vm/swappiness 2>/dev/null');
     await runCmd('echo 0 > /proc/sys/vm/page-cluster 2>/dev/null');
-    await runCmd('echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null');
+    await runCmd('echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null');
     await runCmd('echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null');
     await runCmd('echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null');
     await runCmd('echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null');
     await runCmd('echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null');
     await runCmd('echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null');
+    await runCmd('echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null');
+    await runCmd('echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null');
+    await runCmd('echo 1 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null');
+    await runCmd('echo 0 > /proc/sys/vm/oom_dump_tasks 2>/dev/null');
     await runCmd('[ -f /sys/kernel/mm/lru_gen/min_ttl_ms ] && echo 0 > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null');
     await runCmd('[ -f /sys/block/sda/queue/read_ahead_kb ] && echo 512 > /sys/block/sda/queue/read_ahead_kb 2>/dev/null');
     await runCmd('[ -f /sys/block/sda/queue/scheduler ] && echo mq-deadline > /sys/block/sda/queue/scheduler 2>/dev/null || echo deadline > /sys/block/sda/queue/scheduler 2>/dev/null');
@@ -2455,7 +2459,7 @@ async function applyProfile(mode) {
     if (typeof selCpuGovBig !== 'undefined' && selCpuGovBig) selCpuGovBig.value = 'schedutil';
     if (typeof selCpuMaxBig !== 'undefined' && selCpuMaxBig) selCpuMaxBig.value = '2208000';
     if (rngSwappiness) { rngSwappiness.value = 100; if (lblSwappiness) lblSwappiness.innerText = '100'; }
-    if (rngVfsCache) { rngVfsCache.value = 50; if (lblVfsCache) lblVfsCache.innerText = '50'; }
+    if (rngVfsCache) { rngVfsCache.value = 100; if (lblVfsCache) lblVfsCache.innerText = '100'; }
     if (rngMglruTtl) { rngMglruTtl.value = 0; if (lblMglruTtl) lblMglruTtl.innerText = '0 ms'; syncChips('#mglruChips', '0'); }
     if (selIoSched) selIoSched.value = 'mq-deadline';
     selectedReadAhead = '512';
@@ -2514,9 +2518,9 @@ async function applyProfile(mode) {
       if (rngMicDelay) rngMicDelay.value = 40;
       if (rngBottomMic) rngBottomMic.value = 6;
       if (rngTopMic) rngTopMic.value = 0;
-      if (rngSwappiness) rngSwappiness.value = 60;
-      if (rngVfsCache) rngVfsCache.value = 50;
-      if (rngMglruTtl) rngMglruTtl.value = 1000;
+      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngVfsCache) rngVfsCache.value = 100;
+      if (rngMglruTtl) rngMglruTtl.value = 0;
       if (chkSchedtuneIdle) chkSchedtuneIdle.checked = true;
       if (selIoSched) selIoSched.value = 'mq-deadline';
       selectedReadAhead = '512';
@@ -2539,9 +2543,9 @@ async function applyProfile(mode) {
       if (rngMicDelay) rngMicDelay.value = 40;
       if (rngBottomMic) rngBottomMic.value = 6;
       if (rngTopMic) rngTopMic.value = 0;
-      if (rngSwappiness) rngSwappiness.value = 60;
-      if (rngVfsCache) rngVfsCache.value = 50;
-      if (rngMglruTtl) rngMglruTtl.value = 1000;
+      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngVfsCache) rngVfsCache.value = 100;
+      if (rngMglruTtl) rngMglruTtl.value = 0;
       if (selBoreScale) selBoreScale.value = '1380';
       selectedReadAhead = '512';
     } else if (mode === 'gaming') {
@@ -2560,9 +2564,9 @@ async function applyProfile(mode) {
       if (rngBoostDur) rngBoostDur.value = 80;
       if (chkToggleBypass) chkToggleBypass.checked = false;
       if (chkToggleBbr) chkToggleBbr.checked = true;
-      if (rngSwappiness) rngSwappiness.value = 60;
-      if (rngVfsCache) rngVfsCache.value = 40;
-      if (rngMglruTtl) rngMglruTtl.value = 1000;
+      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngVfsCache) rngVfsCache.value = 100;
+      if (rngMglruTtl) rngMglruTtl.value = 0;
       if (rngMicDelay) rngMicDelay.value = 40;
       if (rngBottomMic) rngBottomMic.value = 8;
       if (rngTopMic) rngTopMic.value = 0;
@@ -2582,9 +2586,9 @@ async function applyProfile(mode) {
       if (selBoostHp) selBoostHp.value = '652800';
       if (rngBoostDur) rngBoostDur.value = 20;
       if (chkToggleBypass) chkToggleBypass.checked = false;
-      if (rngSwappiness) rngSwappiness.value = 60;
-      if (rngVfsCache) rngVfsCache.value = 40;
-      if (rngMglruTtl) rngMglruTtl.value = 1000;
+      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngVfsCache) rngVfsCache.value = 100;
+      if (rngMglruTtl) rngMglruTtl.value = 0;
       selectedReadAhead = '256';
     } else if (mode === 'stutter') {
       profileLabel = 'Zero Stutter Fluid UI';
@@ -2601,9 +2605,9 @@ async function applyProfile(mode) {
       if (selBoostHp) selBoostHp.value = '1209600';
       if (rngBoostDur) rngBoostDur.value = 40;
       if (chkToggleBbr) chkToggleBbr.checked = true;
-      if (rngSwappiness) rngSwappiness.value = 60;
-      if (rngVfsCache) rngVfsCache.value = 40;
-      if (rngMglruTtl) rngMglruTtl.value = 1000;
+      if (rngSwappiness) rngSwappiness.value = 100;
+      if (rngVfsCache) rngVfsCache.value = 100;
+      if (rngMglruTtl) rngMglruTtl.value = 0;
       selectedReadAhead = '384';
     }
   }
@@ -2848,18 +2852,22 @@ function buildHardwareScript() {
   if (rngVfsCache) cmds.push(`echo "${rngVfsCache.value}" > /proc/sys/vm/vfs_cache_pressure 2>/dev/null`);
   if (rngMglruTtl) cmds.push(`if [ -f /sys/kernel/mm/lru_gen/min_ttl_ms ]; then echo "${rngMglruTtl.value}" > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null; fi`);
 
-  // Core Virtual Memory & ZRAM Calibrations
+  // Core Virtual Memory & ZRAM Calibrations (PDF Section 3.1 & 3.2)
   cmds.push('echo 0 > /proc/sys/vm/page-cluster 2>/dev/null');
   cmds.push('echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null');
   cmds.push('echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null');
   cmds.push('echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null');
   cmds.push('echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null');
   cmds.push('echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null');
+  cmds.push('echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null');
+  cmds.push('echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null');
+  cmds.push('echo 1 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null');
+  cmds.push('echo 0 > /proc/sys/vm/oom_dump_tasks 2>/dev/null');
 
   // Safe Physical UFS I/O Scheduler (Never touch virtual dm-* device mapper queues)
   const ioVal = (typeof selIoSched !== 'undefined' && selIoSched) ? selIoSched.value : 'kyber';
   cmds.push(`for q in /sys/block/sda/queue; do [ -d "$q" ] && echo "${ioVal}" > "$q/scheduler" 2>/dev/null && echo "${selectedReadAhead || '512'}" > "$q/read_ahead_kb" 2>/dev/null && echo 64 > "$q/nr_requests" 2>/dev/null; done`);
-  cmds.push('for zq in /sys/block/zram0/queue; do [ -d "$zq" ] && echo 0 > "$zq/read_ahead_kb" 2>/dev/null && echo 2 > "$zq/rq_affinity" 2>/dev/null; done');
+  cmds.push('for zq in /sys/block/zram0/queue; do [ -d "$zq" ] && echo 0 > "$zq/read_ahead_kb" 2>/dev/null && echo 2 > "$zq/rq_affinity" 2>/dev/null && echo 2 > "$zq/nomerges" 2>/dev/null && echo 0 > "$zq/iostats" 2>/dev/null && echo 0 > "$zq/add_random" 2>/dev/null; done');
 
   // Google SchedTune Prioritization (Instant Idle Core Search on Touch & Thread Colocation)
   if (typeof chkSchedtuneIdle !== 'undefined' && chkSchedtuneIdle) {
