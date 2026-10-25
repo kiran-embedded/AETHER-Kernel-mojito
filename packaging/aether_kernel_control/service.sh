@@ -71,7 +71,7 @@ resetprop -n persist.logd.size 262144 2>/dev/null || setprop persist.logd.size 2
 resetprop -n persist.logd.size.main 262144 2>/dev/null || setprop persist.logd.size.main 262144 2>/dev/null || true
 resetprop -n persist.logd.size.system 131072 2>/dev/null || setprop persist.logd.size.system 131072 2>/dev/null || true
 resetprop -n persist.logd.size.radio 131072 2>/dev/null || setprop persist.logd.size.radio 131072 2>/dev/null || true
-resetprop -n persist.logd.size.crash 65536 2>/dev/null || setprop persist.logd.size.crash 65536 2>/dev/null || true
+resetprop -n persist.logd.size.crash 262144 2>/dev/null || setprop persist.logd.size.crash 262144 2>/dev/null || true
 
 # 3. Disable debug tracing & StrictMode overhead
 resetprop -n persist.traced.enable 0 2>/dev/null || setprop persist.traced.enable 0 2>/dev/null || true
@@ -260,6 +260,8 @@ fi
 # write_expire=2000: wider window for write batching
 for _q in /sys/block/sda/queue /sys/block/sdb/queue /sys/block/sdc/queue; do
     [ -d "$_q" ] || continue
+    echo 0    > "$_q/add_random"                 2>/dev/null || true
+    echo 0    > "$_q/iostats"                    2>/dev/null || true
     echo 512  > "$_q/read_ahead_kb"              2>/dev/null || true
     echo 64   > "$_q/nr_requests"                2>/dev/null || true
     echo 1    > "$_q/iosched/front_merges"       2>/dev/null || true
