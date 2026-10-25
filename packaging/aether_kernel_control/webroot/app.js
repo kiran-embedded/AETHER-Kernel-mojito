@@ -217,7 +217,7 @@ let autoSaveTimer = null;
 async function instantWrite(cmd, label, silent = false) {
   userCustomized = true;
   logKernel(`[REALTIME] ${label}`);
-  await ksuExecBridge(cmd);
+  await ksuExecBridgeQueued(cmd);
   if (!silent && label) {
     showToast(`⚡ ${label}`);
   }
@@ -291,13 +291,6 @@ function getUiState() {
 
 function saveAllState() {
   try {
-    if (!userCustomized) {
-      localStorage.removeItem('aether_saved_state');
-      ksuExecBridge('rm -f /data/adb/aether/aether_user_tweaks.sh /data/adb/aether/aether_tweaks.sh /data/adb/aether/aether_state.json 2>/dev/null || true');
-      logKernel('[PERSIST] In-kernel developer defaults preserved (0 override scripts)');
-      return;
-    }
-
     const state = getUiState();
     localStorage.setItem('aether_saved_state', JSON.stringify(state));
     const jsonStr = JSON.stringify(state);
@@ -306,7 +299,7 @@ function saveAllState() {
     const b64Script = btoa(unescape(encodeURIComponent(script)));
     const b64Json = btoa(unescape(encodeURIComponent(jsonStr)));
     
-    ksuExecBridge(`mkdir -p /data/adb/aether && echo "${b64Script}" | base64 -d > /data/adb/aether/aether_user_tweaks.sh && chmod 755 /data/adb/aether/aether_user_tweaks.sh && echo "${b64Json}" | base64 -d > /data/adb/aether/aether_state.json && rm -f /data/adb/aether/aether_tweaks.sh 2>/dev/null || true`);
+    ksuExecBridgeQueued(`mkdir -p /data/adb/aether && echo "${b64Script}" | base64 -d > /data/adb/aether/aether_user_tweaks.sh && chmod 755 /data/adb/aether/aether_user_tweaks.sh && cp /data/adb/aether/aether_user_tweaks.sh /data/adb/aether/aether_tweaks.sh 2>/dev/null && echo "${b64Json}" | base64 -d > /data/adb/aether/aether_state.json || true`);
     logKernel('[PERSIST] ✓ Settings auto-saved across reboot and close');
   } catch (e) {
     console.warn('saveAllState error:', e);
@@ -343,16 +336,8 @@ function restoreAllState(savedState) {
 
     if (savedState.userCustomized !== undefined) {
       userCustomized = Boolean(savedState.userCustomized);
-    } else if (savedState.profile && savedState.profile !== 'default') {
-      userCustomized = true;
     } else {
-      userCustomized = false;
-    }
-
-    if (!userCustomized || (savedState.profile && savedState.profile === 'default')) {
-      // User is on developer defaults: Do NOT restore old presets; let live kernel query display dev settings!
-      userCustomized = false;
-      return false;
+      userCustomized = true;
     }
 
     if (savedState.profile) {
@@ -363,7 +348,7 @@ function restoreAllState(savedState) {
       if (typeof activeModeBadge !== 'undefined' && activeModeBadge) {
         if (savedState.profile === 'custom') {
           activeModeBadge.innerText = '⚙️ Custom User Choice';
-        } else {
+        } else if (savedState.profile !== 'default') {
           const title = savedState.profile.charAt(0).toUpperCase() + savedState.profile.slice(1);
           activeModeBadge.innerText = `${title} Active`;
         }
@@ -518,26 +503,44 @@ function restoreAllState(savedState) {
       syncChips('#adcChips', String(rngAdcGain.value));
     }
     // instantBypass handled at top of restoreAllState
-    if (typeof chkToggleTurboOverride !== 'undefined' && chkToggleTurboOverride && savedState.turbo !== undefined) chkToggleTurboOverride.checked = savedState.turbo;
-    if (typeof chkToggleGlove !== 'undefined' && chkToggleGlove && savedState.glove !== undefined) chkToggleGlove.checked = savedState.glove;
-    if (typeof chkToggleDcDim !== 'undefined' && chkToggleDcDim && savedState.dcDim !== undefined) chkToggleDcDim.checked = savedState.dcDim;
-    if (typeof chkToggleHbm !== 'undefined' && chkToggleHbm && savedState.hbm !== undefined) chkToggleHbm.checked = savedState.hbm;
-    if (typeof chkToggleTfo !== 'undefined' && chkToggleTfo && savedState.tfo !== undefined) chkToggleTfo.checked = savedState.tfo;
-    if (typeof chkToggleHifiAudio !== 'undefined' && chkToggleHifiAudio && savedState.hifi !== undefined) chkToggleHifiAudio.checked = savedState.hifi;
+    if (typeof chkToggleTurboOverride !== 'undefined' && chkToggleTurboOverride && savedState.turbo !== undefined) {
+      chkToggleTurboOverride.checked = Boolean(savedState.turbo);
+    }
+    if (typeof chkToggleGlove !== 'undefined' && chkToggleGlove && savedState.glove !== undefined) {
+      chkToggleGlove.checked = Boolean(savedState.glove);
+      const statusGlove = document.getElementById('statusGlove');
+      if (statusGlove) statusGlove.innerText = chkToggleGlove.checked ? 'Glove Mode ON' : 'Standard Sens';
+    }
+    if (typeof chkToggleDcDim !== 'undefined' && chkToggleDcDim && savedState.dcDim !== undefined) {
+      chkToggleDcDim.checked = Boolean(savedState.dcDim);
+    }
+    if (typeof chkToggleHbm !== 'undefined' && chkToggleHbm && savedState.hbm !== undefined) {
+      chkToggleHbm.checked = Boolean(savedState.hbm);
+    }
+    if (typeof chkToggleBbr !== 'undefined' && chkToggleBbr && savedState.bbr !== undefined) {
+      chkToggleBbr.checked = Boolean(savedState.bbr);
+    }
+    if (typeof chkToggleTfo !== 'undefined' && chkToggleTfo && savedState.tfo !== undefined) {
+      chkToggleTfo.checked = Boolean(savedState.tfo);
+    }
+    if (typeof chkToggleHifiAudio !== 'undefined' && chkToggleHifiAudio && savedState.hifi !== undefined) {
+      chkToggleHifiAudio.checked = Boolean(savedState.hifi);
+    }
     if (typeof chkAudioBypass !== 'undefined' && chkAudioBypass && savedState.audioBypass !== undefined) {
-      chkAudioBypass.checked = savedState.audioBypass;
+      chkAudioBypass.checked = Boolean(savedState.audioBypass);
     } else if (typeof chkAudioBypass !== 'undefined' && chkAudioBypass) {
       chkAudioBypass.checked = true;
     }
     updateAudioBypassUI();
 
     if (savedState.kpMode !== undefined) {
+      const kpStr = String(savedState.kpMode);
       document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => {
-        b.classList.toggle('active', b.dataset.val === String(savedState.kpMode));
+        b.classList.toggle('active', b.dataset.val === kpStr);
       });
       if (statusKpMode) {
         const labels = ['Disabled (0)', 'Battery (1)', 'Balanced (2)', 'Performance (3)'];
-        statusKpMode.innerText = labels[parseInt(savedState.kpMode, 10)] || `Mode ${savedState.kpMode}`;
+        statusKpMode.innerText = labels[parseInt(kpStr, 10)] || `Mode ${kpStr}`;
       }
     }
     if (savedState.autoKp !== undefined && typeof chkToggleAutoKp !== 'undefined' && chkToggleAutoKp) {
@@ -589,7 +592,12 @@ const btnTouchGuardIcon = document.getElementById('btnTouchGuardIcon');
 const btnTouchGuardText = document.getElementById('btnTouchGuardText');
 const touchLockToast = document.getElementById('touchLockToast');
 
-let isTouchGuardLocked = false; // Default to interactive staged mode
+let isTouchGuardLocked = false;
+try {
+  isTouchGuardLocked = (localStorage.getItem('touchGuardLocked') === 'true');
+} catch (e) {
+  isTouchGuardLocked = false;
+}
 
 function updateTouchGuardUI() {
   if (isTouchGuardLocked) {
@@ -602,10 +610,11 @@ function updateTouchGuardUI() {
       btnToggleTouchGuard.classList.add('is-locked');
       btnToggleTouchGuard.classList.remove('is-unlocked');
     }
-    if (safetyGuardHeading) safetyGuardHeading.innerText = 'Hard Touch Lock: Active';
-    if (safetyGuardSub) safetyGuardSub.innerText = 'Controls frozen. Tap "Touch Locked" to enable tweaking.';
+    if (safetyGuardIcon) safetyGuardIcon.innerText = '🔒';
+    if (safetyGuardHeading) safetyGuardHeading.innerText = 'Touch Guard: Locked';
+    if (safetyGuardSub) safetyGuardSub.innerText = 'Controls frozen to prevent accidental tweaks. Tap "Locked" to edit.';
     if (btnTouchGuardIcon) btnTouchGuardIcon.innerText = '🔒';
-    if (btnTouchGuardText) btnTouchGuardText.innerText = 'Touch Locked';
+    if (btnTouchGuardText) btnTouchGuardText.innerText = 'Locked';
   } else {
     document.body.classList.remove('sliders-locked');
     if (safetyGuardBar) {
@@ -616,10 +625,11 @@ function updateTouchGuardUI() {
       btnToggleTouchGuard.classList.remove('is-locked');
       btnToggleTouchGuard.classList.add('is-unlocked');
     }
-    if (safetyGuardHeading) safetyGuardHeading.innerText = 'Accidental Protection: Active';
-    if (safetyGuardSub) safetyGuardSub.innerText = 'Tweak freely. Changes stage safely until "Apply Settings"';
+    if (safetyGuardIcon) safetyGuardIcon.innerText = '🔓';
+    if (safetyGuardHeading) safetyGuardHeading.innerText = 'Touch Controls: Unlocked';
+    if (safetyGuardSub) safetyGuardSub.innerText = 'Controls active. Sliders & switches respond directly to touch.';
     if (btnTouchGuardIcon) btnTouchGuardIcon.innerText = '🔓';
-    if (btnTouchGuardText) btnTouchGuardText.innerText = 'Touch Active';
+    if (btnTouchGuardText) btnTouchGuardText.innerText = 'Unlocked';
   }
 }
 
@@ -1280,25 +1290,23 @@ async function applyCustomAudioEngine(toastLabel = 'AETHER Audio Engine Applied'
   updateLiveAudioInspector();
 }
 
-// 1. Audio Bypass Toggle Handler (Staged Accidental Apply Protection)
+// 1. Audio Bypass Toggle Handler (Instant & Persistent)
 if (chkAudioBypass) {
-  let prevBypass = chkAudioBypass.checked;
-  chkAudioBypass.addEventListener('change', () => {
+  chkAudioBypass.addEventListener('change', async () => {
     const isBypass = chkAudioBypass.checked;
     updateAudioBypassUI();
     triggerUserChoice();
-    recordPendingChange('audioBypass', 'Stock Audio Bypass', isBypass ? 'ON (Factory Routing)' : 'OFF (Custom Tuning)', () => {
-      chkAudioBypass.checked = prevBypass;
-      updateAudioBypassUI();
-      updateTileBadges();
-    });
+    if (isBypass) {
+      await applyStockAudioBypass();
+    } else {
+      await applyCustomAudioEngine('AETHER Custom Audio Tuning ON');
+    }
   });
 }
 
-// 2. Audio Profiles Handler (Segmented Quick Pills - Staged)
-window.setAudioProfilePreset = function(prof) {
+// 2. Audio Profiles Handler (Segmented Quick Pills - Instant & Persistent)
+window.setAudioProfilePreset = async function(prof) {
   ensureCustomMicActive();
-  const prevProf = currentAudioProfile;
   currentAudioProfile = prof;
   syncChips('#audioProfileChips', prof, 'prof');
   triggerUserChoice();
@@ -1370,16 +1378,12 @@ window.setAudioProfilePreset = function(prof) {
   if (lblHpfVal) lblHpfVal.innerText = currentHpfCutoff === 'CF_NEG_3DB_150HZ' ? '150 Hz Filter' : (currentHpfCutoff === 'CF_NEG_3DB_4HZ' ? '4 Hz Filter' : '75 Hz Filter');
   if (lblSpatialVal) lblSpatialVal.innerText = currentSpatialProfile === 'heavy' ? '+6dB / +2dB Heavy' : (currentSpatialProfile === 'balanced' ? '0dB Delta' : '+4dB Voice / 0dB Amb');
 
-  recordPendingChange('audioProfile', 'Audio Mic Preset', labels[prof] || prof, () => {
-    window.setAudioProfilePreset(prevProf);
-  });
-  updateLiveAudioInspector();
+  await applyCustomAudioEngine(`Audio Preset: ${labels[prof] || prof}`);
 };
 
-// 3. Hardware HPF Preset (Low-End Noise Filter - Staged)
-window.setHpfPreset = function(val) {
+// 3. Hardware HPF Preset (Low-End Noise Filter - Instant & Persistent)
+window.setHpfPreset = async function(val) {
   ensureCustomMicActive();
-  const prevVal = currentHpfCutoff;
   currentHpfCutoff = val;
   syncChips('#hpfPills', val);
   triggerUserChoice();
@@ -1389,16 +1393,12 @@ window.setHpfPreset = function(val) {
   if (lblHpfVal) {
     lblHpfVal.innerText = val === 'CF_NEG_3DB_150HZ' ? '150 Hz Filter' : (val === 'CF_NEG_3DB_4HZ' ? '4 Hz Filter' : '75 Hz Filter');
   }
-  recordPendingChange('hpfCutoff', 'HPF Noise Filter', val === 'CF_NEG_3DB_150HZ' ? '150Hz Wind Cut' : (val === 'CF_NEG_3DB_4HZ' ? '4Hz Flat' : '75Hz Vocal Cut'), () => {
-    window.setHpfPreset(prevVal);
-  });
-  updateLiveAudioInspector();
+  await applyCustomAudioEngine(`HPF Filter: ${val === 'CF_NEG_3DB_150HZ' ? '150Hz Wind Cut' : (val === 'CF_NEG_3DB_4HZ' ? '4Hz Flat' : '75Hz Vocal Cut')}`);
 };
 
-// 4. Dual-Mic Spatial Preset (Differential Beamforming - Staged)
-window.setDualMicSpatialPreset = function(profile) {
+// 4. Dual-Mic Spatial Preset (Differential Beamforming - Instant & Persistent)
+window.setDualMicSpatialPreset = async function(profile) {
   ensureCustomMicActive();
-  const prevProfile = currentSpatialProfile;
   currentSpatialProfile = profile;
   syncChips('#spatialPills', profile);
   triggerUserChoice();
@@ -1426,26 +1426,17 @@ window.setDualMicSpatialPreset = function(profile) {
     syncChips('#topMicChips', rngTopMic.value);
   }
 
-  recordPendingChange('spatialPreset', 'Dual-Mic Spatial', profile.toUpperCase(), () => {
-    window.setDualMicSpatialPreset(prevProfile);
-  });
-  updateLiveAudioInspector();
+  await applyCustomAudioEngine(`Dual-Mic Spatial: ${profile.toUpperCase()}`);
 };
 
-// 5. Qualcomm Fluence Pro Toggle Handler (Staged)
+// 5. Qualcomm Fluence Pro Toggle Handler (Instant & Persistent)
 if (chkToggleFluence) {
-  let prevFluence = chkToggleFluence.checked;
-  chkToggleFluence.addEventListener('change', () => {
+  chkToggleFluence.addEventListener('change', async () => {
     ensureCustomMicActive();
     triggerUserChoice();
     const isFluence = chkToggleFluence.checked;
     if (statusFluence) statusFluence.innerText = isFluence ? 'Fluence Pro Active' : 'Fluence Disabled';
-    recordPendingChange('toggle_fluence', 'Qualcomm Fluence Dual-Mic', isFluence ? 'ON' : 'OFF', () => {
-      chkToggleFluence.checked = prevFluence;
-      if (statusFluence) statusFluence.innerText = prevFluence ? 'Fluence Pro Active' : 'Fluence Disabled';
-      updateLiveAudioInspector();
-    });
-    updateLiveAudioInspector();
+    await applyCustomAudioEngine(isFluence ? 'Qualcomm Fluence Dual-Mic ON' : 'Fluence Dual-Mic OFF');
   });
 }
 
@@ -1465,7 +1456,6 @@ const debouncedWriteAdcGain = debounce((val) => {
 }, 180);
 
 if (rngAdcGain) {
-  let prevAdc = rngAdcGain.value;
   rngAdcGain.addEventListener('input', () => {
     ensureCustomMicActive();
     const val = Math.max(8, Math.min(15, parseInt(rngAdcGain.value, 10)));
@@ -1473,154 +1463,109 @@ if (rngAdcGain) {
     if (statusAdc) statusAdc.innerText = `${val} (${val <= 12 ? 'Stock' : 'Boost'})`;
     syncChips('#adcChips', String(val));
     triggerUserChoice();
-    recordPendingChange('adcGain', 'ADC Pre-Amp Gain', String(val), () => {
-      rngAdcGain.value = prevAdc;
-      if (lblAdcGain) lblAdcGain.innerText = `${prevAdc} (Stock 30dB)`;
-      syncChips('#adcChips', String(prevAdc));
-      updateLiveAudioInspector();
-    });
-    updateLiveAudioInspector();
+  });
+  rngAdcGain.addEventListener('change', () => {
+    const val = Math.max(8, Math.min(15, parseInt(rngAdcGain.value, 10)));
+    debouncedWriteAdcGain(val);
   });
 }
 
 window.setAdcPreset = function(val) {
   ensureCustomMicActive();
-  const prevAdc = rngAdcGain ? rngAdcGain.value : '12';
   const numVal = Math.max(8, Math.min(15, parseInt(val, 10)));
   if (rngAdcGain) rngAdcGain.value = numVal;
   if (lblAdcGain) lblAdcGain.innerText = `${numVal} (${numVal <= 10 ? 'Quiet' : (numVal <= 12 ? 'Stock 30dB' : (numVal <= 13 ? 'Warm 33dB' : (numVal <= 14 ? 'Studio 35dB' : 'Max Safe 38dB')))})`;
   if (statusAdc) statusAdc.innerText = `${numVal} (${numVal <= 12 ? 'Stock' : 'Boost'})`;
   syncChips('#adcChips', String(numVal));
   triggerUserChoice();
-  recordPendingChange('adcGain', 'ADC Pre-Amp Gain', String(numVal), () => {
-    if (rngAdcGain) rngAdcGain.value = prevAdc;
-    if (lblAdcGain) lblAdcGain.innerText = `${prevAdc} (Stock 30dB)`;
-    syncChips('#adcChips', String(prevAdc));
-    updateLiveAudioInspector();
-  });
-  updateLiveAudioInspector();
+  debouncedWriteAdcGain(numVal);
 };
 window.setAdcGainPreset = window.setAdcPreset;
 
-// 7. Bottom Primary Mic Gain
+// 7. Bottom Primary Mic Gain (Instant & Persistent)
 if (rngBottomMic) {
-  let prevBottomMic = rngBottomMic.value;
   rngBottomMic.addEventListener('input', () => {
     ensureCustomMicActive();
     const val = parseInt(rngBottomMic.value, 10);
     if (lblBottomMic) lblBottomMic.innerText = `${val >= 0 ? '+' : ''}${val} dB`;
     syncChips('#bottomMicChips', rngBottomMic.value);
     triggerUserChoice();
-    recordPendingChange('bottomMic', 'Bottom Mic Gain', `${val >= 0 ? '+' : ''}${val} dB`, () => {
-      rngBottomMic.value = prevBottomMic;
-      if (lblBottomMic) lblBottomMic.innerText = `${prevBottomMic >= 0 ? '+' : ''}${prevBottomMic} dB`;
-      syncChips('#bottomMicChips', String(prevBottomMic));
-      updateLiveAudioInspector();
-    });
-    updateLiveAudioInspector();
+  });
+  rngBottomMic.addEventListener('change', async () => {
+    await applyCustomAudioEngine(`Bottom Mic Gain: ${rngBottomMic.value} dB`);
   });
 }
 
-window.setBottomMicGain = function(db) {
+window.setBottomMicGain = async function(db) {
   ensureCustomMicActive();
-  const prevBottomMic = rngBottomMic ? rngBottomMic.value : '0';
   if (rngBottomMic) rngBottomMic.value = db;
   const val = parseInt(db, 10);
   if (lblBottomMic) lblBottomMic.innerText = `${val >= 0 ? '+' : ''}${val} dB`;
   syncChips('#bottomMicChips', String(db));
   triggerUserChoice();
-  recordPendingChange('bottomMic', 'Bottom Mic Gain', `${val >= 0 ? '+' : ''}${val} dB`, () => {
-    if (rngBottomMic) rngBottomMic.value = prevBottomMic;
-    if (lblBottomMic) lblBottomMic.innerText = `${prevBottomMic >= 0 ? '+' : ''}${prevBottomMic} dB`;
-    syncChips('#bottomMicChips', String(prevBottomMic));
-    updateLiveAudioInspector();
-  });
-  updateLiveAudioInspector();
+  await applyCustomAudioEngine(`Bottom Mic Gain: ${db} dB`);
 };
 
-// 8. Top Secondary Mic Gain
+// 8. Top Secondary Mic Gain (Instant & Persistent)
 if (rngTopMic) {
-  let prevTopMic = rngTopMic.value;
   rngTopMic.addEventListener('input', () => {
     ensureCustomMicActive();
     const val = parseInt(rngTopMic.value, 10);
     if (lblTopMic) lblTopMic.innerText = `${val >= 0 ? '+' : ''}${val} dB`;
     syncChips('#topMicChips', rngTopMic.value);
     triggerUserChoice();
-    recordPendingChange('topMic', 'Top Mic Gain', `${val >= 0 ? '+' : ''}${val} dB`, () => {
-      rngTopMic.value = prevTopMic;
-      if (lblTopMic) lblTopMic.innerText = `${prevTopMic >= 0 ? '+' : ''}${prevTopMic} dB`;
-      syncChips('#topMicChips', String(prevTopMic));
-      updateLiveAudioInspector();
-    });
-    updateLiveAudioInspector();
+  });
+  rngTopMic.addEventListener('change', async () => {
+    await applyCustomAudioEngine(`Top Mic Gain: ${rngTopMic.value} dB`);
   });
 }
 
-window.setTopMicGain = function(db) {
+window.setTopMicGain = async function(db) {
   ensureCustomMicActive();
-  const prevTopMic = rngTopMic ? rngTopMic.value : '0';
   if (rngTopMic) rngTopMic.value = db;
   const val = parseInt(db, 10);
   if (lblTopMic) lblTopMic.innerText = `${val >= 0 ? '+' : ''}${val} dB`;
   syncChips('#topMicChips', String(db));
   triggerUserChoice();
-  recordPendingChange('topMic', 'Top Mic Gain', `${val >= 0 ? '+' : ''}${val} dB`, () => {
-    if (rngTopMic) rngTopMic.value = prevTopMic;
-    if (lblTopMic) lblTopMic.innerText = `${prevTopMic >= 0 ? '+' : ''}${prevTopMic} dB`;
-    syncChips('#topMicChips', String(prevTopMic));
-    updateLiveAudioInspector();
-  });
-  updateLiveAudioInspector();
+  await applyCustomAudioEngine(`Top Mic Gain: ${db} dB`);
 };
 
-// 9. In-Call Mic Unmute Delay
+// 9. In-Call Mic Unmute Delay (Instant & Persistent)
 if (rngMicDelay) {
-  let prevMicDelay = rngMicDelay.value;
   rngMicDelay.addEventListener('input', () => {
     ensureCustomMicActive();
     const val = rngMicDelay.value;
     if (lblMicDelay) lblMicDelay.innerText = `${val} ms`;
     triggerUserChoice();
-    recordPendingChange('micDelay', 'Mic Unmute Delay', `${val} ms`, () => {
-      rngMicDelay.value = prevMicDelay;
-      if (lblMicDelay) lblMicDelay.innerText = `${prevMicDelay} ms`;
-      updateLiveAudioInspector();
-    });
-    updateLiveAudioInspector();
+  });
+  rngMicDelay.addEventListener('change', async () => {
+    await applyCustomAudioEngine(`Mic Delay: ${rngMicDelay.value} ms`);
   });
 }
 
-// 10. Headphone Hi-Fi Audio Mode
+// 10. Headphone Hi-Fi Audio Mode (Instant & Persistent)
 if (chkToggleHifiAudio) {
-  let prevHifi = chkToggleHifiAudio.checked;
   chkToggleHifiAudio.addEventListener('change', () => {
     triggerUserChoice();
     const isHifi = chkToggleHifiAudio.checked;
     if (statusHifi) statusHifi.innerText = isHifi ? 'HD2 Hi-Fi' : 'Normal';
-    recordPendingChange('hifiMode', 'Headphone Hi-Fi', isHifi ? 'High Performance' : 'Normal', () => {
-      chkToggleHifiAudio.checked = prevHifi;
-      if (statusHifi) statusHifi.innerText = prevHifi ? 'HD2 Hi-Fi' : 'Normal';
-      updateLiveAudioInspector();
-    });
+    instantWrite(`tinymix 'RX_HPH_PWR_MODE' '${isHifi ? 'HIGH_PERF' : 'NORMAL'}' 2>/dev/null || true`, isHifi ? 'Headphone Hi-Fi High Performance Mode' : 'Headphone Normal Power Mode');
     updateLiveAudioInspector();
   });
 }
 
-// 11. Receiver Earpiece Volume Boost
+// 11. Receiver Earpiece Volume Boost (Instant & Persistent)
 if (rngEarBoost) {
-  let prevEarBoost = rngEarBoost.value;
   rngEarBoost.addEventListener('input', () => {
     const val = parseInt(rngEarBoost.value, 10);
     if (lblEarBoost) lblEarBoost.innerText = val === 0 ? '0 dB (Stock)' : `+${val} dB Boost`;
     if (statusEarBoost) statusEarBoost.innerText = val === 0 ? 'Stock' : `+${val} dB`;
     triggerUserChoice();
-    recordPendingChange('earBoost', 'Earpiece Boost', `+${val} dB`, () => {
-      rngEarBoost.value = prevEarBoost;
-      if (lblEarBoost) lblEarBoost.innerText = prevEarBoost === '0' ? '0 dB (Stock)' : `+${prevEarBoost} dB Boost`;
-      if (statusEarBoost) statusEarBoost.innerText = prevEarBoost === '0' ? 'Stock' : `+${prevEarBoost} dB`;
-      updateLiveAudioInspector();
-    });
+  });
+  rngEarBoost.addEventListener('change', () => {
+    const val = parseInt(rngEarBoost.value, 10);
+    const earCmd = val > 0 ? `tinymix 'RX_EAR Volume' ${84 + (val * 2)} 2>/dev/null || true` : `tinymix 'RX_EAR Volume' 84 2>/dev/null || true`;
+    instantWrite(earCmd, val > 0 ? `Earpiece Boost: +${val} dB` : 'Earpiece Boost Stock (0 dB)');
     updateLiveAudioInspector();
   });
 }
@@ -1667,80 +1612,44 @@ function updateCutoffLabels() {
   }
 
   if (lblCutoffVal) {
-    if (selectedChargeCutoff === '0') {
-      lblCutoffVal.innerText = 'Off (Raw charging, no cutoff)';
-    } else if (selectedChargeCutoff === '100') {
-      lblCutoffVal.innerText = '100% Safe Native Cutoff (Kernel Default)';
-    } else {
-      lblCutoffVal.innerText = `${selectedChargeCutoff}% Charge Hold`;
-    }
+    lblCutoffVal.innerText = selectedChargeCutoff === '0' ? 'Off (Stock 100%)' : `${selectedChargeCutoff}% Hardware Stop`;
   }
 
   if (lblCutoffModeBadge) {
-    lblCutoffModeBadge.innerText = selectedCutoffMode === '1' ? 'USB-Powered Hold' : 'Charge Pause';
+    lblCutoffModeBadge.innerText = selectedCutoffMode === '1' ? 'Real Bypass (0mA)' : 'Cool Standby';
     lblCutoffModeBadge.style.color = selectedCutoffMode === '1' ? 'var(--accent-cyan)' : '#fbbf24';
   }
 
   if (statusCutoffEngine) {
     if (chkInstantBypass && chkInstantBypass.checked) {
-      statusCutoffEngine.innerText = '⚡ Instant Bypass Active (Direct Power)';
+      statusCutoffEngine.innerText = '⚡ Gaming Instant Bypass Active (0mA Net)';
       statusCutoffEngine.style.color = '#34d399';
-    } else if (selectedChargeCutoff === '100') {
-      const modeStr = selectedCutoffMode === '1' ? 'USB Hold' : 'Charge Pause';
-      statusCutoffEngine.innerText = `100% Safe Native Cutoff Active (${modeStr})`;
-      statusCutoffEngine.style.color = 'var(--color-success)';
     } else if (selectedChargeCutoff !== '0') {
-      const modeStr = selectedCutoffMode === '1' ? 'USB Hold' : 'Charge Pause';
+      const modeStr = selectedCutoffMode === '1' ? 'Bypass' : 'Standby';
       statusCutoffEngine.innerText = `Cutoff Active: ${selectedChargeCutoff}% (${modeStr})`;
       statusCutoffEngine.style.color = 'var(--accent-cyan)';
     } else {
-      statusCutoffEngine.innerText = 'Raw Stock (No Cutoff / Unmanaged)';
+      statusCutoffEngine.innerText = 'Stock / ROM Default (Normal Charging)';
       statusCutoffEngine.style.color = 'var(--text-secondary)';
     }
   }
 }
 
-// 1. Instant charge hold / Bypass Charging (Immediate Real-Time Hardware Execution)
-async function applyInstantBypassRealtime(enable) {
-  triggerHaptic();
-  triggerUserChoice();
-  const val = enable ? '1' : '0';
-
-  if (chkInstantBypass) chkInstantBypass.checked = enable;
-  updateCutoffLabels();
-
-  const cmds = [
-    `echo "${val}" > /sys/kernel/aether/instant_bypass 2>/dev/null || true`,
-    `echo "${val}" > /sys/kernel/aether/aacc_idle_mode 2>/dev/null || true`,
-    `echo "0" > /sys/class/power_supply/battery/input_suspend 2>/dev/null || true`,
-    `mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null || true`,
-    `printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${val}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`
-  ].join('; ');
-
-  try {
-    isUserActionExecuting = true;
-    await runCmd(cmds);
-    saveAllState();
-    logKernel(`[POWER] Instant Bypass ${enable ? 'ENGAGED (Battery Charging Halted, Direct Motherboard Power)' : 'RELEASED (Normal Fast Charging Restored)'}`);
-    showToast(enable ? '⚡ Direct Motherboard Power Active' : '⚡ Normal Fast Charging Restored');
-    await updateTelemetry(true);
-  } catch (e) {
-    logKernel(`[POWER ERR] Bypass command failed: ${e && e.message ? e.message : e}`);
-    showToast('❌ Failed to toggle bypass charging');
-  } finally {
-    isUserActionExecuting = false;
-  }
-}
-
+// 1. Instant Bypass Mode (Gaming Direct USB Power at Any %)
 if (chkInstantBypass) {
-  chkInstantBypass.addEventListener('change', async (e) => {
-    e.stopPropagation();
+  chkInstantBypass.addEventListener('change', () => {
+    updateCutoffLabels();
+    triggerUserChoice();
     const isBypass = chkInstantBypass.checked;
-    await applyInstantBypassRealtime(isBypass);
+    const bypassVal = isBypass ? '1' : '0';
+    instantWrite(
+      `echo "${bypassVal}" > /sys/kernel/aether/instant_bypass 2>/dev/null; [ -f /sys/kernel/aether/aacc_idle_mode ] && echo "${bypassVal}" > /sys/kernel/aether/aacc_idle_mode 2>/dev/null; [ -f /sys/class/power_supply/battery/bq_input_suspend ] && echo "${bypassVal}" > /sys/class/power_supply/battery/bq_input_suspend 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${bypassVal}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`,
+      isBypass ? 'Instant Bypass Mode ON (Direct USB Power, 0mA Net)' : 'Instant Bypass Mode OFF (Standard Charging Restored)'
+    );
   });
 }
 
-// KProfiles Hardware Profile Buttons (Staged)
+// KProfiles Hardware Profile Buttons (Instant & Persistent)
 const statusKpMode = document.getElementById('statusKpMode');
 const chkToggleAutoKp = document.getElementById('chkToggleAutoKp');
 
@@ -1748,8 +1657,6 @@ document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(btn => {
   btn.addEventListener('click', (e) => {
     const pill = btn || e.currentTarget || (e.target ? e.target.closest('.cutoff-pill') : null);
     if (!pill) return;
-    const prevActive = document.querySelector('#gridKpMode .cutoff-pill.active');
-    const prevVal = prevActive ? prevActive.dataset.val : '0';
     document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => b.classList.remove('active'));
     pill.classList.add('active');
     const val = pill.dataset.val;
@@ -1758,270 +1665,213 @@ document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(btn => {
       statusKpMode.innerText = labels[parseInt(val, 10)] || `Mode ${val}`;
     }
     triggerUserChoice();
-    recordPendingChange('kp_mode', 'KProfiles Hardware Mode', labels[parseInt(val, 10)] || val, () => {
-      document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => {
-        b.classList.toggle('active', b.dataset.val === prevVal);
-      });
-      if (statusKpMode) {
-        statusKpMode.innerText = labels[parseInt(prevVal, 10)] || `Mode ${prevVal}`;
-      }
-    });
+    const writeCmd = `[ -f /sys/kernel/kprofiles/kp_mode ] && echo "${val}" > /sys/kernel/kprofiles/kp_mode 2>/dev/null || true`;
+    instantWrite(writeCmd, `KProfiles Mode Set to ${labels[parseInt(val, 10)] || val}`);
   });
 });
 
 if (chkToggleAutoKp) {
-  let prevAutoKp = chkToggleAutoKp.checked;
   chkToggleAutoKp.addEventListener('change', () => {
     triggerUserChoice();
     const isAuto = chkToggleAutoKp.checked;
-    recordPendingChange('auto_kp', 'KProfiles Auto-Battery', isAuto ? 'ON' : 'OFF', () => {
-      chkToggleAutoKp.checked = prevAutoKp;
-    });
+    const val = isAuto ? '1' : '0';
+    const writeCmd = `[ -f /sys/module/kprofiles/parameters/auto_kp ] && echo "${val}" > /sys/module/kprofiles/parameters/auto_kp 2>/dev/null || true`;
+    instantWrite(writeCmd, isAuto ? 'KProfiles Screen-Off Auto-Battery ON (Forced Mode 1 in Sleep)' : 'KProfiles Auto-Battery OFF');
   });
 }
 
-// 2. Target Cutoff Limit Uniform Pills (Immediate Real-Time Hardware Execution)
-async function applyCutoffLimitRealtime(limitVal) {
-  const isInstBypass = (chkInstantBypass && chkInstantBypass.checked) ? '1' : '0';
-  const cmds = [
-    `echo "${limitVal}" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null || true`,
-    `mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null || true`,
-    `printf "CUTOFF_LIMIT=${limitVal}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`
-  ].join('; ');
-
-  try {
-    isUserActionExecuting = true;
-    await runCmd(cmds);
-    saveAllState();
-    logKernel(`[POWER] Target Cutoff Limit set to ${limitVal === '0' ? 'Off (Raw Stock)' : limitVal + '%'}`);
-    showToast(limitVal === '0' ? '⚡ Cutoff Disabled (Stock Turbo)' : `⚡ Hardware Cutoff Limit: ${limitVal}%`);
-    await updateTelemetry(true);
-  } catch (e) {
-    logKernel(`[POWER ERR] Cutoff limit command failed: ${e && e.message ? e.message : e}`);
-    showToast('❌ Failed to set cutoff limit');
-  } finally {
-    isUserActionExecuting = false;
-  }
-}
-
+// 2. Target Cutoff Limit Uniform Pills
 document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(btn => {
-  btn.addEventListener('click', async (e) => {
+  btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const pill = btn || e.currentTarget || (e.target ? e.target.closest('.cutoff-pill') : null);
-    const val = pill ? pill.dataset.val : null;
+    const pill = btn || e.currentTarget;
+    if (!pill) return;
+    const val = pill.dataset.val;
     if (val === null || val === undefined) return;
     document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.remove('active'));
     pill.classList.add('active');
     selectedChargeCutoff = val;
-    triggerHaptic();
-    triggerUserChoice();
     updateCutoffLabels();
-    await applyCutoffLimitRealtime(val);
+    triggerUserChoice();
+
+    const isInstBypass = (chkInstantBypass && chkInstantBypass.checked) ? '1' : '0';
+    const writeCmd = `echo "${selectedChargeCutoff}" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`;
+    const label = selectedChargeCutoff === '0'
+      ? 'Charge Cutoff Disabled (Full Stock 100% / ROM Default)'
+      : `Target Charge Cutoff Set to ${selectedChargeCutoff}% (Hardware PMIC Managed)`;
+
+    instantWrite(writeCmd, label);
   });
 });
 
-// 3. Cutoff Behavior Mode Selector Pills (Immediate Real-Time Hardware Execution)
-async function applyCutoffModeRealtime(modeVal) {
-  const isInstBypass = (chkInstantBypass && chkInstantBypass.checked) ? '1' : '0';
-  const cmds = [
-    `echo "${modeVal}" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null || true`,
-    `mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null || true`,
-    `printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${modeVal}\\nINSTANT_BYPASS=${isInstBypass}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`
-  ].join('; ');
-
-  try {
-    isUserActionExecuting = true;
-    await runCmd(cmds);
-    saveAllState();
-    logKernel(`[POWER] Cutoff Mode set to ${modeVal === '1' ? 'USB-Powered Hold' : 'Charge Pause'}`);
-    showToast(modeVal === '1' ? '⚡ Mode: USB-Powered Hold' : '❄️ Mode: PMIC Charge Pause');
-    await updateTelemetry(true);
-  } catch (e) {
-    logKernel(`[POWER ERR] Cutoff mode command failed: ${e && e.message ? e.message : e}`);
-    showToast('❌ Failed to set cutoff mode');
-  } finally {
-    isUserActionExecuting = false;
-  }
-}
-
-document.querySelectorAll('.cutoff-mode-pill').forEach(btn => {
-  btn.addEventListener('click', async (e) => {
+// 3. Cutoff Behavior Mode Selector Pills
+document.querySelectorAll('#gridCutoffMode .cutoff-mode-pill').forEach(btn => {
+  btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    const pill = btn || e.currentTarget || (e.target ? e.target.closest('.cutoff-mode-pill') : null);
-    const val = pill ? pill.dataset.val : null;
+    const pill = btn || e.currentTarget;
+    if (!pill) return;
+    const val = pill.dataset.val;
     if (val === null || val === undefined) return;
-    document.querySelectorAll('.cutoff-mode-pill').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#gridCutoffMode .cutoff-mode-pill').forEach(b => b.classList.remove('active'));
     pill.classList.add('active');
     selectedCutoffMode = val;
-    triggerHaptic();
-    triggerUserChoice();
     updateCutoffLabels();
-    await applyCutoffModeRealtime(val);
+    triggerUserChoice();
+
+    const isInstBypass = (chkInstantBypass && chkInstantBypass.checked) ? '1' : '0';
+    const writeCmd = `echo "${selectedCutoffMode}" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`;
+    const label = selectedCutoffMode === '1'
+      ? 'Cutoff Action: Real Bypass Mode (Direct USB Power)'
+      : 'Cutoff Action: Cool Standby Mode (Sleeps Charger)';
+
+    instantWrite(writeCmd, label);
   });
 });
 
-// 2. AMOLED DC Dimming (Anti-Flicker Hardware Mode - Staged)
+// 2. AMOLED DC Dimming (Anti-Flicker Hardware Mode - Instant & Persistent)
 if (chkToggleDcDim) {
-  let prevDcDim = chkToggleDcDim.checked;
   chkToggleDcDim.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
     const isDc = chkToggleDcDim.checked;
-    recordPendingChange('toggle_dc_dim', 'Anti-Flicker DC Dimming', isDc ? 'ON' : 'OFF', () => {
-      chkToggleDcDim.checked = prevDcDim;
-      updateTileBadges();
-    });
+    const val = isDc ? '1' : '0';
+    const writeCmd = `echo "${val}" > /sys/kernel/aether/anti_flicker 2>/dev/null; [ -f /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker ] && echo "${val}" > /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker 2>/dev/null || true`;
+    instantWrite(writeCmd, isDc ? 'Anti-Flicker DC Dimming ON' : 'Anti-Flicker DC Dimming OFF');
   });
 }
 
-// 3. Sunlight HBM (1100 Nits - Staged)
+// 3. Sunlight HBM (1100 Nits - Instant & Persistent)
 if (chkToggleHbm) {
-  let prevHbm = chkToggleHbm.checked;
   chkToggleHbm.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
     const isHbm = chkToggleHbm.checked;
-    recordPendingChange('toggle_hbm', 'Sunlight HBM (1100 Nits)', isHbm ? 'ON' : 'OFF', () => {
-      chkToggleHbm.checked = prevHbm;
-      updateTileBadges();
-    });
+    const val = isHbm ? '1' : '0';
+    const writeCmd = `for n in /sys/kernel/aether/hbm /sys/devices/platform/soc/soc:qcom,dsi-display/hbm /sys/devices/platform/soc/soc:qcom,dsi-display-primary/hbm /sys/class/drm/card0/device/hbm; do if [ -f "$n" ]; then echo "${val}" > "$n" 2>/dev/null; break; fi; done || true`;
+    instantWrite(writeCmd, isHbm ? 'Sunlight High Brightness Mode (1100 Nits) ON' : 'Sunlight HBM OFF');
   });
 }
 
-// 4. Glove Mode Touch Sensitivity (Staged)
+// 4. Glove Mode Touch Sensitivity (Instant & Persistent)
 if (chkToggleGlove) {
-  let prevGlove = chkToggleGlove.checked;
   chkToggleGlove.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
     const isGlove = chkToggleGlove.checked;
-    recordPendingChange('toggle_glove', 'Glove Touch Sensitivity', isGlove ? 'ON' : 'OFF', () => {
-      chkToggleGlove.checked = prevGlove;
-      updateTileBadges();
-    });
+    const val = isGlove ? '1' : '0';
+    const statusGlove = document.getElementById('statusGlove');
+    if (statusGlove) statusGlove.innerText = isGlove ? 'Glove Mode ON' : 'Standard Sens';
+    const writeCmd = `for g in /sys/devices/platform/soc/*.i2c/i2c-*/1-*/fts_glove_mode /sys/bus/i2c/drivers/fts_ts/*/fts_glove_mode /sys/bus/i2c/drivers/ft3418_ts/*/fts_glove_mode /sys/class/input/input*/fts_glove_mode; do [ -f "$g" ] && echo "${val}" > "$g" 2>/dev/null; done || true`;
+    instantWrite(writeCmd, isGlove ? 'Glove Mode ON (High Touch Sensitivity)' : 'Glove Mode OFF (Standard Sensitivity)');
   });
 }
 
-// 5. Fast Charge Turbo Override (Staged)
+// 5. Fast Charge Turbo Override (Instant & Persistent)
 if (chkToggleTurboOverride) {
-  let prevTurbo = chkToggleTurboOverride.checked;
   chkToggleTurboOverride.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
     const isTurbo = chkToggleTurboOverride.checked;
-    recordPendingChange('toggle_turbo', 'Force 33W Fastcharge', isTurbo ? 'ON' : 'OFF', () => {
-      chkToggleTurboOverride.checked = prevTurbo;
-      updateTileBadges();
-    });
+    const val = isTurbo ? '1' : '0';
+    const writeCmd = `echo "${val}" > /sys/class/power_supply/battery/fastcharge_mode 2>/dev/null || true`;
+    instantWrite(writeCmd, isTurbo ? 'Force 33W Fastcharge Override ON' : 'Fastcharge Override Stock');
   });
 }
 
-// 6. Charging Speed Limit Segments (Staged)
+// 6. Charging Speed Limit Segments (Instant & Persistent)
 document.querySelectorAll('#gridChargeLimit .seg-btn-charge').forEach(btn => {
   btn.addEventListener('click', () => {
-    const prev = selectedChargeLimit;
     document.querySelectorAll('#gridChargeLimit .seg-btn-charge').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedChargeLimit = btn.dataset.val;
     updateTileBadges();
     triggerUserChoice();
-    recordPendingChange('charge_limit', 'Charge Speed Limit', selectedChargeLimit === '0' ? 'Stock 33W' : `${parseInt(selectedChargeLimit, 10) / 1000} mA`, () => {
-      selectedChargeLimit = prev;
-      document.querySelectorAll('#gridChargeLimit .seg-btn-charge').forEach(b => b.classList.toggle('active', b.dataset.val === prev));
-      updateTileBadges();
-    });
+    const clVal = selectedChargeLimit === '0' ? '6000000' : selectedChargeLimit;
+    const lbl = selectedChargeLimit === '0' ? 'Stock 33W Unlimited' : `${parseInt(selectedChargeLimit, 10)/1000000}A (${Math.round((parseInt(selectedChargeLimit, 10)/1000000)*5)}W)`;
+    const statusChargeRate = document.getElementById('statusChargeRate');
+    if (statusChargeRate) statusChargeRate.innerText = lbl;
+    const writeCmd = `echo "${clVal}" > /sys/class/power_supply/battery/constant_charge_current_max 2>/dev/null; echo "${clVal}" > /sys/kernel/aether/charge_current_limit 2>/dev/null || true`;
+    instantWrite(writeCmd, `Charge Current Limit: ${lbl}`);
   });
 });
 
-// 7. Google BBR Network Congestion Control (Staged)
+// 7. Google BBR Network Congestion Control (Instant & Persistent)
 if (chkToggleBbr) {
-  let prevBbr = chkToggleBbr.checked;
   chkToggleBbr.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
     const isBbr = chkToggleBbr.checked;
-    recordPendingChange('toggle_bbr', 'Google BBR Network Congestion', isBbr ? 'ON' : 'OFF', () => {
-      chkToggleBbr.checked = prevBbr;
-      updateTileBadges();
-    });
+    const cc = isBbr ? 'bbr' : 'cubic';
+    const writeCmd = `echo "${cc}" > /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null; if [ "${cc}" = "bbr" ]; then echo "fq" > /proc/sys/net/core/default_qdisc 2>/dev/null; echo 0 > /proc/sys/net/ipv4/tcp_slow_start_after_idle 2>/dev/null; echo 2 > /proc/sys/net/ipv4/tcp_ecn 2>/dev/null; echo 2097152 > /proc/sys/net/core/rmem_max 2>/dev/null; echo 2097152 > /proc/sys/net/core/wmem_max 2>/dev/null; echo "4096 87380 2097152" > /proc/sys/net/ipv4/tcp_rmem 2>/dev/null; echo "4096 65536 2097152" > /proc/sys/net/ipv4/tcp_wmem 2>/dev/null; fi || true`;
+    instantWrite(writeCmd, isBbr ? 'Google BBR Network Congestion ON' : 'Cubic TCP Congestion Restored');
   });
 }
 
-// 8. TCP Fast Open (TFO - Staged)
+// 8. TCP Fast Open (TFO - Instant & Persistent)
 if (chkToggleTfo) {
-  let prevTfo = chkToggleTfo.checked;
   chkToggleTfo.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
     const isTfo = chkToggleTfo.checked;
-    recordPendingChange('toggle_tfo', 'TCP Fast Open', isTfo ? 'Mode 3 Active' : 'Mode 1 Stock', () => {
-      chkToggleTfo.checked = prevTfo;
-      updateTileBadges();
-    });
+    const val = isTfo ? '3' : '1';
+    const writeCmd = `echo "${val}" > /proc/sys/net/ipv4/tcp_fastopen 2>/dev/null || true`;
+    instantWrite(writeCmd, isTfo ? 'TCP Fast Open Mode 3 (Client & Server) ON' : 'TCP Fast Open Mode 1 Stock');
   });
 }
 
-// 9. UFS Storage Read-Ahead Cache & Google Kyber BLK-MQ
+// 9. UFS Storage Read-Ahead Cache & Google Kyber BLK-MQ (Instant & Persistent)
 const selIoSched = document.getElementById('selIoSched');
 const chkSchedtuneIdle = document.getElementById('chkSchedtuneIdle');
 const chkTcpLowat = document.getElementById('chkTcpLowat');
 const statusSchedtune = document.getElementById('statusSchedtune');
 
 if (selIoSched) {
-  let prevIo = selIoSched.value;
   selIoSched.addEventListener('change', () => {
     const val = selIoSched.value;
     updateTileBadges();
     triggerUserChoice();
-    recordPendingChange('io_sched', 'I/O Scheduler', val.toUpperCase(), () => {
-      selIoSched.value = prevIo;
-      updateTileBadges();
-    });
+    const writeCmd = `for q in /sys/block/sda/queue; do [ -d "$q" ] && echo "${val}" > "$q/scheduler" 2>/dev/null; done || true`;
+    instantWrite(writeCmd, `I/O Scheduler set to ${val.toUpperCase()}`);
     if (statusUfs) statusUfs.innerText = `${val.toUpperCase()} • ${selectedReadAhead} KB`;
   });
 }
 
 if (chkSchedtuneIdle) {
-  let prevSchedtune = chkSchedtuneIdle.checked;
   chkSchedtuneIdle.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
     const enabled = chkSchedtuneIdle.checked;
-    recordPendingChange('schedtune_idle', 'SchedTune Prefer Idle', enabled ? 'Prefer Idle Active' : 'Default Sched', () => {
-      chkSchedtuneIdle.checked = prevSchedtune;
-      updateTileBadges();
-      if (statusSchedtune) statusSchedtune.innerText = prevSchedtune ? 'Prefer Idle Active' : 'Default Sched';
-    });
     if (statusSchedtune) statusSchedtune.innerText = enabled ? 'Prefer Idle Active' : 'Default Sched';
+    const writeCmd = enabled
+      ? 'if [ -d /dev/stune/top-app ]; then echo 1 > /dev/stune/top-app/schedtune.prefer_idle 2>/dev/null; echo 10 > /dev/stune/top-app/schedtune.boost 2>/dev/null; echo 1 > /dev/stune/top-app/schedtune.colocate 2>/dev/null; echo 1 > /dev/stune/top-app/schedtune.sched_boost_no_override 2>/dev/null; fi'
+      : 'if [ -d /dev/stune/top-app ]; then echo 0 > /dev/stune/top-app/schedtune.prefer_idle 2>/dev/null; echo 0 > /dev/stune/top-app/schedtune.boost 2>/dev/null; fi';
+    instantWrite(writeCmd, enabled ? 'SchedTune Prefer Idle ON' : 'SchedTune Prefer Idle OFF');
   });
 }
 
 if (chkTcpLowat) {
-  let prevLowat = chkTcpLowat.checked;
   chkTcpLowat.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
     const enabled = chkTcpLowat.checked;
-    recordPendingChange('tcp_lowat', 'TCP Low-Latency Socket', enabled ? 'Active (16KB)' : 'Stock (4MB)', () => {
-      chkTcpLowat.checked = prevLowat;
-      updateTileBadges();
-    });
+    const writeCmd = enabled
+      ? 'echo 16384 > /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null; echo 1 > /proc/sys/net/ipv4/tcp_autocorking 2>/dev/null'
+      : 'echo 4294967295 > /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null; echo 0 > /proc/sys/net/ipv4/tcp_autocorking 2>/dev/null';
+    instantWrite(writeCmd, enabled ? 'TCP Low-Latency Socket (16KB) ON' : 'TCP Standard Buffer (4MB)');
   });
 }
 
 document.querySelectorAll('.seg-btn-ra').forEach(btn => {
   btn.addEventListener('click', () => {
-    const prev = selectedReadAhead;
     document.querySelectorAll('.seg-btn-ra').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedReadAhead = btn.dataset.val;
     updateTileBadges();
     triggerUserChoice();
-    recordPendingChange('read_ahead', 'UFS Read-Ahead Cache', `${selectedReadAhead} KB`, () => {
-      selectedReadAhead = prev;
-      document.querySelectorAll('.seg-btn-ra').forEach(b => b.classList.toggle('active', b.dataset.val === prev));
-      updateTileBadges();
-    });
+    const sched = (typeof selIoSched !== 'undefined' && selIoSched ? selIoSched.value : 'kyber').toUpperCase();
+    if (statusUfs) statusUfs.innerText = `${sched} • ${selectedReadAhead} KB`;
+    const writeCmd = `for q in /sys/block/sd*/queue/read_ahead_kb; do [ -f "$q" ] && echo "${selectedReadAhead}" > "$q" 2>/dev/null; done; for q in /sys/block/sda/queue/read_ahead_kb; do [ -f "$q" ] && echo "${selectedReadAhead}" > "$q" 2>/dev/null; done || true`;
+    instantWrite(writeCmd, `UFS Read-Ahead Cache set to ${selectedReadAhead} KB`);
   });
 });
 
@@ -2157,206 +2007,168 @@ const rngMglruTtl = document.getElementById('rngMglruTtl');
 const lblMglruTtl = document.getElementById('lblMglruTtl');
 
 if (selGpuGov) {
-  let prevGpuGov = selGpuGov.value;
   selGpuGov.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
-    recordPendingChange('gpuGov', 'GPU Governor', selGpuGov.value, () => {
-      selGpuGov.value = prevGpuGov;
-      updateTileBadges();
-    });
+    const writeCmd = `echo "${selGpuGov.value}" > /sys/class/kgsl/kgsl-3d0/devfreq/governor 2>/dev/null; [ -f /sys/class/kgsl/kgsl-3d0/gpu_governor ] && echo "${selGpuGov.value}" > /sys/class/kgsl/kgsl-3d0/gpu_governor 2>/dev/null || true`;
+    instantWrite(writeCmd, `GPU Governor: ${selGpuGov.value}`);
   });
 }
 
 if (selGpuMin) {
-  let prevGpuMin = selGpuMin.value;
   selGpuMin.addEventListener('change', () => {
     updateTileBadges();
     triggerUserChoice();
     const mhz = selGpuMin.value;
-    recordPendingChange('gpuMin', 'GPU Min Clock', `${mhz} MHz`, () => {
-      selGpuMin.value = prevGpuMin;
-      updateTileBadges();
-    });
+    const writeCmd = `echo "${mhz}" > /sys/class/kgsl/kgsl-3d0/min_clock_mhz 2>/dev/null; echo "${mhz}000000" > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null || true`;
+    instantWrite(writeCmd, `GPU Min Clock: ${mhz} MHz`);
   });
 }
 
 if (rngGpuIdle && lblGpuIdle) {
-  let prevGpuIdle = rngGpuIdle.value;
   rngGpuIdle.addEventListener('input', () => {
     lblGpuIdle.innerText = `${rngGpuIdle.value} ms`;
     triggerUserChoice();
-    recordPendingChange('gpuIdle', 'GPU Idle Timer', `${rngGpuIdle.value} ms`, () => {
-      rngGpuIdle.value = prevGpuIdle;
-      lblGpuIdle.innerText = `${prevGpuIdle} ms`;
-    });
+  });
+  rngGpuIdle.addEventListener('change', () => {
+    instantWrite(`echo "${rngGpuIdle.value}" > /sys/class/kgsl/kgsl-3d0/idle_timer 2>/dev/null || true`, `GPU Idle Timer: ${rngGpuIdle.value} ms`);
   });
 }
 
 if (selBoostLp) {
-  let prevLp = selBoostLp.value;
   selBoostLp.addEventListener('change', () => {
     triggerUserChoice();
     const lp = selBoostLp.value;
-    recordPendingChange('boostLp', 'LITTLE Cluster Boost Freq', `${lp} kHz`, () => {
-      selBoostLp.value = prevLp;
-    });
+    const hp = (selBoostHp && selBoostHp.value) ? selBoostHp.value : '0';
+    const writeCmd = `[ -f /sys/module/cpu_boost/parameters/input_boost_freq ] && echo "0:${lp} 6:${hp}" > /sys/module/cpu_boost/parameters/input_boost_freq 2>/dev/null; [ -f /sys/module/cpu_input_boost/parameters/input_boost_freq_lp ] && echo "${lp}" > /sys/module/cpu_input_boost/parameters/input_boost_freq_lp 2>/dev/null || true`;
+    instantWrite(writeCmd, `LITTLE Boost Clock: ${Math.round(parseInt(lp, 10)/1000)} MHz`);
   });
 }
 
 if (selBoostHp) {
-  let prevHp = selBoostHp.value;
   selBoostHp.addEventListener('change', () => {
     triggerUserChoice();
     const hp = selBoostHp.value;
-    recordPendingChange('boostHp', 'BIG Cluster Boost Freq', `${hp} kHz`, () => {
-      selBoostHp.value = prevHp;
-    });
+    const lp = (selBoostLp && selBoostLp.value) ? selBoostLp.value : '0';
+    const writeCmd = `[ -f /sys/module/cpu_boost/parameters/input_boost_freq ] && echo "0:${lp} 6:${hp}" > /sys/module/cpu_boost/parameters/input_boost_freq 2>/dev/null; [ -f /sys/module/cpu_input_boost/parameters/input_boost_freq_hp ] && echo "${hp}" > /sys/module/cpu_input_boost/parameters/input_boost_freq_hp 2>/dev/null || true`;
+    instantWrite(writeCmd, `BIG Boost Clock: ${Math.round(parseInt(hp, 10)/1000)} MHz`);
   });
 }
 
 if (selCpuGovLittle) {
-  let prevGovL = selCpuGovLittle.value;
   selCpuGovLittle.addEventListener('change', () => {
     triggerUserChoice();
     const gov = selCpuGovLittle.value;
-    recordPendingChange('cpuGovLittle', 'LITTLE Cluster Governor', gov, () => {
-      selCpuGovLittle.value = prevGovL;
-      if (statusCpuGov) statusCpuGov.innerText = `${prevGovL} (Little)`;
-    });
     if (statusCpuGov) statusCpuGov.innerText = `${gov} (Little)`;
+    const writeCmd = `for p in /sys/devices/system/cpu/cpufreq/policy0/scaling_governor /sys/devices/system/cpu/cpu[0-5]/cpufreq/scaling_governor; do [ -f "$p" ] && echo "${gov}" > "$p" 2>/dev/null; done || true`;
+    instantWrite(writeCmd, `LITTLE Cluster Governor: ${gov}`);
   });
 }
 
 if (selCpuMaxLittle) {
-  let prevMaxL = selCpuMaxLittle.value;
   selCpuMaxLittle.addEventListener('change', () => {
     triggerUserChoice();
     const freq = selCpuMaxLittle.value;
-    recordPendingChange('cpuMaxLittle', 'LITTLE Max Clock', `${Math.round(parseInt(freq, 10)/1000)} MHz`, () => {
-      selCpuMaxLittle.value = prevMaxL;
-    });
+    const writeCmd = `for p in /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq /sys/devices/system/cpu/cpu[0-5]/cpufreq/scaling_max_freq; do [ -f "$p" ] && echo "${freq}" > "$p" 2>/dev/null; done || true`;
+    instantWrite(writeCmd, `LITTLE Max Clock: ${Math.round(parseInt(freq, 10)/1000)} MHz`);
   });
 }
 
 if (selCpuGovBig) {
-  let prevGovB = selCpuGovBig.value;
   selCpuGovBig.addEventListener('change', () => {
     triggerUserChoice();
     const gov = selCpuGovBig.value;
-    recordPendingChange('cpuGovBig', 'BIG Cluster Governor', gov, () => {
-      selCpuGovBig.value = prevGovB;
-      if (statusCpuGov) statusCpuGov.innerText = `${prevGovB} (Big)`;
-    });
     if (statusCpuGov) statusCpuGov.innerText = `${gov} (Big)`;
+    const writeCmd = `for p in /sys/devices/system/cpu/cpufreq/policy6/scaling_governor /sys/devices/system/cpu/cpu[6-7]/cpufreq/scaling_governor; do [ -f "$p" ] && echo "${gov}" > "$p" 2>/dev/null; done || true`;
+    instantWrite(writeCmd, `BIG Cluster Governor: ${gov}`);
   });
 }
 
 if (selCpuMaxBig) {
-  let prevMaxB = selCpuMaxBig.value;
   selCpuMaxBig.addEventListener('change', () => {
     triggerUserChoice();
     const freq = selCpuMaxBig.value;
-    recordPendingChange('cpuMaxBig', 'BIG Max Clock', `${Math.round(parseInt(freq, 10)/1000)} MHz`, () => {
-      selCpuMaxBig.value = prevMaxB;
-    });
+    const writeCmd = `for p in /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq /sys/devices/system/cpu/cpu[6-7]/cpufreq/scaling_max_freq; do [ -f "$p" ] && echo "${freq}" > "$p" 2>/dev/null; done || true`;
+    instantWrite(writeCmd, `BIG Max Clock: ${Math.round(parseInt(freq, 10)/1000)} MHz`);
   });
 }
 
 if (rngBoostDur && lblBoostDur) {
-  let prevBoostDur = rngBoostDur.value;
   rngBoostDur.addEventListener('input', () => {
     lblBoostDur.innerText = `${rngBoostDur.value} ms`;
     triggerUserChoice();
-    recordPendingChange('boostDur', 'Boost Duration', `${rngBoostDur.value} ms`, () => {
-      rngBoostDur.value = prevBoostDur;
-      lblBoostDur.innerText = `${prevBoostDur} ms`;
-    });
+  });
+  rngBoostDur.addEventListener('change', () => {
+    const writeCmd = `[ -f /sys/module/cpu_boost/parameters/input_boost_ms ] && echo "${rngBoostDur.value}" > /sys/module/cpu_boost/parameters/input_boost_ms 2>/dev/null; [ -f /sys/module/cpu_input_boost/parameters/input_boost_duration ] && echo "${rngBoostDur.value}" > /sys/module/cpu_input_boost/parameters/input_boost_duration 2>/dev/null || true`;
+    instantWrite(writeCmd, `Boost Duration: ${rngBoostDur.value} ms`);
   });
 }
 
 if (rngUpRate && lblUpRate) {
-  let prevUpRate = rngUpRate.value;
   rngUpRate.addEventListener('input', () => {
     lblUpRate.innerText = `${rngUpRate.value} μs`;
     triggerUserChoice();
-    recordPendingChange('upRate', 'Schedutil Up Rate', `${rngUpRate.value} μs`, () => {
-      rngUpRate.value = prevUpRate;
-      lblUpRate.innerText = `${prevUpRate} μs`;
-    });
+  });
+  rngUpRate.addEventListener('change', () => {
+    const writeCmd = `for p in /sys/devices/system/cpu/cpufreq/policy*/schedutil/up_rate_limit_us /sys/devices/system/cpu/cpufreq/schedutil/up_rate_limit_us; do [ -f "$p" ] && echo "${rngUpRate.value}" > "$p" 2>/dev/null; done || true`;
+    instantWrite(writeCmd, `Schedutil Up Rate: ${rngUpRate.value} μs`);
   });
 }
 
 if (selBoreState) {
-  let prevBoreState = selBoreState.value;
   selBoreState.addEventListener('change', () => {
     triggerUserChoice();
-    recordPendingChange('boreState', 'BORE CFS State', selBoreState.value === '1' ? 'Enabled' : 'Disabled', () => {
-      selBoreState.value = prevBoreState;
-    });
+    const writeCmd = `echo "${selBoreState.value}" > /proc/sys/kernel/sched_bore 2>/dev/null || true`;
+    instantWrite(writeCmd, `BORE CFS: ${selBoreState.value === '1' ? 'Enabled' : 'Disabled'}`);
   });
 }
 
 if (selBoreScale) {
-  let prevBoreScale = selBoreScale.value;
   selBoreScale.addEventListener('change', () => {
     triggerUserChoice();
-    recordPendingChange('boreScale', 'BORE Penalty Scale', selBoreScale.value, () => {
-      selBoreScale.value = prevBoreScale;
-    });
+    const writeCmd = `echo "${selBoreScale.value}" > /proc/sys/kernel/sched_burst_penalty_scale 2>/dev/null || true`;
+    instantWrite(writeCmd, `BORE Penalty Scale: ${selBoreScale.value}`);
   });
 }
 
 if (rngSwappiness && lblSwappiness) {
-  let prevSwappiness = rngSwappiness.value;
   rngSwappiness.addEventListener('input', () => {
     lblSwappiness.innerText = rngSwappiness.value;
     triggerUserChoice();
-    recordPendingChange('swappiness', 'VM Swappiness', rngSwappiness.value, () => {
-      rngSwappiness.value = prevSwappiness;
-      lblSwappiness.innerText = prevSwappiness;
-    });
+  });
+  rngSwappiness.addEventListener('change', () => {
+    instantWrite(`echo "${rngSwappiness.value}" > /proc/sys/vm/swappiness 2>/dev/null || true`, `VM Swappiness: ${rngSwappiness.value}`);
   });
 }
 
 if (rngVfsCache && lblVfsCache) {
-  let prevVfsCache = rngVfsCache.value;
   rngVfsCache.addEventListener('input', () => {
     lblVfsCache.innerText = rngVfsCache.value;
     triggerUserChoice();
-    recordPendingChange('vfsCache', 'VFS Cache Pressure', rngVfsCache.value, () => {
-      rngVfsCache.value = prevVfsCache;
-      lblVfsCache.innerText = prevVfsCache;
-    });
+  });
+  rngVfsCache.addEventListener('change', () => {
+    instantWrite(`echo "${rngVfsCache.value}" > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true`, `VFS Cache Pressure: ${rngVfsCache.value}`);
   });
 }
 
 if (rngMglruTtl && lblMglruTtl) {
-  let prevMglru = rngMglruTtl.value;
   rngMglruTtl.addEventListener('input', () => {
     const val = rngMglruTtl.value;
     lblMglruTtl.innerText = `${val} ms`;
     syncChips('#mglruChips', val);
     triggerUserChoice();
-    recordPendingChange('mglruTtl', 'MGLRU Min TTL', `${val} ms`, () => {
-      rngMglruTtl.value = prevMglru;
-      lblMglruTtl.innerText = `${prevMglru} ms`;
-      syncChips('#mglruChips', prevMglru);
-    });
+  });
+  rngMglruTtl.addEventListener('change', () => {
+    instantWrite(`if [ -f /sys/kernel/mm/lru_gen/min_ttl_ms ]; then echo "${rngMglruTtl.value}" > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null; fi || true`, `MGLRU Min TTL: ${rngMglruTtl.value} ms`);
   });
 }
 
 window.setMglruPreset = function(ms) {
-  const prevMglru = rngMglruTtl ? rngMglruTtl.value : '1000';
   if (rngMglruTtl) rngMglruTtl.value = ms;
   if (lblMglruTtl) lblMglruTtl.innerText = `${ms} ms`;
   syncChips('#mglruChips', ms);
   triggerUserChoice();
-  recordPendingChange('mglruTtl', 'MGLRU Min TTL', `${ms} ms`, () => {
-    if (rngMglruTtl) rngMglruTtl.value = prevMglru;
-    if (lblMglruTtl) lblMglruTtl.innerText = `${prevMglru} ms`;
-    syncChips('#mglruChips', prevMglru);
-  });
+  instantWrite(`if [ -f /sys/kernel/mm/lru_gen/min_ttl_ms ]; then echo "${ms}" > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null; fi || true`, `MGLRU Min TTL: ${ms} ms`);
 };
 
 window.terminateAllCaches = async function() {
@@ -3351,41 +3163,51 @@ async function initialHardwareSync() {
   logKernel('[INIT] Synchronizing hardware nodes in batch...');
   try {
     const BATCH_INIT_CMD = `
-gov=$(cat /sys/class/kgsl/kgsl-3d0/devfreq/governor 2>/dev/null || cat /sys/class/kgsl/kgsl-3d0/gpu_governor 2>/dev/null)
-gmin=$(cat /sys/class/kgsl/kgsl-3d0/min_clock_mhz 2>/dev/null || cat /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null)
-gidle=$(cat /sys/class/kgsl/kgsl-3d0/idle_timer 2>/dev/null)
-bore=$(cat /proc/sys/kernel/sched_bore 2>/dev/null)
-bscale=$(cat /proc/sys/kernel/sched_burst_penalty_scale 2>/dev/null)
-bdur=$(cat /sys/module/cpu_boost/parameters/input_boost_ms 2>/dev/null || cat /sys/module/cpu_input_boost/parameters/input_boost_duration 2>/dev/null)
-instb=$(cat /sys/kernel/aether/instant_bypass 2>/dev/null)
-cutlim=$(cat /sys/kernel/aether/charge_cutoff_limit 2>/dev/null)
-cutmod=$(cat /sys/kernel/aether/charge_cutoff_mode 2>/dev/null)
-fastm=$(cat /sys/class/power_supply/battery/fastcharge_mode 2>/dev/null)
-dcdim=$(cat /sys/kernel/aether/anti_flicker 2>/dev/null || cat /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker 2>/dev/null || echo 0)
-hbmv=$(cat /sys/devices/platform/soc/soc:qcom,dsi-display/hbm 2>/dev/null || cat /sys/kernel/aether/hbm 2>/dev/null || echo 0)
-uprt=$(cat /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null || cat /sys/devices/system/cpu/cpufreq/schedutil/up_rate_limit_us 2>/dev/null)
-bfreq=$(cat /sys/module/cpu_boost/parameters/input_boost_freq 2>/dev/null)
-swapn=$(cat /proc/sys/vm/swappiness 2>/dev/null)
-vfsc=$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null)
-mglrut=$(cat /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null)
-ra=$(cat /sys/block/sda/queue/read_ahead_kb 2>/dev/null)
-iosched=$(cat /sys/block/sda/queue/scheduler 2>/dev/null)
-stune=$(cat /dev/stune/top-app/schedtune.prefer_idle 2>/dev/null)
-tcplow=$(cat /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null)
-tfo=$(cat /proc/sys/net/ipv4/tcp_fastopen 2>/dev/null)
-ccur=$(cat /sys/class/power_supply/battery/constant_charge_current_max 2>/dev/null)
-abypass=$(cat /sys/kernel/aether/audio_bypass_mode 2>/dev/null)
-tcpcc=$(cat /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null)
-glove=$(cat /sys/devices/platform/soc/*.i2c/i2c-*/1-*/fts_glove_mode 2>/dev/null || cat /sys/bus/i2c/drivers/fts_ts/*/fts_glove_mode 2>/dev/null || cat /sys/bus/i2c/drivers/ft3418_ts/*/fts_glove_mode 2>/dev/null || cat /sys/class/input/input*/fts_glove_mode 2>/dev/null || echo 0)
-mhpf=$(cat /sys/kernel/aether/mic_hpf_mode 2>/dev/null)
-kpmode=$(cat /sys/kernel/kprofiles/kp_mode 2>/dev/null || echo 0)
-autokp=$(cat /sys/module/kprofiles/parameters/auto_kp 2>/dev/null || echo 1)
-echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fastm;;$dcdim;;$hbmv;;$uprt;;$bfreq;;$swapn;;$vfsc;;$mglrut;;$ra;;$iosched;;$stune;;$tcplow;;$tfo;;$ccur;;$abypass;;$tcpcc;;$glove;;$mhpf;;$kpmode;;$autokp"
+gov=$(cat /sys/class/kgsl/kgsl-3d0/devfreq/governor 2>/dev/null | tr -d "\\r\\n"); gov=\${gov:-msm-adreno-tz}
+gmin=$(cat /sys/class/kgsl/kgsl-3d0/min_clock_mhz 2>/dev/null || cat /sys/class/kgsl/kgsl-3d0/devfreq/min_freq 2>/dev/null | tr -d "\\r\\n"); gmin=\${gmin:-180}
+gidle=$(cat /sys/class/kgsl/kgsl-3d0/idle_timer 2>/dev/null | tr -d "\\r\\n"); gidle=\${gidle:-66}
+bore=$(cat /proc/sys/kernel/sched_bore 2>/dev/null | tr -d "\\r\\n"); bore=\${bore:-1}
+bscale=$(cat /proc/sys/kernel/sched_burst_penalty_scale 2>/dev/null | tr -d "\\r\\n"); bscale=\${bscale:-1380}
+bdur=$(cat /sys/module/cpu_boost/parameters/input_boost_ms 2>/dev/null || cat /sys/module/cpu_input_boost/parameters/input_boost_duration 2>/dev/null | tr -d "\\r\\n"); bdur=\${bdur:-64}
+instb=$(cat /sys/kernel/aether/instant_bypass 2>/dev/null | tr -d "\\r\\n"); instb=\${instb:-0}
+cutlim=$(cat /sys/kernel/aether/charge_cutoff_limit 2>/dev/null | tr -d "\\r\\n"); cutlim=\${cutlim:-100}
+cutmod=$(cat /sys/kernel/aether/charge_cutoff_mode 2>/dev/null | tr -d "\\r\\n"); cutmod=\${cutmod:-1}
+fastm=$(cat /sys/class/power_supply/battery/fastcharge_mode 2>/dev/null | tr -d "\\r\\n"); fastm=\${fastm:-0}
+dcdim_raw=$(cat /sys/kernel/aether/anti_flicker 2>/dev/null || cat /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker 2>/dev/null)
+case "$dcdim_raw" in 1|[Yy]*) dcdim=1 ;; *) dcdim=0 ;; esac
+hbm_raw=$(cat /sys/devices/platform/soc/soc:qcom,dsi-display/hbm 2>/dev/null || cat /sys/kernel/aether/hbm 2>/dev/null)
+case "$hbm_raw" in 1|[Yy]*) hbmv=1 ;; *) hbmv=0 ;; esac
+uprt=$(cat /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 2>/dev/null || cat /sys/devices/system/cpu/cpufreq/schedutil/up_rate_limit_us 2>/dev/null | tr -d "\\r\\n"); uprt=\${uprt:-500}
+bfreq=$(cat /sys/module/cpu_boost/parameters/input_boost_freq 2>/dev/null | tr "\\n" " " | tr -s " "); bfreq=\${bfreq:-0:1017600 6:0}
+swapn=$(cat /proc/sys/vm/swappiness 2>/dev/null | tr -d "\\r\\n"); swapn=\${swapn:-60}
+vfsc=$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null | tr -d "\\r\\n"); vfsc=\${vfsc:-50}
+mglrut=$(cat /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null | tr -d "\\r\\n"); mglrut=\${mglrut:-1000}
+ra=$(cat /sys/block/sda/queue/read_ahead_kb 2>/dev/null | tr -d "\\r\\n"); ra=\${ra:-512}
+iosched=$(cat /sys/block/sda/queue/scheduler 2>/dev/null | grep -o "\\[.*\\]" | tr -d "[]" || echo "deadline"); iosched=\${iosched:-deadline}
+stune=$(cat /dev/stune/top-app/schedtune.prefer_idle 2>/dev/null | tr -d "\\r\\n"); stune=\${stune:-1}
+tcplow=$(cat /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null | tr -d "\\r\\n"); tcplow=\${tcplow:-16384}
+tfo=$(cat /proc/sys/net/ipv4/tcp_fastopen 2>/dev/null | tr -d "\\r\\n"); tfo=\${tfo:-3}
+ccur=$(cat /sys/class/power_supply/battery/constant_charge_current_max 2>/dev/null | tr -d "\\r\\n"); ccur=\${ccur:-6000000}
+abypass=$(cat /sys/kernel/aether/audio_bypass_mode 2>/dev/null | tr -d "\\r\\n"); abypass=\${abypass:-1}
+tcpcc=$(cat /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null | tr -d "\\r\\n"); tcpcc=\${tcpcc:-bbr}
+glove_raw=$(cat /sys/devices/platform/soc/*.i2c/i2c-*/1-*/fts_glove_mode 2>/dev/null || cat /sys/bus/i2c/drivers/fts_ts/*/fts_glove_mode 2>/dev/null || cat /sys/bus/i2c/drivers/ft3418_ts/*/fts_glove_mode 2>/dev/null || cat /sys/class/input/input*/fts_glove_mode 2>/dev/null || echo 0)
+case "$glove_raw" in
+  *Mode:On*|*Reg\\(0xC0\\):1*|*1*|[Yy]*) glove=1 ;;
+  *) glove=0 ;;
+esac
+mhpf=$(cat /sys/kernel/aether/mic_hpf_mode 2>/dev/null | tr -d "\\r\\n"); mhpf=\${mhpf:-1}
+kpmode=$(cat /sys/kernel/kprofiles/kp_mode 2>/dev/null | tr -d "\\r\\n"); kpmode=\${kpmode:-0}
+autokp_raw=$(cat /sys/module/kprofiles/parameters/auto_kp 2>/dev/null || echo 1)
+case "$autokp_raw" in
+  Y|y|1|true) autokp=1 ;;
+  *) autokp=0 ;;
+esac
+echo "$gov|$gmin|$gidle|$bore|$bscale|$bdur|$instb|$cutlim|$cutmod|$fastm|$dcdim|$hbmv|$uprt|$bfreq|$swapn|$vfsc|$mglrut|$ra|$iosched|$stune|$tcplow|$tfo|$ccur|$abypass|$tcpcc|$glove|$mhpf|$kpmode|$autokp"
 `.trim();
 
     const raw = await runCmd(BATCH_INIT_CMD, true);
-    if (raw && raw.includes(';;')) {
-      const p = raw.trim().split(';;');
+    if (raw && raw.includes('|')) {
+      const p = raw.trim().split('|');
       const gpuGov = p[0]?.trim();
       const gpuMin = p[1]?.trim();
       const gpuIdle = p[2]?.trim();
@@ -3564,9 +3386,10 @@ echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fas
       }
       const gloveVal = p[25]?.trim();
       if (chkToggleGlove && gloveVal) {
-        chkToggleGlove.checked = (gloveVal === '1');
+        const isGlove = (gloveVal === '1' || gloveVal.toLowerCase().includes('on') || gloveVal === 'y');
+        chkToggleGlove.checked = isGlove;
         const statusGlove = document.getElementById('statusGlove');
-        if (statusGlove) statusGlove.innerText = chkToggleGlove.checked ? 'Glove Mode ON' : 'Standard Sens';
+        if (statusGlove) statusGlove.innerText = isGlove ? 'Glove Mode ON' : 'Standard Sens';
       }
       const mhpfVal = p[26]?.trim();
       if (mhpfVal && ['0', '1', '2', '3'].includes(mhpfVal)) {
@@ -3595,7 +3418,7 @@ echo "$gov;;$gmin;;$gidle;;$bore;;$bscale;;$bdur;;$instb;;$cutlim;;$cutmod;;$fas
         }
       }
       if (chkToggleAutoKp && autokp) {
-        chkToggleAutoKp.checked = (autokp === '1');
+        chkToggleAutoKp.checked = (autokp === '1' || autokp === 'Y' || autokp === 'y' || autokp === 'true');
       }
     }
 
@@ -3625,7 +3448,7 @@ async function syncHardwareGroundTruth() {
         [ -z "$cutlim" ] && [ -n "$CUTOFF_LIMIT" ] && cutlim="$CUTOFF_LIMIT"
         [ -z "$cutmod" ] && [ -n "$CUTOFF_MODE" ] && cutmod="$CUTOFF_MODE"
       fi
-      echo "\${instb:-0}|\${cutlim:-100}|\${cutmod:-1}|\${cstat:-STOCK_CONTROL}"
+      echo "\${instb:-0}|\${cutlim:-0}|\${cutmod:-1}|\${cstat:-STOCK_CONTROL}"
     `.trim(), true);
 
     if (raw && raw.includes('|')) {
@@ -3654,7 +3477,7 @@ async function syncHardwareGroundTruth() {
 
       if (valLiveCutoffStatus && cstat) {
         valLiveCutoffStatus.innerText = cstat;
-        if (cstat.includes('CHARGE_HOLD_ACTIVE')) {
+        if (cstat.includes('CHARGE_HOLD_ACTIVE') || cstat.includes('BYPASS_ACTIVE')) {
           valLiveCutoffStatus.style.color = '#34d399';
         } else if (cstat.includes('STANDBY_SUSPENDED')) {
           valLiveCutoffStatus.style.color = '#fbbf24';
@@ -3690,8 +3513,12 @@ async function syncHardwareGroundTruth() {
     }
   } catch (e) {}
 
-  // 3. Initialize Touch Guard accidental protection (defaults to active/interactive tweaking)
-  isTouchGuardLocked = false;
+  // 3. Initialize Touch Guard accidental protection (restore dynamically from localStorage)
+  try {
+    isTouchGuardLocked = (localStorage.getItem('touchGuardLocked') === 'true');
+  } catch (e) {
+    isTouchGuardLocked = false;
+  }
   updateTouchGuardUI();
 
   // 4. Query live kernel power nodes as ultimate ground truth immediately

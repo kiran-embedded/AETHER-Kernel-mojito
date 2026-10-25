@@ -80,7 +80,7 @@ button, input, select, textarea {
 }
 
 body {
-  background-color: #000000;
+  background-color: var(--bg-page);
   background-image: 
     radial-gradient(ellipse 85% 45% at 50% -10%, rgba(0, 212, 255, 0.14), transparent 75%),
     linear-gradient(rgba(0, 212, 255, 0.035) 1px, transparent 1px),
@@ -107,8 +107,8 @@ body {
 
 /* Header Bar */
 .app-bar {
-  background-color: #030713;
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   display: flex;
@@ -126,7 +126,7 @@ body {
   left: 10%;
   right: 10%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+  background: linear-gradient(90deg, transparent, var(--border-focus), transparent);
 }
 
 .brand {
@@ -1804,9 +1804,9 @@ details[open] .accordion-header:after {
 }
 
 .cutoff-mode-pill.active {
-  background: #06152a !important;
-  border-color: #00d4ff !important;
-  box-shadow: 0 0 16px rgba(0, 212, 255, 0.35) !important;
+  background: rgba(0, 212, 255, 0.12) !important;
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.35) !important;
 }
 
 .cutoff-mode-pill .mode-pill-icon {
@@ -1834,18 +1834,12 @@ details[open] .accordion-header:after {
   line-height: 1.1;
 }
 
-.cutoff-mode-pill.active {
-  background: var(--bg-surface);
-  border-color: var(--accent-cyan) !important;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25) !important;
-}
-
 .cutoff-mode-pill.active .mode-pill-text strong {
   color: var(--accent-cyan) !important;
 }
 
 .cutoff-mode-pill.active .mode-pill-text small {
-  color: var(--text-secondary) !important;
+  color: #94a3b8 !important;
 }
 
 /* Power Telemetry Box */
@@ -1876,4 +1870,380 @@ details[open] .accordion-header:after {
   font-weight: 700;
   color: var(--text-primary);
   font-family: monospace;
+}
+
+/* ========================================================
+   COMPREHENSIVE LIGHT MODE OVERRIDES
+   Crisp Contrast • Clean High-Readability • Glitch-Free
+   ======================================================== */
+[data-theme="light"] body {
+  background-color: var(--bg-page);
+  background-image: 
+    radial-gradient(ellipse 85% 45% at 50% -10%, rgba(2, 132, 199, 0.08), transparent 75%),
+    linear-gradient(rgba(2, 132, 199, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(2, 132, 199, 0.035) 1px, transparent 1px);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .app-bar {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .app-bar::after {
+  background: linear-gradient(90deg, transparent, #0284c7, transparent);
+}
+
+[data-theme="light"] .theme-toggle {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .version-pill {
+  background-color: #e0f2fe;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+[data-theme="light"] .safety-guard-bar {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .safety-guard-bar.unlocked {
+  background-color: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+[data-theme="light"] .safety-guard-btn.is-unlocked {
+  background-color: #e0f2fe;
+  color: #0284c7;
+  border-color: #7dd3fc;
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.15);
+}
+
+[data-theme="light"] .safety-guard-bar.locked {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+}
+
+[data-theme="light"] .safety-guard-btn.is-locked {
+  background-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+
+[data-theme="light"] .telemetry-item {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .live-engine-chip {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .modes-section {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .mode-card {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="light"] .mode-card.active {
+  background-color: #e0f2fe !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 1px #0284c7, 0 4px 12px rgba(2, 132, 199, 0.15) !important;
+}
+
+[data-theme="light"] .badge-pill {
+  background: #f1f5f9;
+  color: #0284c7;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .tab-item {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .tab-item.active {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+}
+
+[data-theme="light"] .card {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .card::before {
+  background: linear-gradient(90deg, transparent, rgba(2, 132, 199, 0.35), transparent);
+}
+
+[data-theme="light"] .card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .toggle-track {
+  background-color: #cbd5e1;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .toggle-track:before {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] input:checked + .toggle-track {
+  background-color: #0284c7;
+  border-color: #0284c7;
+  box-shadow: 0 0 8px rgba(2, 132, 199, 0.3);
+}
+
+[data-theme="light"] input:checked + .toggle-track:before {
+  background-color: #ffffff;
+}
+
+[data-theme="light"] .btn-segmented {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .seg-btn,
+[data-theme="light"] .seg-btn-ra,
+[data-theme="light"] .seg-btn-charge {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .seg-btn:hover,
+[data-theme="light"] .seg-btn-ra:hover,
+[data-theme="light"] .seg-btn-charge:hover {
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .seg-btn.active,
+[data-theme="light"] .seg-btn-ra.active,
+[data-theme="light"] .seg-btn-charge.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3) !important;
+  text-shadow: none;
+}
+
+[data-theme="light"] .badge-val {
+  background-color: #e0f2fe;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+[data-theme="light"] .custom-slider {
+  background-color: #cbd5e1;
+  accent-color: #0284c7;
+}
+
+[data-theme="light"] .power-subcard {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .alert-banner.warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 3.5px solid #d97706;
+}
+
+[data-theme="light"] .alert-banner .alert-title {
+  color: #b45309;
+}
+
+[data-theme="light"] .alert-banner .alert-text {
+  color: #78350f;
+}
+
+[data-theme="light"] .alert-banner .alert-text strong {
+  color: #92400e;
+}
+
+[data-theme="light"] .alert-banner .alert-text em {
+  color: #a16207;
+}
+
+[data-theme="light"] .btn-cutoff-grid {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .cutoff-pill {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .cutoff-pill .cutoff-pill-val {
+  color: #0f172a;
+}
+
+[data-theme="light"] .cutoff-pill .cutoff-pill-sub {
+  color: #64748b;
+}
+
+[data-theme="light"] .cutoff-pill.active {
+  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%) !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.35) !important;
+}
+
+[data-theme="light"] .cutoff-pill.active .cutoff-pill-val {
+  color: #ffffff !important;
+  text-shadow: none;
+}
+
+[data-theme="light"] .cutoff-pill.active .cutoff-pill-sub {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .btn-cutoff-mode-grid {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .cutoff-mode-pill {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+[data-theme="light"] .cutoff-mode-pill .mode-pill-text strong {
+  color: #0f172a;
+}
+
+[data-theme="light"] .cutoff-mode-pill .mode-pill-text small {
+  color: #64748b;
+}
+
+[data-theme="light"] .cutoff-mode-pill.active {
+  background: #e0f2fe !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.2) !important;
+}
+
+[data-theme="light"] .cutoff-mode-pill.active .mode-pill-text strong {
+  color: #0369a1 !important;
+}
+
+[data-theme="light"] .cutoff-mode-pill.active .mode-pill-text small {
+  color: #0284c7 !important;
+}
+
+[data-theme="light"] .power-telemetry-box {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .chip-btn,
+[data-theme="light"] .chip-pill {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .chip-btn:hover,
+[data-theme="light"] .chip-pill:hover {
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+[data-theme="light"] .chip-btn.active,
+[data-theme="light"] .chip-pill.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3) !important;
+}
+
+[data-theme="light"] .custom-select {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .custom-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+[data-theme="light"] .code-box {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+[data-theme="light"] .terminal-log {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #38bdf8;
+}
+
+[data-theme="light"] .action-dock {
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .btn-danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+[data-theme="light"] .btn-outline {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .touch-lock-toast {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .modal-box {
+  background: #ffffff;
+  border: 1.5px solid #0284c7;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .modal-top {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="light"] .modal-title {
+  color: #b45309;
+}
+
+[data-theme="light"] .modal-desc,
+[data-theme="light"] .modal-body,
+[data-theme="light"] .modal-item {
+  color: #334155;
 }

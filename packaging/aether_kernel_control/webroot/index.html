@@ -28,12 +28,12 @@
     </header>
 
     <!-- Master Hardware Safety Lock (Accidental Touch Protection) -->
-    <section class="safety-guard-bar" id="safetyGuardBar">
+    <section class="safety-guard-bar unlocked" id="safetyGuardBar">
       <div class="safety-guard-title">
         <span class="safety-guard-icon" id="safetyGuardIcon">🔓</span>
         <div>
-          <span class="safety-guard-heading" id="safetyGuardHeading">Live Hardware Control: Unlocked</span>
-          <span class="safety-guard-sub" id="safetyGuardSub">Live updates active. Changes write instantly to kernel.</span>
+          <span class="safety-guard-heading" id="safetyGuardHeading">Touch Controls: Unlocked</span>
+          <span class="safety-guard-sub" id="safetyGuardSub">Controls active. Sliders & switches respond directly to touch.</span>
         </div>
       </div>
       <button class="safety-guard-btn is-unlocked" id="btnToggleTouchGuard" title="Toggle Accidental Touch Lock">
@@ -238,9 +238,9 @@
           </p>
 
           <div class="btn-cutoff-grid" id="gridChargeCutoff">
-            <button class="cutoff-pill active" data-val="100">
-              <span class="cutoff-pill-val">100%</span>
-              <span class="cutoff-pill-sub">Safe Cutoff</span>
+            <button class="cutoff-pill active" data-val="0">
+              <span class="cutoff-pill-val">Off</span>
+              <span class="cutoff-pill-sub">Stock (100%)</span>
             </button>
             <button class="cutoff-pill" data-val="75">
               <span class="cutoff-pill-val">75%</span>
@@ -261,10 +261,6 @@
             <button class="cutoff-pill" data-val="95">
               <span class="cutoff-pill-val">95%</span>
               <span class="cutoff-pill-sub">Near Full</span>
-            </button>
-            <button class="cutoff-pill" data-val="0">
-              <span class="cutoff-pill-val">Off</span>
-              <span class="cutoff-pill-sub">Raw (No Cutoff)</span>
             </button>
           </div>
         </div>
@@ -1280,7 +1276,7 @@
         </div>
       </div>
       <div class="toast-popup" id="toastBox">Settings applied successfully!</div>
-      <div class="touch-lock-toast" id="touchLockToast"><span>🔒</span> Controls Locked: Tap "Unlocked" at top to adjust hardware</div>
+      <div class="touch-lock-toast" id="touchLockToast"><span>🔒</span> Controls Locked: Tap "Locked" button at top to edit</div>
     </footer>
 
   </div>
