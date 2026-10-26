@@ -5,7 +5,7 @@ KVER=$(uname -r 2>/dev/null || cat /proc/sys/kernel/osrelease 2>/dev/null || ech
 
 ui_print " "
 ui_print "  ╔════════════════════════════════════════════════╗"
-ui_print "  ║        A E T H E R   C O N T R O L   v1.6.0    ║"
+ui_print "  ║        A E T H E R   C O N T R O L   v1.6.1    ║"
 ui_print "  ║    Native WebUI Real-Time Hardware Manager     ║"
 ui_print "  ╠════════════════════════════════════════════════╣"
 ui_print "  ║  Device   : Xiaomi Redmi Note 10 (mojito)      ║"
@@ -24,7 +24,7 @@ abort_flash() {
   ui_print "  [FATAL ERROR] $1"
   ui_print "  ************************************************"
   ui_print "  Handshake Rejected! Flash aborted to protect device stability."
-  ui_print "  Please flash AETHER Kernel v1.6 via Recovery first!"
+  ui_print "  Please flash AETHER Kernel v1.6.1 via Recovery first!"
   ui_print " "
   exit 1
 }
@@ -115,15 +115,30 @@ ui_print "  [✓] Kernel Hardware Handshake: Verified"
 ui_print " "
 
 # Phase 2: Installing Assets
-ui_print "  [2/4] Deploying WebUI Dashboard..."
-mkdir -p /data/adb/aether
-chmod 755 /data/adb/aether
+ui_print "  [2/4] Deploying WebUI Dashboard & Hardware Engines..."
+mkdir -p /data/adb/aether/bin
+chmod 755 /data/adb/aether /data/adb/aether/bin
 set_perm_recursive "$MODPATH" 0 0 0755 0644
 set_perm "$MODPATH/service.sh" 0 0 0755
 set_perm "$MODPATH/action.sh" 0 0 0755
 set_perm "$MODPATH/uninstall.sh" 0 0 0755
+
+# Deploy bundled ALSA Tinymix Engine (Dinodva Module Integration)
+if [ -f "$MODPATH/system/bin/tinymix" ]; then
+  set_perm "$MODPATH/system/bin/tinymix" 0 2000 0755
+  cp -f "$MODPATH/system/bin/tinymix" /data/adb/aether/bin/tinymix 2>/dev/null || true
+  chmod 755 /data/adb/aether/bin/tinymix 2>/dev/null || true
+fi
+if [ -f "$MODPATH/system/vendor/bin/tinymix" ]; then
+  set_perm "$MODPATH/system/vendor/bin/tinymix" 0 2000 0755
+fi
+if [ -f "$MODPATH/tools/tinymix" ]; then
+  set_perm "$MODPATH/tools/tinymix" 0 2000 0755
+fi
+
 ui_print "        [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] WebUI Assets Deployed"
 ui_print "        ├─ Clean Uninstaller Script  : [INSTALLED]"
+ui_print "        ├─ Bundled ALSA Engine       : tinymix (Credit: Dinodva) [PASS]"
 sleep 1
 ui_print " "
 
@@ -140,8 +155,18 @@ ui_print " "
 # Phase 4: Developer In-Kernel Defaults Preservation
 ui_print "  [4/4] Preserving In-Kernel Calibrations..."
 # Purge any legacy tweak scripts so developer kernel values are NEVER overwritten on flash
+# ANDROID 17 FIX: Also clear persist-partition charge config to prevent stale
+# charge limits from capping speed at 6-7W after reflash
 rm -f /data/adb/aether/aether_tweaks.sh 2>/dev/null || true
 rm -f /data/adb/aether/aether_state.json 2>/dev/null || true
+rm -f /data/adb/aether/aether_user_tweaks.sh 2>/dev/null || true
+rm -f /data/adb/aether/cutoff.conf 2>/dev/null || true
+rm -f /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null || true
+rm -f "$MODPATH/disable" "$MODPATH/remove" 2>/dev/null || true
+echo 0 > /data/adb/aether/boot_count 2>/dev/null || true
+echo 0 > /data/adb/aether_boot_count 2>/dev/null || true
+resetprop --delete persist.libc.debug.malloc 2>/dev/null || true
+resetprop --delete libc.debug.malloc 2>/dev/null || true
 
 ui_print "        [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] In-Kernel Defaults Active"
 ui_print "        ├─ WebUI Mode                : Telemetry Monitor"

@@ -2,9 +2,9 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
-  <title>AETHER Kernel Control v1.6</title>
+  <title>AETHER Kernel Control v1.6.1</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -16,7 +16,7 @@
       <div class="brand">
         <div class="brand-icon">⚡</div>
         <div>
-          <h1 class="brand-title">AETHER Control <span class="version-pill">v1.6.0</span></h1>
+          <h1 class="brand-title">AETHER Control <span class="version-pill">v1.6.1</span></h1>
           <p class="brand-sub">Redmi Note 10 • Snapdragon 678</p>
         </div>
       </div>
@@ -94,7 +94,7 @@
         <div class="live-engine-chip">
           <span class="chip-dot active" id="dotAetherEngine"></span>
           <span class="chip-label">Sandwiched:</span>
-          <strong id="liveAetherEngineStatus" style="color: var(--color-success);">v1.6 Engine Active</strong>
+          <strong id="liveAetherEngineStatus" style="color: var(--color-success);">v1.6.1 Engine Active</strong>
         </div>
       </div>
     </section>
@@ -103,18 +103,18 @@
     <section class="modes-section">
       <div class="section-title-row">
         <h2>⚡ Hardware Profiles</h2>
-        <span class="mode-status-badge" id="activeModeBadge">Stock Default</span>
+        <span class="mode-status-badge" id="activeModeBadge">Dev Tuned (Default)</span>
       </div>
 
-      <!-- Factory Stock Default Mode -->
+      <!-- Dev Tuned Kernel Default Mode -->
       <button class="mode-card full-tile active" id="modeDefault" data-mode="default">
         <div class="mode-icon">🔄</div>
         <div class="mode-info">
           <div class="mode-header-row">
-            <span class="mode-name">Factory Stock Default</span>
-            <span class="badge-pill">Baseline</span>
+            <span class="mode-name">Dev Tuned (Kernel Default)</span>
+            <span class="badge-pill">Active</span>
           </div>
-          <span class="mode-desc">Normal factory kernel baseline (180MHz GPU, 500μs ramp, normal 33W charging, stock audio & haptics).</span>
+          <span class="mode-desc">Calibrated in-kernel baseline (BORE 1380, Sultan boost 64ms, LZ4 ZRAM, BBR TCP, stock 33W charging).</span>
         </div>
       </button>
 
@@ -124,7 +124,7 @@
           <div class="mode-info">
             <span class="mode-name">Stable</span>
             <span class="badge-pill">Recommended</span>
-            <span class="mode-desc">MGLRU + BORE calibrated for stability, battery, and multitasking</span>
+            <span class="mode-desc">Calibrated for stability, battery life, and smooth daily use</span>
           </div>
         </button>
 
@@ -132,31 +132,31 @@
           <div class="mode-icon">⚖️</div>
           <div class="mode-info">
             <span class="mode-name">Balanced</span>
-            <span class="mode-desc">Smooth daily driver with 5ms mic & BBR</span>
+            <span class="mode-desc">Smooth daily performance with adaptive energy scaling</span>
           </div>
         </button>
 
         <button class="mode-card" id="modeGaming" data-mode="gaming">
           <div class="mode-icon">🎮</div>
           <div class="mode-info">
-            <span class="mode-name">Gaming Beast</span>
-            <span class="mode-desc">GPU 504MHz lock, 0μs ramp, peak performance</span>
+            <span class="mode-name">Performance</span>
+            <span class="mode-desc">GPU 504MHz lock, 0μs ramp, peak clocks</span>
           </div>
         </button>
 
         <button class="mode-card" id="modeBattery" data-mode="battery">
           <div class="mode-icon">🔋</div>
           <div class="mode-info">
-            <span class="mode-name">Power Save</span>
-            <span class="mode-desc">Deep idle timer, lowest thermal output</span>
+            <span class="mode-name">Battery Saver</span>
+            <span class="mode-desc">Optimized clocks, deep sleep, maximum endurance</span>
           </div>
         </button>
 
         <button class="mode-card" id="modeZeroStutter" data-mode="stutter">
           <div class="mode-icon">🚀</div>
           <div class="mode-info">
-            <span class="mode-name">Zero Stutter</span>
-            <span class="mode-desc">Instant touch scaling, 60 FPS panel lock</span>
+            <span class="mode-name">Smooth</span>
+            <span class="mode-desc">Instant touch response, 60 FPS frame pacing</span>
           </div>
         </button>
       </div>
@@ -231,36 +231,36 @@
         <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <label style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Target Cutoff Threshold</label>
-            <span class="badge-val" id="lblCutoffVal">Off (Stock 100%)</span>
+            <span class="badge-val" id="lblCutoffVal">100% (Auto Bypass)</span>
           </div>
           <p class="card-sub" style="font-size: 11.5px; margin-bottom: 8px;">
-            Hardware halts charging automatically at selected percentage. Default is Off for full ROM compatibility.
+            Charges to target percentage with full Turbo speed, then automatically holds in USB-powered bypass mode.
           </p>
 
           <div class="btn-cutoff-grid" id="gridChargeCutoff">
-            <button class="cutoff-pill active" data-val="0">
-              <span class="cutoff-pill-val">Off</span>
-              <span class="cutoff-pill-sub">Stock (100%)</span>
+            <button class="cutoff-pill active" data-val="100">
+              <span class="cutoff-pill-val">100%</span>
+              <span class="cutoff-pill-sub">Bypass</span>
             </button>
-            <button class="cutoff-pill" data-val="75">
-              <span class="cutoff-pill-val">75%</span>
-              <span class="cutoff-pill-sub">Safe Daily</span>
+            <button class="cutoff-pill" data-val="95">
+              <span class="cutoff-pill-val">95%</span>
+              <span class="cutoff-pill-sub">High</span>
             </button>
-            <button class="cutoff-pill" data-val="80">
-              <span class="cutoff-pill-val">80%</span>
-              <span class="cutoff-pill-sub">Recommended</span>
+            <button class="cutoff-pill" data-val="90">
+              <span class="cutoff-pill-val">90%</span>
+              <span class="cutoff-pill-sub">Daily</span>
             </button>
             <button class="cutoff-pill" data-val="85">
               <span class="cutoff-pill-val">85%</span>
               <span class="cutoff-pill-sub">Balanced</span>
             </button>
-            <button class="cutoff-pill" data-val="90">
-              <span class="cutoff-pill-val">90%</span>
-              <span class="cutoff-pill-sub">Extended</span>
+            <button class="cutoff-pill" data-val="80">
+              <span class="cutoff-pill-val">80%</span>
+              <span class="cutoff-pill-sub">Optimal</span>
             </button>
-            <button class="cutoff-pill" data-val="95">
-              <span class="cutoff-pill-val">95%</span>
-              <span class="cutoff-pill-sub">Near Full</span>
+            <button class="cutoff-pill" data-val="0">
+              <span class="cutoff-pill-val">Off</span>
+              <span class="cutoff-pill-sub">Continuous</span>
             </button>
           </div>
         </div>
@@ -300,6 +300,14 @@
             <strong class="telemetry-val" id="valLiveCutoffStatus" style="color: var(--accent-cyan);">Stock ROM Control</strong>
           </div>
           <div class="power-telemetry-item">
+            <span class="telemetry-label">Thermal Pacing</span>
+            <strong class="telemetry-val" id="valLiveThermalGuard" style="color: var(--color-success);">Auto-Pacing Active</strong>
+          </div>
+          <div class="power-telemetry-item">
+            <span class="telemetry-label">Voted Limit</span>
+            <strong class="telemetry-val" id="valLiveVotedFcc" style="color: var(--text-primary);">4000 mA (Turbo)</strong>
+          </div>
+          <div class="power-telemetry-item">
             <span class="telemetry-label">Net Battery Flow</span>
             <strong class="telemetry-val" id="valLiveNetCurrent">-- mA</strong>
           </div>
@@ -329,19 +337,19 @@
         <div class="btn-cutoff-grid" id="gridKpMode" style="grid-template-columns: repeat(4, 1fr);">
           <button class="cutoff-pill kp-pill active" data-val="0" id="kpBtn0">
             <span class="cutoff-pill-val">Off</span>
-            <span class="cutoff-pill-sub">Default (0)</span>
+            <span class="cutoff-pill-sub">Mode 0</span>
           </button>
           <button class="cutoff-pill kp-pill" data-val="1" id="kpBtn1">
             <span class="cutoff-pill-val">Battery</span>
-            <span class="cutoff-pill-sub">Power (1)</span>
+            <span class="cutoff-pill-sub">Mode 1</span>
           </button>
           <button class="cutoff-pill kp-pill" data-val="2" id="kpBtn2">
             <span class="cutoff-pill-val">Balanced</span>
-            <span class="cutoff-pill-sub">Smooth (2)</span>
+            <span class="cutoff-pill-sub">Mode 2</span>
           </button>
           <button class="cutoff-pill kp-pill" data-val="3" id="kpBtn3">
             <span class="cutoff-pill-val">Turbo</span>
-            <span class="cutoff-pill-sub">Perf (3)</span>
+            <span class="cutoff-pill-sub">Mode 3</span>
           </button>
         </div>
 
@@ -438,11 +446,11 @@
         <h3 class="card-title">Charging Amperage & Speed Limit</h3>
         <p class="card-sub">Control charging current to manage device thermals and protect battery cycle longevity.</p>
         <div class="btn-segmented" id="gridChargeLimit">
-          <button class="seg-btn-charge" data-val="1500000">1.5A (Cool)</button>
-          <button class="seg-btn-charge" data-val="2500000">2.5A (12W)</button>
-          <button class="seg-btn-charge" data-val="3500000">3.5A (18W)</button>
-          <button class="seg-btn-charge" data-val="5000000">5.0A (25W)</button>
-          <button class="seg-btn-charge active" data-val="0">Stock (33W Turbo)</button>
+          <button class="seg-btn-charge" data-val="1500000">1.5A</button>
+          <button class="seg-btn-charge" data-val="2500000">2.5A</button>
+          <button class="seg-btn-charge" data-val="3500000">3.5A</button>
+          <button class="seg-btn-charge" data-val="5000000">5.0A</button>
+          <button class="seg-btn-charge active" data-val="0">Stock (33W)</button>
         </div>
       </div>
 
@@ -521,6 +529,14 @@
 
     <!-- ==================== TAB 2: AUDIO & SOUND ==================== -->
     <main class="tab-page" id="tab-audio">
+      <!-- Bundled ALSA Engine Attribution Banner -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 6px 12px; background: rgba(56, 189, 248, 0.08); border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2);">
+        <span style="font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+          <span style="color: var(--accent-cyan);">🎵</span> ALSA Hardware Mixer: <strong>tinymix</strong> bundled natively (Credits to <strong>Dinodva</strong>)
+        </span>
+        <span class="badge-pill" style="font-size: 9.5px; background: rgba(16, 185, 129, 0.2); color: var(--color-success); border-color: rgba(16, 185, 129, 0.4);">Ready</span>
+      </div>
+
       <!-- Stock Audio Route Bypass Mode (Toggle ON only for factory raw bypass) -->
       <div class="card" id="cardAudioBypass" style="border: 1px solid rgba(16, 185, 129, 0.5); background: var(--bg-surface);">
         <div class="tile-category-row">
@@ -565,16 +581,16 @@
         <div class="card">
           <div class="tile-category-row">
             <span class="tile-category cat-audio">🎙️ Quick Audio Presets</span>
-            <span class="tile-status" id="statusAudioProfile">Call Clarity</span>
+            <span class="tile-status" id="statusAudioProfile">Voice Call</span>
           </div>
           <h3 class="card-title">Microphone & Noise Cancellation Profiles</h3>
           <p class="card-sub">Instant one-tap hardware sound calibration tailored for calls, podcasts, and noisy outdoor environments.</p>
           <div class="preset-row" id="audioProfileChips">
-            <button class="chip-btn active" data-prof="call" onclick="setAudioProfilePreset('call')">📞 Voice Call Clarity</button>
-            <button class="chip-btn" data-prof="studio" onclick="setAudioProfilePreset('studio')">🎙️ Studio Podcast</button>
-            <button class="chip-btn" data-prof="outdoor" onclick="setAudioProfilePreset('outdoor')">🌪️ Wind & Traffic Cut</button>
-            <button class="chip-btn" data-prof="gaming" onclick="setAudioProfilePreset('gaming')">🎮 Gaming Comm</button>
-            <button class="chip-btn" data-prof="flat" onclick="setAudioProfilePreset('flat')">🔄 Stock Flat</button>
+            <button class="chip-btn active" data-prof="call" onclick="setAudioProfilePreset('call')">📞 Voice Call</button>
+            <button class="chip-btn" data-prof="studio" onclick="setAudioProfilePreset('studio')">🎙️ Studio Mic</button>
+            <button class="chip-btn" data-prof="outdoor" onclick="setAudioProfilePreset('outdoor')">🌪️ Noise Cut</button>
+            <button class="chip-btn" data-prof="gaming" onclick="setAudioProfilePreset('gaming')">🎮 Gaming Voice</button>
+            <button class="chip-btn" data-prof="flat" onclick="setAudioProfilePreset('flat')">🔄 Stock Audio</button>
           </div>
         </div>
 
@@ -582,17 +598,17 @@
         <div class="card">
           <div class="tile-category-row">
             <span class="tile-category cat-audio">🛡️ Hardware Noise Filter</span>
-            <span class="tile-status" id="statusHpf">75Hz Vocal Cut</span>
+            <span class="tile-status" id="statusHpf">75 Hz (Voice)</span>
           </div>
           <div class="slider-head">
             <h3 class="card-title">Hardware High-Pass Filter (Low-End Noise Cut)</h3>
-            <span class="badge-val" id="lblHpfVal">75 Hz Filter</span>
+            <span class="badge-val" id="lblHpfVal">75 Hz</span>
           </div>
           <p class="card-sub">Cuts sub-audible low-frequency rumble in Bolero TX Macro DSP before entering recording streams. Eliminates 50/60Hz AC hum, room vibrations, and wind buffeting without thinning speech.</p>
           <div class="btn-segmented" id="hpfPills">
-            <button class="seg-btn active" data-val="CF_NEG_3DB_75HZ" onclick="setHpfPreset('CF_NEG_3DB_75HZ')">75Hz (Vocal Clarity)</button>
-            <button class="seg-btn" data-val="CF_NEG_3DB_150HZ" onclick="setHpfPreset('CF_NEG_3DB_150HZ')">150Hz (Wind & Traffic Cut)</button>
-            <button class="seg-btn" data-val="CF_NEG_3DB_4HZ" onclick="setHpfPreset('CF_NEG_3DB_4HZ')">4Hz (Studio Flat)</button>
+            <button class="seg-btn active" data-val="CF_NEG_3DB_75HZ" onclick="setHpfPreset('CF_NEG_3DB_75HZ')">75 Hz (Voice)</button>
+            <button class="seg-btn" data-val="CF_NEG_3DB_150HZ" onclick="setHpfPreset('CF_NEG_3DB_150HZ')">150 Hz (Noise Cut)</button>
+            <button class="seg-btn" data-val="CF_NEG_3DB_4HZ" onclick="setHpfPreset('CF_NEG_3DB_4HZ')">4 Hz (Flat)</button>
           </div>
         </div>
 
@@ -600,17 +616,17 @@
         <div class="card">
           <div class="tile-category-row">
             <span class="tile-category cat-audio">🌐 Spatial Acoustics</span>
-            <span class="tile-status" id="statusSpatial">Spatial Shield</span>
+            <span class="tile-status" id="statusSpatial">Shield (+4 dB)</span>
           </div>
           <div class="slider-head">
             <h3 class="card-title">Dual-Mic Spatial Noise Shield (Beamforming)</h3>
-            <span class="badge-val" id="lblSpatialVal">+4dB Voice / 0dB Amb</span>
+            <span class="badge-val" id="lblSpatialVal">+4 dB Voice / 0 dB Amb</span>
           </div>
           <p class="card-sub">Uses differential acoustic processing between primary bottom mic (mouth focus) and top secondary mic (ambient noise reference). Enhances near-field speech while subtracting far-field background noise.</p>
           <div class="btn-segmented" id="spatialPills">
-            <button class="seg-btn" data-val="balanced" onclick="setDualMicSpatialPreset('balanced')">Balanced (0dB Delta)</button>
-            <button class="seg-btn active" data-val="shield" onclick="setDualMicSpatialPreset('shield')">Spatial Shield (+4dB Voice)</button>
-            <button class="seg-btn" data-val="heavy" onclick="setDualMicSpatialPreset('heavy')">Heavy Cut (+6dB / +2dB)</button>
+            <button class="seg-btn" data-val="balanced" onclick="setDualMicSpatialPreset('balanced')">Balanced (0 dB)</button>
+            <button class="seg-btn active" data-val="shield" onclick="setDualMicSpatialPreset('shield')">Shield (+4 dB)</button>
+            <button class="seg-btn" data-val="heavy" onclick="setDualMicSpatialPreset('heavy')">Heavy (+6 dB)</button>
           </div>
         </div>
 
@@ -645,10 +661,10 @@
           <p class="card-sub">Calibrated analog front-end gain for microphone preamplifiers. Safe upper limit strictly capped at 15 to prevent any signal clipping or hardware decimator freeze.</p>
           <input type="range" class="custom-slider" id="rngAdcGain" min="8" max="15" step="1" value="12">
           <div class="preset-row" id="adcChips" style="margin-top: 8px;">
-            <button class="chip-btn" data-val="10" onclick="setAdcPreset('10')">10 (Quiet)</button>
-            <button class="chip-btn active" data-val="12" onclick="setAdcPreset('12')">12 (Stock 30dB)</button>
-            <button class="chip-btn" data-val="14" onclick="setAdcPreset('14')">14 (Studio 35dB)</button>
-            <button class="chip-btn" data-val="15" onclick="setAdcPreset('15')">15 (Max Safe)</button>
+            <button class="chip-btn" data-val="10" onclick="setAdcPreset('10')">10 (Low)</button>
+            <button class="chip-btn active" data-val="12" onclick="setAdcPreset('12')">12 (Stock)</button>
+            <button class="chip-btn" data-val="14" onclick="setAdcPreset('14')">14 (High)</button>
+            <button class="chip-btn" data-val="15" onclick="setAdcPreset('15')">15 (Max)</button>
           </div>
         </div>
 
@@ -660,7 +676,7 @@
           </div>
           <div class="slider-head">
             <h3 class="card-title">Top Microphone Gain (Ambient Noise Reference)</h3>
-            <span class="badge-val" id="lblTopMic">0 dB (Normal)</span>
+            <span class="badge-val" id="lblTopMic">0 dB (Stock)</span>
           </div>
           <p class="card-sub">Adjusts sensitivity for top ambient reference mic. Balanced ratio ensures clean noise subtraction without canceling voice.</p>
           <div class="slider-container">
@@ -668,8 +684,8 @@
           </div>
           <div class="preset-row" id="topMicChips" style="margin-top: 8px;">
             <button class="chip-btn" data-val="-2" onclick="setTopMicGain('-2')">-2 dB</button>
-            <button class="chip-btn active" data-val="0" onclick="setTopMicGain('0')">0 dB (Normal)</button>
-            <button class="chip-btn" data-val="2" onclick="setTopMicGain('2')">+2 dB (High Ref)</button>
+            <button class="chip-btn active" data-val="0" onclick="setTopMicGain('0')">0 dB (Stock)</button>
+            <button class="chip-btn" data-val="2" onclick="setTopMicGain('2')">+2 dB</button>
             <button class="chip-btn" data-val="4" onclick="setTopMicGain('4')">+4 dB</button>
           </div>
         </div>
@@ -682,7 +698,7 @@
           </div>
           <div class="slider-head">
             <h3 class="card-title">Bottom Microphone Gain (Voice Calls)</h3>
-            <span class="badge-val" id="lblBottomMic">0 dB (Normal)</span>
+            <span class="badge-val" id="lblBottomMic">0 dB (Stock)</span>
           </div>
           <p class="card-sub">Fine-tunes digital decimator gain for primary talk mic. Strictly protected with a 96-integer ceiling (+12dB) to prevent any audio mute or decimator overflow.</p>
           <div class="slider-container">
@@ -690,9 +706,9 @@
           </div>
           <div class="preset-row" id="bottomMicChips" style="margin-top: 8px;">
             <button class="chip-btn active" data-val="0" onclick="setBottomMicGain('0')">0 dB (Stock)</button>
-            <button class="chip-btn" data-val="4" onclick="setBottomMicGain('4')">+4 dB (Voice)</button>
-            <button class="chip-btn" data-val="6" onclick="setBottomMicGain('6')">+6 dB (Loud)</button>
-            <button class="chip-btn" data-val="8" onclick="setBottomMicGain('8')">+8 dB (Studio)</button>
+            <button class="chip-btn" data-val="4" onclick="setBottomMicGain('4')">+4 dB</button>
+            <button class="chip-btn" data-val="6" onclick="setBottomMicGain('6')">+6 dB</button>
+            <button class="chip-btn" data-val="8" onclick="setBottomMicGain('8')">+8 dB</button>
           </div>
         </div>
 
@@ -802,11 +818,11 @@
         <div class="form-group">
           <label class="form-label" for="selGpuMin">Minimum Clock Floor</label>
           <select class="custom-select" id="selGpuMin">
-            <option value="180">180 MHz (Stock Low Power)</option>
+            <option value="180">180 MHz (Stock)</option>
             <option value="267">267 MHz</option>
             <option value="355">355 MHz</option>
             <option value="430">430 MHz</option>
-            <option value="504">504 MHz (Recommended for 60FPS Gaming)</option>
+            <option value="504">504 MHz (Performance)</option>
             <option value="610">610 MHz (Turbo)</option>
             <option value="845">845 MHz (Max Lock)</option>
           </select>
@@ -834,17 +850,17 @@
             <option value="0">Disabled (0 MHz)</option>
             <option value="576000">576 MHz</option>
             <option value="960000">960 MHz</option>
-            <option value="1017600" selected>1017 MHz (Balanced default)</option>
+            <option value="1017600" selected>1017 MHz (Balanced)</option>
             <option value="1113600">1113 MHz</option>
-            <option value="1497600">1497 MHz (High Smoothness)</option>
-            <option value="1804800">1804 MHz (Maximum Boost)</option>
+            <option value="1497600">1497 MHz (Smooth)</option>
+            <option value="1804800">1804 MHz (Max Boost)</option>
           </select>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="selBoostHp">BIG Cores Touch Frequency</label>
           <select class="custom-select" id="selBoostHp">
-            <option value="0" selected>Disabled (0 MHz - Dev Default)</option>
+            <option value="0" selected>Disabled (0 MHz)</option>
             <option value="652800">652 MHz</option>
             <option value="1209600">1209 MHz</option>
             <option value="1536000">1536 MHz</option>
@@ -909,9 +925,9 @@
 
         <label class="form-label">Sequential Read-Ahead Cache</label>
         <div class="btn-segmented">
-          <button class="seg-btn-ra" data-val="128">128 KB (Battery)</button>
-          <button class="seg-btn-ra" data-val="256">256 KB (Stock)</button>
-          <button class="seg-btn-ra active" data-val="512">512 KB (Default)</button>
+          <button class="seg-btn-ra" data-val="128">128 KB</button>
+          <button class="seg-btn-ra" data-val="256">256 KB</button>
+          <button class="seg-btn-ra active" data-val="512">512 KB</button>
           <button class="seg-btn-ra" data-val="1024">1024 KB</button>
         </div>
       </div>
@@ -932,6 +948,7 @@
             <span class="toggle-track"></span>
           </label>
         </div>
+      </div>
 
       <!-- CPU Governors & Cluster Frequencies -->
       <div class="card">
@@ -954,10 +971,12 @@
         <div class="form-group">
           <label class="form-label" for="selCpuMaxLittle">LITTLE Cluster Max Frequency</label>
           <select class="custom-select" id="selCpuMaxLittle">
-            <option value="1804800" selected>1804 MHz (Max Frequency)</option>
+            <option value="1804800" selected>1804 MHz (Max Peak)</option>
+            <option value="1593600">1593 MHz (High)</option>
             <option value="1497600">1497 MHz (Balanced)</option>
-            <option value="1113600">1113 MHz (Battery Saver)</option>
-            <option value="1017600">1017 MHz (Min Operating Frequency)</option>
+            <option value="1363200">1363 MHz (Battery Saver)</option>
+            <option value="1113600">1113 MHz (Ultra Low)</option>
+            <option value="1017600">1017 MHz (Min Operating)</option>
           </select>
         </div>
 
@@ -973,10 +992,12 @@
         <div class="form-group">
           <label class="form-label" for="selCpuMaxBig">BIG Cluster Max Frequency</label>
           <select class="custom-select" id="selCpuMaxBig">
-            <option value="2208000" selected>2208 MHz (Max Peak - 2.2GHz)</option>
-            <option value="1843200">1843 MHz (Gaming Turbo)</option>
-            <option value="1536000">1536 MHz (Balanced Cool)</option>
+            <option value="2208000" selected>2208 MHz (Max Peak)</option>
+            <option value="1900800">1900 MHz (High)</option>
+            <option value="1843200">1843 MHz (Performance)</option>
+            <option value="1536000">1536 MHz (Battery Saver)</option>
             <option value="1209600">1209 MHz (Power Saver)</option>
+            <option value="1017600">1017 MHz (Min Operating)</option>
           </select>
         </div>
       </div>
@@ -985,7 +1006,7 @@
       <div class="card">
         <div class="tile-category-row">
           <span class="tile-category cat-sys">🧠 Virtual Memory</span>
-          <span class="tile-status" id="statusMglruTile" style="color: var(--color-success);">Active (Fluid UI)</span>
+          <span class="tile-status" id="statusMglruTile" style="color: var(--color-success);">Active (Smooth UI)</span>
         </div>
         <h3 class="card-title">Memory & Scheduler Tuning</h3>
 
@@ -1013,11 +1034,11 @@
         </div>
         <input type="range" class="custom-slider" id="rngMglruTtl" min="0" max="3000" step="100" value="0">
         <div class="preset-row" id="mglruChips" style="margin-top: 8px;">
-          <button class="chip-btn active" data-val="0" onclick="setMglruPreset('0')">0 ms (Optimal)</button>
+          <button class="chip-btn active" data-val="0" onclick="setMglruPreset('0')">0 ms (Stock)</button>
           <button class="chip-btn" data-val="500" onclick="setMglruPreset('500')">500 ms (Gaming)</button>
-          <button class="chip-btn" data-val="1000" onclick="setMglruPreset('1000')">1000 ms (Fluid UI)</button>
+          <button class="chip-btn" data-val="1000" onclick="setMglruPreset('1000')">1000 ms (Smooth)</button>
           <button class="chip-btn" data-val="2000" onclick="setMglruPreset('2000')">2000 ms (Multitask)</button>
-          <button class="chip-btn" data-val="3000" onclick="setMglruPreset('3000')">3000 ms (Max Retention)</button>
+          <button class="chip-btn" data-val="3000" onclick="setMglruPreset('3000')">3000 ms (Max)</button>
         </div>
 
         <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
@@ -1157,19 +1178,19 @@
               <strong>How it works:</strong> Directly calibrates the audio codec unmute timing register in the Qualcomm Bolero WCD937x TX Macro driver.
               <div class="help-example-box">
                 <div class="help-example-title">💡 Real-World Scenario: Answering Incoming Calls</div>
-                On stock kernels, there is a known hardware timing bug where the microphone stays muted for 50-100ms when picking up a call, leading to callers asking "Hello? Are you there?". AETHER v1.6 permanently calibrates this to <strong>5ms</strong> with pre-charge ramp-up, so your very first word is heard loud and clear on pickup.
+                On stock kernels, there is a known hardware timing bug where the microphone stays muted for 50-100ms when picking up a call, leading to callers asking "Hello? Are you there?". AETHER v1.6.1 permanently calibrates this to <strong>5ms</strong> with pre-charge ramp-up, so your very first word is heard loud and clear on pickup.
               </div>
             </div>
           </details>
 
           <!-- Adreno 612 GPU Clock Lock Example -->
           <details class="accordion-item">
-            <summary class="accordion-header">🎮 Why lock the GPU to 504MHz in Gaming Mode?</summary>
+            <summary class="accordion-header">🎮 Why lock the GPU to 504MHz in Performance Mode?</summary>
             <div class="accordion-body">
               <strong>How it works:</strong> Sets a strict clock frequency floor on the Adreno 612 GPU and extends downclock latency from 80ms to 200ms.
               <div class="help-example-box">
                 <div class="help-example-title">💡 Real-World Scenario: Intense Multiplayer Teamfights</div>
-                In games like BGMI, COD Mobile, or Genshin Impact, whenever a player looks at the ground or transitions scenes, the default governor drops the GPU clock down to 180MHz to save micro-watts. When an enemy suddenly appears and throws a smoke grenade, the GPU cannot scale up fast enough, causing a stutter drop to 40 FPS. Locking the floor to <strong>504 MHz</strong> keeps rendering units warm and ready for guaranteed 60 FPS.
+                In games like BGMI, COD Mobile, or Genshin Impact, whenever a player looks at the ground or transitions scenes, the default governor drops the GPU clock down to 180MHz to save micro-watts. When an enemy suddenly appears and throws a smoke grenade, the GPU cannot scale up fast enough, causing a frame drop to 40 FPS. Locking the floor to <strong>504 MHz</strong> keeps rendering units warm and ready for guaranteed 60 FPS.
               </div>
             </div>
           </details>
@@ -1240,7 +1261,7 @@
         </div>
         <button class="chip-btn" id="btnToggleLogExpand">Expand</button>
       </div>
-      <pre class="terminal-log" id="termLogs" style="display: none;">[AETHER v1.6] Kernel Control WebUI Engine Initialized.
+      <pre class="terminal-log" id="termLogs" style="display: none;">[AETHER v1.6.1] Kernel Control WebUI Engine Initialized.
 [Ready] Awaiting user input...</pre>
     </section>
 

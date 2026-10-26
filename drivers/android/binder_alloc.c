@@ -30,6 +30,11 @@
 #include <linux/list_lru.h>
 #include <linux/uaccess.h>
 #include <linux/highmem.h>
+#ifdef CONFIG_REKERNEL
+#include <linux/rcupdate.h>
+#include <linux/sched/task.h>
+#include <net/rekernel.h>
+#endif /* CONFIG_REKERNEL */
 #include "binder_alloc.h"
 #include "binder_trace.h"
 
@@ -435,6 +440,29 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 
 	/* Pad 0-size buffers so they get assigned unique addresses */
 	size = max(size, sizeof(void *));
+
+#ifdef CONFIG_REKERNEL
+	if (is_async &&
+	    alloc->free_async_space <
+			3 * (size + sizeof(struct binder_buffer))) {
+		struct task_struct *proc_task;
+
+		rcu_read_lock();
+		proc_task = find_task_by_vpid(alloc->pid);
+		if (proc_task)
+			get_task_struct(proc_task);
+		rcu_read_unlock();
+
+		if (proc_task) {
+			rekernel_report(BINDER, OVERFLOW,
+					task_tgid_nr(current), current,
+					task_tgid_nr(proc_task), proc_task,
+					true, "", 0);
+			put_task_struct(proc_task);
+		}
+	}
+#endif /* CONFIG_REKERNEL */
+
 
 	if (is_async && alloc->free_async_space < size) {
 		binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC,

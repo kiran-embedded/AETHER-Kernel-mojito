@@ -4,31 +4,62 @@
 # ========================================================
 MODDIR=${0%/*}
 
-# If module is marked for deletion, trigger clean uninstaller and exit immediately
-if [ -f "$MODDIR/remove" ]; then
-    [ -f "$MODDIR/uninstall.sh" ] && sh "$MODDIR/uninstall.sh" 2>/dev/null
+# ── 1. Immediate Safety & Removal Guard ─────────────────
+# If module is disabled or marked for removal, exit cleanly immediately
+if [ -f "$MODDIR/disable" ] || [ -f "$MODDIR/remove" ]; then
     exit 0
 fi
 
 # Ensure state directory exists with secure permissions
-mkdir -p /data/adb/aether
-chmod 755 /data/adb/aether
+mkdir -p /data/adb/aether/bin
+chmod 755 /data/adb/aether /data/adb/aether/bin
 
-# Safe Boot Completed Watchdog: Poll up to 60s max to prevent indefinite background hang
+# Ensure bundled ALSA tinymix engine is active (Dinodva Module Integration)
+if [ -f "$MODDIR/system/bin/tinymix" ] && [ ! -f /data/adb/aether/bin/tinymix ]; then
+    cp -f "$MODDIR/system/bin/tinymix" /data/adb/aether/bin/tinymix 2>/dev/null || true
+    chmod 755 /data/adb/aether/bin/tinymix 2>/dev/null || true
+fi
+
+# Immediately purge poisonous malloc debug properties
+resetprop --delete persist.libc.debug.malloc 2>/dev/null || true
+resetprop --delete libc.debug.malloc 2>/dev/null || true
+
+# ── 2. Safe Boot Completed Watchdog ─────────────────────
+# Poll up to 60s max to prevent indefinite background hang
 TIMEOUT=60
 while [ "$TIMEOUT" -gt 0 ] && [ "$(getprop sys.boot_completed)" != "1" ]; do
     sleep 2
     TIMEOUT=$((TIMEOUT - 2))
 done
 
-# If module was deleted during boot, do not apply tweaks
-if [ -f "$MODDIR/remove" ]; then
-    [ -f "$MODDIR/uninstall.sh" ] && sh "$MODDIR/uninstall.sh" 2>/dev/null
+# If system never completed boot within 60s, DO NOT apply any tweaks!
+# Exit cleanly to let the system stabilize without external interference.
+if [ "$(getprop sys.boot_completed)" != "1" ]; then
+    echo "[AETHER-BOOT-GUARD] sys.boot_completed timed out! Service tweaks aborted." > /data/adb/aether/boot_status.log
     exit 0
 fi
 
+# If module was deleted or disabled during boot, exit immediately
+if [ -f "$MODDIR/disable" ] || [ -f "$MODDIR/remove" ]; then
+    exit 0
+fi
+
+# ── 3. Reset Boot Failure Counter (Boot Confirmed Safe) ─
+echo 0 > /data/adb/aether/boot_count 2>/dev/null
+echo 0 > /data/adb/aether_boot_count 2>/dev/null
+echo "[AETHER-BOOT-OK] Boot completed successfully. Watchdog counter reset to 0." > /data/adb/aether/boot_status.log
+
 # Wait for audioserver and vendor HALs to stabilize
 sleep 5
+
+# Detect Android version for version-specific compatibility guards
+# Supports both API level (Android 17 = 36+, Android 16 = 35) and release string (17 vs 16)
+SDK_VER=$(getprop ro.build.version.sdk 2>/dev/null || echo 34)
+REL_VER=$(getprop ro.build.version.release 2>/dev/null || echo 14)
+IS_A17=0
+if [ "${SDK_VER:-34}" -ge 36 ] 2>/dev/null || [ "${REL_VER%%.*}" -ge 17 ] 2>/dev/null; then
+    IS_A17=1
+fi
 
 # Ensure open node permissions for display, kernel, and battery control
 chmod 0666 /sys/kernel/aether/* 2>/dev/null || true
@@ -50,10 +81,15 @@ if [ -f /data/adb/aether/cutoff.conf ]; then
 fi
 if [ -f /mnt/vendor/persist/aether/cutoff.conf ]; then
     . /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null
-fi
-[ -n "$CUTOFF_LIMIT" ] && echo "$CUTOFF_LIMIT" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null || true
-[ -n "$CUTOFF_MODE" ] && echo "$CUTOFF_MODE" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null || true
+# Default to 100% cutoff limit and mode 1 (real bypass hold) if not configured
+[ -z "$CUTOFF_LIMIT" ] && CUTOFF_LIMIT="100"
+[ -z "$CUTOFF_MODE" ] && CUTOFF_MODE="1"
+
+echo "$CUTOFF_LIMIT" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null || true
+echo "$CUTOFF_MODE" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null || true
 [ -n "$INSTANT_BYPASS" ] && echo "$INSTANT_BYPASS" > /sys/kernel/aether/instant_bypass 2>/dev/null || true
+# Only write non-zero charge limits — writing 0 should mean stock unlimited
+[ -n "$CHARGE_LIMIT" ] && [ "$CHARGE_LIMIT" != "0" ] && echo "$CHARGE_LIMIT" > /sys/kernel/aether/charge_current_limit 2>/dev/null || true
 
 
 # ── Userspace Framework Logging & Debug Optimization ─────────────
@@ -68,12 +104,15 @@ resetprop -n persist.logd.size.radio 131072 2>/dev/null || setprop persist.logd.
 resetprop -n persist.logd.size.crash 262144 2>/dev/null || setprop persist.logd.size.crash 262144 2>/dev/null || true
 
 # 2. Disable debug tracing & StrictMode overhead
-resetprop -n persist.traced.enable 0 2>/dev/null || setprop persist.traced.enable 0 2>/dev/null || true
+# ANDROID 17 FIX: Do NOT disable traced on A17 (IS_A17=1) — it breaks SensorService,
+# auto-rotate, auto-brightness, screen recording, and MediaCodec on Android 17+.
+if [ "$IS_A17" -eq 0 ]; then
+    resetprop -n persist.traced.enable 0 2>/dev/null || setprop persist.traced.enable 0 2>/dev/null || true
+fi
 resetprop -n persist.sys.assert.enable false 2>/dev/null || setprop persist.sys.assert.enable false 2>/dev/null || true
 resetprop -n persist.sys.strictmode.visual 0 2>/dev/null || setprop persist.sys.strictmode.visual 0 2>/dev/null || true
-resetprop -n persist.sys.strictmode.disable 1 2>/dev/null || setprop persist.sys.strictmode.disable 1 2>/dev/null || true
-resetprop -n libc.debug.malloc 0 2>/dev/null || setprop libc.debug.malloc 0 2>/dev/null || true
-resetprop -n persist.libc.debug.malloc 0 2>/dev/null || setprop persist.libc.debug.malloc 0 2>/dev/null || true
+resetprop --delete persist.libc.debug.malloc 2>/dev/null || true
+resetprop --delete libc.debug.malloc 2>/dev/null || true
 
 # 6. Background CPUset confinement (keep low-priority work on Silver cores 0-5)
 if [ -d /dev/cpuset/background ]; then
@@ -84,10 +123,14 @@ if [ -d /dev/cpuset/system-background ]; then
 fi
 
 # 7. RenderThread & SurfaceFlinger Jitter Suppression (60 FPS Animation Pacing)
-resetprop -n debug.sf.disable_backpressure 1 2>/dev/null || setprop debug.sf.disable_backpressure 1 2>/dev/null || true
-resetprop -n debug.sf.latch_unsignaled 1 2>/dev/null || setprop debug.sf.latch_unsignaled 1 2>/dev/null || true
-resetprop -n debug.hwui.render_thread_priority -20 2>/dev/null || setprop debug.hwui.render_thread_priority -20 2>/dev/null || true
-resetprop -n renderthread.skia.reduceopstasksplitting true 2>/dev/null || setprop renderthread.skia.reduceopstasksplitting true 2>/dev/null || true
+# ANDROID 17 FIX: disable_backpressure, latch_unsignaled, and HWUI priority overrides cause screen recording
+# crashes, virtual display buffer corruption, and brightness glitching on Android 17's SurfaceFlinger rotation animation.
+if [ "$IS_A17" -eq 0 ]; then
+    resetprop -n debug.sf.disable_backpressure 1 2>/dev/null || setprop debug.sf.disable_backpressure 1 2>/dev/null || true
+    resetprop -n debug.sf.latch_unsignaled 1 2>/dev/null || setprop debug.sf.latch_unsignaled 1 2>/dev/null || true
+    resetprop -n debug.hwui.render_thread_priority -20 2>/dev/null || setprop debug.hwui.render_thread_priority -20 2>/dev/null || true
+    resetprop -n renderthread.skia.reduceopstasksplitting true 2>/dev/null || setprop renderthread.skia.reduceopstasksplitting true 2>/dev/null || true
+fi
 
 # 8. SchedTune Top-App & CPU Input Boost Calibration (Cores 0-5 1.0 GHz, Cores 6-7 sleep)
 if [ -d /dev/stune/top-app ]; then
@@ -127,24 +170,42 @@ echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled 2>/dev/null || true
 echo 1 > /sys/module/lpm_levels/parameters/lpm_prediction 2>/dev/null || true
 echo 1 > /sys/module/lpm_levels/parameters/lpm_ipi_prediction 2>/dev/null || true
 
-# Android Balanced Deep Sleep / Doze (Calibrated to 10 minutes interval, zero WiFi drop)
-cmd device_config put device_idle light_after_inactive_to 300000 2>/dev/null || true
-cmd device_config put device_idle inactive_to 600000 2>/dev/null || true
-cmd device_config delete device_idle sensing_to 2>/dev/null || true
-cmd device_config delete device_idle locating_to 2>/dev/null || true
-cmd device_config delete device_idle location_accuracy 2>/dev/null || true
-cmd device_config delete device_idle motion_inactive_to 2>/dev/null || true
-cmd device_config delete device_idle idle_after_inactive_to 2>/dev/null || true
+# Android Balanced Deep Sleep / Doze (Only tune inactive timeouts on Android <= 16; do not touch sensors)
+if [ "$IS_A17" -eq 0 ]; then
+    cmd device_config put device_idle light_after_inactive_to 300000 2>/dev/null || true
+    cmd device_config put device_idle inactive_to 600000 2>/dev/null || true
+fi
 
 echo 1 > /sys/module/kprofiles/parameters/auto_kp 2>/dev/null || true
 echo 0 > /sys/kernel/kprofiles/kp_mode 2>/dev/null || true
 
-# 10. Core Memory & Scheduler Hardware Calibrations
-# Virtual Memory & ZRAM Swappiness (160 swappiness keeps plenty of RAM free via ZRAM under MGLRU)
-echo 160 > /proc/sys/vm/swappiness 2>/dev/null || true
+# 10. Dynamic ZRAM Re-allocation & Virtual Memory Tuning
+# Enforces 3GB (4GB models) / 4GB (6GB models) LZ4 ZRAM so phone and background apps remain warm in RAM
+if [ -b /dev/block/zram0 ]; then
+    TOTAL_RAM_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' || echo 4000000)
+    if [ "${TOTAL_RAM_KB:-0}" -ge 4500000 ]; then
+        TARGET_ZRAM_BYTES=$((4 * 1024 * 1024 * 1024))
+    else
+        TARGET_ZRAM_BYTES=$((3 * 1024 * 1024 * 1024))
+    fi
+
+    CURR_ZRAM_BYTES=$(cat /sys/block/zram0/disksize 2>/dev/null || echo 0)
+    # If ROM shrunk ZRAM below 2.5GB or comp_algorithm is not lz4, safely re-init with high-speed LZ4
+    if [ "${CURR_ZRAM_BYTES:-0}" -lt 2684354560 ] || ! grep -q "\[lz4\]" /sys/block/zram0/comp_algorithm 2>/dev/null; then
+        swapoff /dev/block/zram0 2>/dev/null || true
+        echo 1 > /sys/block/zram0/reset 2>/dev/null || true
+        echo lz4 > /sys/block/zram0/comp_algorithm 2>/dev/null || true
+        echo "${TARGET_ZRAM_BYTES}" > /sys/block/zram0/disksize 2>/dev/null || true
+        mkswap /dev/block/zram0 2>/dev/null || true
+        swapon /dev/block/zram0 -p 32758 2>/dev/null || true
+    fi
+fi
+
+# Swappiness 180: Aggressively swap cold idle anonymous pages to fast ZRAM, keeping physical RAM free for active apps
+echo 180 > /proc/sys/vm/swappiness 2>/dev/null || true
 echo 0 > /proc/sys/vm/page-cluster 2>/dev/null || true
 echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
-echo 200 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
+echo 150 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
 echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
 echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null || true
 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null || true
@@ -155,6 +216,10 @@ echo 0 > /proc/sys/vm/percpu_pagelist_fraction 2>/dev/null || true
 echo 1 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
 echo 0 > /proc/sys/vm/oom_dump_tasks 2>/dev/null || true
 echo 10 > /proc/sys/vm/stat_interval 2>/dev/null || true
+
+# Android memory management props for active ZRAM utilization
+resetprop -n persist.sys.zram_enabled 1 2>/dev/null || setprop persist.sys.zram_enabled 1 2>/dev/null || true
+resetprop -n sys.use_memfd true 2>/dev/null || setprop sys.use_memfd true 2>/dev/null || true
 
 # MGLRU Multigenerational LRU (min_ttl_ms = 0 to eliminate premature OOM kills)
 if [ -f /sys/kernel/mm/lru_gen/enabled ]; then

@@ -1,5 +1,15 @@
 allow     init sysfs file setattr
 allow     system_app vendor_sysfs_graphics dir search
-allow     system_app vendor_sysfs_graphics file { ioctl read getattr open }
+allow     system_app vendor_sysfs_graphics file { ioctl read write getattr lock append map open watch watch_reads }
 allow     system_app sysfs dir search
-allow     system_app sysfs file { ioctl read getattr open }
+allow     system_app sysfs file { ioctl read write getattr open }
+allow     shell sysfs dir { search read open getattr }
+allow     shell sysfs file { ioctl read write getattr open }
+allow     shell sysfs_type dir { search read open getattr }
+allow     shell sysfs_type file { ioctl read write getattr open }
+allow     untrusted_app sysfs dir { search read open getattr }
+allow     untrusted_app sysfs file { ioctl read getattr open }
+allow     untrusted_app sysfs_type dir { search read open getattr }
+allow     untrusted_app sysfs_type file { ioctl read getattr open }
+allow     platform_app sysfs dir { search read open getattr }
+allow     platform_app sysfs file { ioctl read write getattr open }

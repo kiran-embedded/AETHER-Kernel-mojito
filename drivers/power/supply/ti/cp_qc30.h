@@ -81,12 +81,12 @@ enum hvdcp3_type {
 #define QC3P5_BQ_TAPER_HYS_MV                  30
 #define QC3P5_BQ_TAPER_DECREASE_STEP_MA                        200
 
-#define HVDCP3_CLASS_B_BAT_CURRENT_MA			5400
-#define HVDCP3_CLASS_B_BUS_CURRENT_MA			2700
+#define HVDCP3_CLASS_B_BAT_CURRENT_MA			6000
+#define HVDCP3_CLASS_B_BUS_CURRENT_MA			3000
 #define HVDCP3_CLASS_A_BAT_CURRENT_MA			3600
 #define HVDCP3_CLASS_A_BUS_CURRENT_MA			2100
-#define HVDCP3P5_BUS_CURRENT_MA                                2400
-#define HVDCP3P5_BAT_CURRENT_MA                                4500
+#define HVDCP3P5_BUS_CURRENT_MA                                3000
+#define HVDCP3P5_BAT_CURRENT_MA                                6000
 #define MAX_THERMAL_LEVEL			13
 /* jeita related */
 #define JEITA_WARM_THR			450

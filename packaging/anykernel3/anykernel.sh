@@ -5,7 +5,7 @@
 ### AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=AETHER CORE v1.6 by Kiran (ProjectAether)
+kernel.string=AETHER CORE v1.6.1 by Kiran (ProjectAether)
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -181,7 +181,7 @@ ui_print "  ╔═════════════════════�
 ui_print "  ║                 A E T H E R                  ║";
 ui_print "  ║             Custom Linux Kernel              ║";
 ui_print "  ╠══════════════════════════════════════════════╣";
-ui_print "  ║  Version  : v1.6                             ║";
+ui_print "  ║  Version  : v1.6.1                           ║";
 ui_print "  ║  Device   : $dev_display";
 ui_print "  ║  Platform : Snapdragon 678 (SM6150)          ║";
 ui_print "  ║  System   : $rom_display";
@@ -844,23 +844,37 @@ fi
     resetprop -n persist.logd.size.radio 131072 2>/dev/null || setprop persist.logd.size.radio 131072 2>/dev/null || true
     resetprop -n persist.logd.size.crash 65536 2>/dev/null || setprop persist.logd.size.crash 65536 2>/dev/null || true
 
-    # Disable system tracing (atrace) and debug logging daemons
-    resetprop -n persist.traced.enable 0 2>/dev/null || setprop persist.traced.enable 0 2>/dev/null || true
+    # Detect Android version for version-specific compatibility guards
+    SDK_VER=$(getprop ro.build.version.sdk 2>/dev/null || echo 34)
+    REL_VER=$(getprop ro.build.version.release 2>/dev/null || echo 14)
+    IS_A17=0
+    if [ "${SDK_VER:-34}" -ge 36 ] 2>/dev/null || [ "${REL_VER%%.*}" -ge 17 ] 2>/dev/null; then
+        IS_A17=1
+    fi
+
+    # Disable system tracing (atrace) on Android <= 16 ONLY
+    # On Android 17+, traced is required for SensorService, rotation, and brightness
+    if [ "$IS_A17" -eq 0 ]; then
+        resetprop -n persist.traced.enable 0 2>/dev/null || setprop persist.traced.enable 0 2>/dev/null || true
+    fi
     resetprop -n persist.sys.assert.enable false 2>/dev/null || setprop persist.sys.assert.enable false 2>/dev/null || true
     resetprop -n persist.sys.strictmode.visual 0 2>/dev/null || setprop persist.sys.strictmode.visual 0 2>/dev/null || true
     resetprop -n persist.sys.strictmode.disable 1 2>/dev/null || setprop persist.sys.strictmode.disable 1 2>/dev/null || true
 
-    # Disable debug malloc (leak tracker) in native daemons
-    resetprop -n libc.debug.malloc 0 2>/dev/null || setprop libc.debug.malloc 0 2>/dev/null || true
-    resetprop -n persist.libc.debug.malloc 0 2>/dev/null || setprop persist.libc.debug.malloc 0 2>/dev/null || true
+    # Actively purge hazardous malloc debug properties that trigger Zygote crash
+    resetprop --delete persist.libc.debug.malloc 2>/dev/null || true
+    resetprop --delete libc.debug.malloc 2>/dev/null || true
 
     # ┌─────────────────────────────────────────────────────────────┐
     # │  Layer 7: 60 FPS Animation & SurfaceFlinger Pacing          │
     # └─────────────────────────────────────────────────────────────┘
-    resetprop -n debug.sf.disable_backpressure 1 2>/dev/null || setprop debug.sf.disable_backpressure 1 2>/dev/null || true
-    resetprop -n debug.sf.latch_unsignaled 1 2>/dev/null || setprop debug.sf.latch_unsignaled 1 2>/dev/null || true
-    resetprop -n debug.hwui.render_thread_priority -20 2>/dev/null || setprop debug.hwui.render_thread_priority -20 2>/dev/null || true
-    resetprop -n renderthread.skia.reduceopstasksplitting true 2>/dev/null || setprop renderthread.skia.reduceopstasksplitting true 2>/dev/null || true
+    # Android 16 and below only — breaks screen recording and rotation on Android 17
+    if [ "$IS_A17" -eq 0 ]; then
+        resetprop -n debug.sf.disable_backpressure 1 2>/dev/null || setprop debug.sf.disable_backpressure 1 2>/dev/null || true
+        resetprop -n debug.sf.latch_unsignaled 1 2>/dev/null || setprop debug.sf.latch_unsignaled 1 2>/dev/null || true
+        resetprop -n debug.hwui.render_thread_priority -20 2>/dev/null || setprop debug.hwui.render_thread_priority -20 2>/dev/null || true
+        resetprop -n renderthread.skia.reduceopstasksplitting true 2>/dev/null || setprop renderthread.skia.reduceopstasksplitting true 2>/dev/null || true
+    fi
 
     # ┌─────────────────────────────────────────────────────────────┐
     # │  Layer 8: Reduce MIUI/HyperOS Background Service Bloat     │
