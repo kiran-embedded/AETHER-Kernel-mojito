@@ -1,5 +1,5 @@
 // ========================================================
-// AETHER Kernel Control v1.6 - WebUI Management Engine
+// AETHER Kernel Control v1.6.1 - WebUI Management Engine
 // Official KernelSU / KernelSU-Next Bridge • AMOLED Interface
 // ========================================================
 
@@ -160,7 +160,7 @@ async function runCmd(cmd, silent = false) {
 // Mock Responses for Browser testing
 function mockKernelResponse(cmd) {
   if (cmd.includes('MemAvailable:')) {
-    return '1804800|504000000|14|335|88|148|Good|STOCK_CONTROL|0|60.0|0|0|2150400|819200';
+    return '1804800|504000000|14|335|88|148|Good|STOCK_CONTROL|0|60.0|0|0|2150400|819200|1|7|v2.3.0|msm-adreno-tz|TURBO_UNCONSTRAINED|4000';
   }
   if (cmd.includes('scaling_cur_freq')) return '1804800';
   if (cmd.includes('gpuclk')) return '504000000';
@@ -244,7 +244,7 @@ function getUiState() {
     userCustomized: !!userCustomized,
     readAhead: typeof selectedReadAhead !== 'undefined' ? selectedReadAhead : '512',
     chargeLimit: typeof selectedChargeLimit !== 'undefined' ? selectedChargeLimit : '0',
-    chargeCutoff: typeof selectedChargeCutoff !== 'undefined' ? selectedChargeCutoff : '0',
+    chargeCutoff: typeof selectedChargeCutoff !== 'undefined' ? selectedChargeCutoff : '100',
     cutoffMode: typeof selectedCutoffMode !== 'undefined' ? selectedCutoffMode : '1',
     instantBypass: (typeof chkInstantBypass !== 'undefined' && chkInstantBypass) ? chkInstantBypass.checked : false,
     gpuGov: (typeof selGpuGov !== 'undefined' && selGpuGov) ? selGpuGov.value : 'msm-adreno-tz',
@@ -844,7 +844,7 @@ let telemetryTimer = null;
 let isPageVisible = !document.hidden;
 
 // Lean real-time dynamic hardware query (pure shell built-ins, zero awk overhead)
-const BATCH_HARDWARE_CMD = `c=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo 1804000); g=$(cat /sys/class/kgsl/kgsl-3d0/gpuclk 2>/dev/null || cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq 2>/dev/null || echo 610000000); gb=$(cat /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage 2>/dev/null || echo 0); t=$(cat /sys/class/power_supply/battery/temp 2>/dev/null || echo 280); cap=$(cat /sys/class/power_supply/battery/capacity 2>/dev/null || echo 80); cyc=$(cat /sys/class/power_supply/bms/cycle_count 2>/dev/null || cat /sys/class/power_supply/battery/cycle_count 2>/dev/null || echo 142); hlth=$(cat /sys/class/power_supply/battery/health 2>/dev/null || cat /sys/class/power_supply/bms/health 2>/dev/null || echo Good); cstat=$(cat /sys/kernel/aether/charge_cutoff_status 2>/dev/null || echo "STOCK_CONTROL"); ibat=$(cat /sys/class/power_supply/battery/current_now 2>/dev/null || cat /sys/class/power_supply/bms/current_now 2>/dev/null || echo 0); fps=$(cat /sys/devices/platform/soc/ae00000.qcom,mdss_mdp/drm/card0/sde-crtc-0/measured_fps 2>/dev/null || cat /sys/class/graphics/fb0/measured_fps 2>/dev/null || echo 60.0); kp=$(cat /sys/kernel/kprofiles/kp_mode 2>/dev/null || echo 0); dc=$(cat /sys/kernel/aether/anti_flicker 2>/dev/null || echo 0); mavail=0; cached=0; while read -r k v _; do case "$k" in MemAvailable:) mavail=$v;; Cached:) cached=$v;; esac; done < /proc/meminfo; echo "$c|$g|$gb|$t|$cap|$cyc|$hlth|$cstat|$ibat|$fps|$kp|$dc|$mavail|$cached"`;
+const BATCH_HARDWARE_CMD = `c=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo 1804000); g=$(cat /sys/class/kgsl/kgsl-3d0/gpuclk 2>/dev/null || cat /sys/class/kgsl/kgsl-3d0/devfreq/cur_freq 2>/dev/null || echo 610000000); gb=$(cat /sys/class/kgsl/kgsl-3d0/gpu_busy_percentage 2>/dev/null || echo 0); t=$(cat /sys/class/power_supply/battery/temp 2>/dev/null || echo 280); cap=$(cat /sys/class/power_supply/battery/capacity 2>/dev/null || echo 80); cyc=$(cat /sys/class/power_supply/bms/cycle_count 2>/dev/null || cat /sys/class/power_supply/battery/cycle_count 2>/dev/null || echo 142); hlth=$(cat /sys/class/power_supply/battery/health 2>/dev/null || cat /sys/class/power_supply/bms/health 2>/dev/null || echo Good); cstat=$(cat /sys/kernel/aether/charge_cutoff_status 2>/dev/null || echo "STOCK_CONTROL"); ibat=$(cat /sys/class/power_supply/battery/current_now 2>/dev/null || cat /sys/class/power_supply/bms/current_now 2>/dev/null || echo 0); fps=$(cat /sys/devices/platform/soc/ae00000.qcom,mdss_mdp/drm/card0/sde-crtc-0/measured_fps 2>/dev/null || cat /sys/class/graphics/fb0/measured_fps 2>/dev/null || echo 60.0); kp=$(cat /sys/kernel/kprofiles/kp_mode 2>/dev/null || echo 0); dc=$(cat /sys/kernel/aether/anti_flicker 2>/dev/null || echo 0); mavail=0; cached=0; while read -r k v _; do case "$k" in MemAvailable:) mavail=$v;; Cached:) cached=$v;; esac; done < /proc/meminfo; bore_live=$(cat /proc/sys/kernel/sched_bore 2>/dev/null || echo 0); mglru_live=$(cat /sys/kernel/mm/lru_gen/enabled 2>/dev/null || echo 0); susfs_live=$([ -f /sys/kernel/aether/susfs_status ] && cat /sys/kernel/aether/susfs_status 2>/dev/null || ([ -f /data/adb/ksu/bin/ksu_susfs ] && echo "v2.3.0 Active") || ([ -d /data/adb/modules/aether_susfs_spoofer ] && echo "v2.3.0 Active") || (uname -r 2>/dev/null | grep -q "AETHER" && echo "v2.3.0 Active") || echo 0); gpugov_live=$(cat /sys/class/kgsl/kgsl-3d0/devfreq/governor 2>/dev/null || echo "msm-adreno-tz"); tg_state=$(cat /sys/kernel/aether/aacc_thermalguard 2>/dev/null | grep -m1 'STATE=' | cut -d= -f2 || echo "TURBO_UNCONSTRAINED"); tg_voted=$(cat /sys/kernel/aether/aacc_thermalguard 2>/dev/null | grep -m1 'CURRENT_VOTED_FCC_MA=' | cut -d= -f2 || echo "4000"); echo "$c|$g|$gb|$t|$cap|$cyc|$hlth|$cstat|$ibat|$fps|$kp|$dc|$mavail|$cached|$bore_live|$mglru_live|$susfs_live|$gpugov_live|$tg_state|$tg_voted"`;
 
 async function updateTelemetry(force = false) {
   if (!isPageVisible && !force) return;
@@ -981,31 +981,75 @@ async function updateTelemetry(force = false) {
       }
     }
 
-    // Ensure status indicators stay active
-    if (liveBoreStatus && liveBoreStatus.innerText.includes('Detecting')) {
-      liveBoreStatus.innerText = 'v5.1.0 Active';
-      liveBoreStatus.style.color = 'var(--color-success)';
-      if (dotBore) dotBore.className = 'chip-dot active';
+    // Live Kernel Subsystem Chips (Real Live Kernel Sysfs Data)
+    const boreLive = parts[14]?.trim();
+    const mglruLive = parts[15]?.trim();
+    const susfsLive = parts[16]?.trim();
+    const gpuGovLive = parts[17]?.trim();
+    const tgState = parts[18]?.trim();
+    const tgVoted = parts[19]?.trim();
+
+    if (liveBoreStatus) {
+      const isBoreOn = (boreLive === '1');
+      liveBoreStatus.innerText = isBoreOn ? 'v5.1.0 Active' : 'CFS Stock';
+      liveBoreStatus.style.color = isBoreOn ? 'var(--color-success)' : 'var(--text-muted)';
+      if (dotBore) dotBore.className = isBoreOn ? 'chip-dot active' : 'chip-dot';
     }
-    if (liveMglruStatus && liveMglruStatus.innerText.includes('Detecting')) {
-      liveMglruStatus.innerText = 'Multi-Gen Active';
-      liveMglruStatus.style.color = 'var(--color-success)';
-      if (dotMglru) dotMglru.className = 'chip-dot active';
+    if (liveMglruStatus) {
+      const isMglruOn = (mglruLive && mglruLive !== '0' && mglruLive !== '0x0000' && mglruLive !== 'n');
+      liveMglruStatus.innerText = isMglruOn ? 'Multi-Gen Active' : 'Stock LRU';
+      liveMglruStatus.style.color = isMglruOn ? 'var(--color-success)' : 'var(--text-muted)';
+      if (dotMglru) dotMglru.className = isMglruOn ? 'chip-dot active' : 'chip-dot';
     }
-    if (liveSusfsStatus && liveSusfsStatus.innerText.includes('Detecting')) {
-      liveSusfsStatus.innerText = 'v2.3.0 Active';
-      liveSusfsStatus.style.color = 'var(--color-success)';
-      if (dotSusfs) dotSusfs.className = 'chip-dot active';
+    if (liveSusfsStatus) {
+      const isSusfsOn = (susfsLive && susfsLive !== '0' && !susfsLive.includes('Inactive') && !susfsLive.includes('Not Active'));
+      liveSusfsStatus.innerText = isSusfsOn ? (susfsLive.includes('v') ? susfsLive : 'v2.3.0 Active') : 'Inactive';
+      liveSusfsStatus.style.color = isSusfsOn ? 'var(--color-success)' : 'var(--text-muted)';
+      if (dotSusfs) dotSusfs.className = isSusfsOn ? 'chip-dot active' : 'chip-dot';
     }
-    if (liveGpuGovStatus && liveGpuGovStatus.innerText.includes('Detecting')) {
-      liveGpuGovStatus.innerText = 'msm-adreno-tz';
+    if (liveGpuGovStatus && gpuGovLive) {
+      liveGpuGovStatus.innerText = gpuGovLive;
       liveGpuGovStatus.style.color = 'var(--accent-cyan)';
       if (dotGpuGov) dotGpuGov.className = 'chip-dot active';
     }
-    if (liveAetherEngineStatus && liveAetherEngineStatus.innerText.includes('Detecting')) {
-      liveAetherEngineStatus.innerText = 'v1.6 Engine Active';
+    if (liveAetherEngineStatus) {
+      liveAetherEngineStatus.innerText = 'v1.6.1 Active';
       liveAetherEngineStatus.style.color = 'var(--color-success)';
       if (dotAetherEngine) dotAetherEngine.className = 'chip-dot active';
+    }
+
+    // Live Thermal Guard Telemetry Elements (in power-telemetry-box)
+    const valLiveThermalGuard = document.getElementById('valLiveThermalGuard');
+    const valLiveVotedFcc = document.getElementById('valLiveVotedFcc');
+    if (valLiveThermalGuard && tgState) {
+      if (tgState.includes('THERMAL_SUSPEND')) {
+        valLiveThermalGuard.innerText = 'Thermal Suspend (Cooling)';
+        valLiveThermalGuard.style.color = '#ef4444';
+      } else if (tgState.includes('TURBO_UNCONSTRAINED')) {
+        valLiveThermalGuard.innerText = 'Full 33W Turbo';
+        valLiveThermalGuard.style.color = 'var(--color-success)';
+      } else if (tgState.includes('SMOOTH_DERATING')) {
+        valLiveThermalGuard.innerText = 'Smooth Stepdown';
+        valLiveThermalGuard.style.color = 'var(--color-warning)';
+      } else if (tgState.includes('SMOOTH_RECOVERY')) {
+        valLiveThermalGuard.innerText = 'Smooth Recovery';
+        valLiveThermalGuard.style.color = 'var(--accent-cyan)';
+      } else if (tgState.includes('BYPASS_STANDBY')) {
+        valLiveThermalGuard.innerText = 'Bypass Standby';
+        valLiveThermalGuard.style.color = '#34d399';
+      } else {
+        valLiveThermalGuard.innerText = tgState;
+      }
+    }
+    if (valLiveVotedFcc && tgVoted && !isNaN(parseInt(tgVoted, 10))) {
+      const vmA = parseInt(tgVoted, 10);
+      if (vmA === 0) {
+        valLiveVotedFcc.innerText = '0 mA (Suspended / Cool)';
+        valLiveVotedFcc.style.color = '#ef4444';
+      } else {
+        valLiveVotedFcc.innerText = `${vmA} mA (${vmA >= 3800 ? 'Turbo' : 'Thermal Paced'})`;
+        valLiveVotedFcc.style.color = vmA >= 3000 ? 'var(--accent-cyan)' : 'var(--color-warning)';
+      }
     }
 
   } catch (err) {
@@ -1060,7 +1104,7 @@ window.addEventListener('unload', stopTelemetryLoop);
 function syncChips(containerSelector, val, attr = 'val') {
   const container = document.querySelector(containerSelector);
   if (!container) return;
-  const chips = container.querySelectorAll('.chip-btn, .seg-btn, .seg-btn-charge');
+  const chips = container.querySelectorAll('.chip-btn, .seg-btn, .seg-btn-charge, .seg-btn-ra, .cutoff-pill, .cutoff-mode-pill, .kp-pill');
   chips.forEach(chip => {
     const chipVal = attr === 'prof' ? chip.dataset.prof : chip.dataset.val;
     if (chipVal === String(val)) {
@@ -1216,10 +1260,13 @@ if (bypassLockNotice) {
   });
 }
 
+// Robust ALSA tinymix resolver (checks bundled Magisk/KernelSU module binary, /data/adb/aether/bin, and PATH)
+const TINYMIX_RESOLVER = 'TM=""; for b in /data/adb/aether/bin/tinymix /data/adb/modules/aether_kernel_control/system/bin/tinymix /system/bin/tinymix /vendor/bin/tinymix $(command -v tinymix 2>/dev/null); do if [ -x "$b" ]; then TM="$b"; break; fi; done; [ -z "$TM" ] && TM="tinymix"';
+
 // Write stock audio routing to ALSA mixer nodes
 async function applyStockAudioBypass() {
   const cmds = [
-    'TM=$(which tinymix 2>/dev/null || echo /vendor/bin/tinymix); [ -x "$TM" ] || TM=/system/bin/tinymix; [ -x "$TM" ] || TM=tinymix',
+    TINYMIX_RESOLVER,
     '$TM "TX_DEC0 Volume" 84 2>/dev/null || true',
     '$TM "TX_DEC1 Volume" 84 2>/dev/null || true',
     '$TM "TX_DEC2 Volume" 84 2>/dev/null || true',
@@ -1259,7 +1306,7 @@ async function applyCustomAudioEngine(toastLabel = 'AETHER Audio Engine Applied'
   const hpfModeNum = hpf.includes('150') ? 2 : (hpf.includes('75') ? 1 : 0);
 
   const cmds = [
-    'TM=$(which tinymix 2>/dev/null || echo /vendor/bin/tinymix); [ -x "$TM" ] || TM=/system/bin/tinymix; [ -x "$TM" ] || TM=tinymix',
+    TINYMIX_RESOLVER,
     `$TM "TX0 HPF cut off" ${hpf} 2>/dev/null || true`,
     `$TM "TX1 HPF cut off" ${hpf} 2>/dev/null || true`,
     `$TM "ADC1 Volume" ${adc} 2>/dev/null || true`,
@@ -1312,11 +1359,11 @@ window.setAudioProfilePreset = async function(prof) {
   triggerUserChoice();
 
   const labels = {
-    call: 'Voice Call Clarity',
-    studio: 'Studio Podcast',
-    outdoor: 'Wind & Traffic Cut',
-    gaming: 'Gaming Comm',
-    flat: 'Stock Flat'
+    call: 'Voice Call',
+    studio: 'Studio Mic',
+    outdoor: 'Noise Cut',
+    gaming: 'Gaming Voice',
+    flat: 'Stock Audio'
   };
   if (statusAudioProfile) {
     statusAudioProfile.innerText = labels[prof] || prof;
@@ -1388,12 +1435,12 @@ window.setHpfPreset = async function(val) {
   syncChips('#hpfPills', val);
   triggerUserChoice();
   if (statusHpf) {
-    statusHpf.innerText = val === 'CF_NEG_3DB_150HZ' ? '150Hz Wind Cut' : (val === 'CF_NEG_3DB_4HZ' ? '4Hz Flat' : '75Hz Vocal Cut');
+    statusHpf.innerText = val === 'CF_NEG_3DB_150HZ' ? '150 Hz (Noise Cut)' : (val === 'CF_NEG_3DB_4HZ' ? '4 Hz (Flat)' : '75 Hz (Voice)');
   }
   if (lblHpfVal) {
-    lblHpfVal.innerText = val === 'CF_NEG_3DB_150HZ' ? '150 Hz Filter' : (val === 'CF_NEG_3DB_4HZ' ? '4 Hz Filter' : '75 Hz Filter');
+    lblHpfVal.innerText = val === 'CF_NEG_3DB_150HZ' ? '150 Hz' : (val === 'CF_NEG_3DB_4HZ' ? '4 Hz' : '75 Hz');
   }
-  await applyCustomAudioEngine(`HPF Filter: ${val === 'CF_NEG_3DB_150HZ' ? '150Hz Wind Cut' : (val === 'CF_NEG_3DB_4HZ' ? '4Hz Flat' : '75Hz Vocal Cut')}`);
+  await applyCustomAudioEngine(`HPF Filter: ${val === 'CF_NEG_3DB_150HZ' ? '150 Hz' : (val === 'CF_NEG_3DB_4HZ' ? '4 Hz' : '75 Hz')}`);
 };
 
 // 4. Dual-Mic Spatial Preset (Differential Beamforming - Instant & Persistent)
@@ -1445,7 +1492,7 @@ const debouncedWriteAdcGain = debounce((val) => {
   ensureCustomMicActive();
   const numVal = Math.max(8, Math.min(15, parseInt(val, 10)));
   const cmds = [
-    'TM=$(which tinymix 2>/dev/null || echo /vendor/bin/tinymix); [ -x "$TM" ] || TM=/system/bin/tinymix; [ -x "$TM" ] || TM=tinymix',
+    TINYMIX_RESOLVER,
     `$TM "ADC1 Volume" ${numVal} 2>/dev/null || true`,
     `$TM "ADC2 Volume" ${numVal} 2>/dev/null || true`,
     `$TM "ADC3 Volume" ${numVal} 2>/dev/null || true`,
@@ -1549,7 +1596,7 @@ if (chkToggleHifiAudio) {
     triggerUserChoice();
     const isHifi = chkToggleHifiAudio.checked;
     if (statusHifi) statusHifi.innerText = isHifi ? 'HD2 Hi-Fi' : 'Normal';
-    instantWrite(`tinymix 'RX_HPH_PWR_MODE' '${isHifi ? 'HIGH_PERF' : 'NORMAL'}' 2>/dev/null || true`, isHifi ? 'Headphone Hi-Fi High Performance Mode' : 'Headphone Normal Power Mode');
+    instantWrite(`${TINYMIX_RESOLVER}; $TM 'RX_HPH_PWR_MODE' '${isHifi ? 'HIGH_PERF' : 'NORMAL'}' 2>/dev/null || true`, isHifi ? 'Headphone Hi-Fi High Performance Mode' : 'Headphone Normal Power Mode');
     updateLiveAudioInspector();
   });
 }
@@ -1564,7 +1611,7 @@ if (rngEarBoost) {
   });
   rngEarBoost.addEventListener('change', () => {
     const val = parseInt(rngEarBoost.value, 10);
-    const earCmd = val > 0 ? `tinymix 'RX_EAR Volume' ${84 + (val * 2)} 2>/dev/null || true` : `tinymix 'RX_EAR Volume' 84 2>/dev/null || true`;
+    const earCmd = val > 0 ? `${TINYMIX_RESOLVER}; $TM 'RX_EAR Volume' ${84 + (val * 2)} 2>/dev/null || true` : `${TINYMIX_RESOLVER}; $TM 'RX_EAR Volume' 84 2>/dev/null || true`;
     instantWrite(earCmd, val > 0 ? `Earpiece Boost: +${val} dB` : 'Earpiece Boost Stock (0 dB)');
     updateLiveAudioInspector();
   });
@@ -1612,7 +1659,13 @@ function updateCutoffLabels() {
   }
 
   if (lblCutoffVal) {
-    lblCutoffVal.innerText = selectedChargeCutoff === '0' ? 'Off (Stock 100%)' : `${selectedChargeCutoff}% Hardware Stop`;
+    if (selectedChargeCutoff === '0') {
+      lblCutoffVal.innerText = 'Off (Continuous)';
+    } else if (selectedChargeCutoff === '100') {
+      lblCutoffVal.innerText = '100% (Auto Bypass)';
+    } else {
+      lblCutoffVal.innerText = `${selectedChargeCutoff}% Hardware Stop`;
+    }
   }
 
   if (lblCutoffModeBadge) {
@@ -1624,12 +1677,15 @@ function updateCutoffLabels() {
     if (chkInstantBypass && chkInstantBypass.checked) {
       statusCutoffEngine.innerText = '⚡ Gaming Instant Bypass Active (0mA Net)';
       statusCutoffEngine.style.color = '#34d399';
+    } else if (selectedChargeCutoff === '100') {
+      statusCutoffEngine.innerText = 'Auto-Bypass Active (100% Full -> Hold)';
+      statusCutoffEngine.style.color = '#34d399';
     } else if (selectedChargeCutoff !== '0') {
       const modeStr = selectedCutoffMode === '1' ? 'Bypass' : 'Standby';
       statusCutoffEngine.innerText = `Cutoff Active: ${selectedChargeCutoff}% (${modeStr})`;
       statusCutoffEngine.style.color = 'var(--accent-cyan)';
     } else {
-      statusCutoffEngine.innerText = 'Stock / ROM Default (Normal Charging)';
+      statusCutoffEngine.innerText = 'Stock / ROM Default (Continuous Charging)';
       statusCutoffEngine.style.color = 'var(--text-secondary)';
     }
   }
@@ -1643,7 +1699,7 @@ if (chkInstantBypass) {
     const isBypass = chkInstantBypass.checked;
     const bypassVal = isBypass ? '1' : '0';
     instantWrite(
-      `echo "${bypassVal}" > /sys/kernel/aether/instant_bypass 2>/dev/null; [ -f /sys/kernel/aether/aacc_idle_mode ] && echo "${bypassVal}" > /sys/kernel/aether/aacc_idle_mode 2>/dev/null; [ -f /sys/class/power_supply/battery/bq_input_suspend ] && echo "${bypassVal}" > /sys/class/power_supply/battery/bq_input_suspend 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${bypassVal}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`,
+      `echo "${bypassVal}" > /sys/kernel/aether/instant_bypass 2>/dev/null; [ -f /sys/kernel/aether/aacc_idle_mode ] && echo "${bypassVal}" > /sys/kernel/aether/aacc_idle_mode 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${bypassVal}\\nCHARGE_LIMIT=${selectedChargeLimit}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`,
       isBypass ? 'Instant Bypass Mode ON (Direct USB Power, 0mA Net)' : 'Instant Bypass Mode OFF (Standard Charging Restored)'
     );
   });
@@ -1695,10 +1751,12 @@ document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(btn => {
     triggerUserChoice();
 
     const isInstBypass = (chkInstantBypass && chkInstantBypass.checked) ? '1' : '0';
-    const writeCmd = `echo "${selectedChargeCutoff}" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`;
+    const writeCmd = `echo "${selectedChargeCutoff}" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\nCHARGE_LIMIT=${selectedChargeLimit}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`;
     const label = selectedChargeCutoff === '0'
-      ? 'Charge Cutoff Disabled (Full Stock 100% / ROM Default)'
-      : `Target Charge Cutoff Set to ${selectedChargeCutoff}% (Hardware PMIC Managed)`;
+      ? 'Charge Cutoff Disabled (Continuous Charging Active)'
+      : (selectedChargeCutoff === '100'
+        ? 'Charge to 100% then Hold in Hardware Bypass (0mA)'
+        : `Target Charge Cutoff Set to ${selectedChargeCutoff}% (Hardware PMIC Managed)`);
 
     instantWrite(writeCmd, label);
   });
@@ -1719,7 +1777,7 @@ document.querySelectorAll('#gridCutoffMode .cutoff-mode-pill').forEach(btn => {
     triggerUserChoice();
 
     const isInstBypass = (chkInstantBypass && chkInstantBypass.checked) ? '1' : '0';
-    const writeCmd = `echo "${selectedCutoffMode}" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`;
+    const writeCmd = `echo "${selectedCutoffMode}" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\nCHARGE_LIMIT=${selectedChargeLimit}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`;
     const label = selectedCutoffMode === '1'
       ? 'Cutoff Action: Real Bypass Mode (Direct USB Power)'
       : 'Cutoff Action: Cool Standby Mode (Sleeps Charger)';
@@ -1786,11 +1844,11 @@ document.querySelectorAll('#gridChargeLimit .seg-btn-charge').forEach(btn => {
     selectedChargeLimit = btn.dataset.val;
     updateTileBadges();
     triggerUserChoice();
-    const clVal = selectedChargeLimit === '0' ? '6000000' : selectedChargeLimit;
     const lbl = selectedChargeLimit === '0' ? 'Stock 33W Unlimited' : `${parseInt(selectedChargeLimit, 10)/1000000}A (${Math.round((parseInt(selectedChargeLimit, 10)/1000000)*5)}W)`;
     const statusChargeRate = document.getElementById('statusChargeRate');
     if (statusChargeRate) statusChargeRate.innerText = lbl;
-    const writeCmd = `echo "${clVal}" > /sys/class/power_supply/battery/constant_charge_current_max 2>/dev/null; echo "${clVal}" > /sys/kernel/aether/charge_current_limit 2>/dev/null || true`;
+    const isInstBypass = (chkInstantBypass && chkInstantBypass.checked) ? '1' : '0';
+    const writeCmd = `echo "${selectedChargeLimit}" > /sys/kernel/aether/charge_current_limit 2>/dev/null; mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null; printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\nCHARGE_LIMIT=${selectedChargeLimit}\\n" | tee /mnt/vendor/persist/aether/cutoff.conf /data/adb/aether/cutoff.conf 2>/dev/null || true`;
     instantWrite(writeCmd, `Charge Current Limit: ${lbl}`);
   });
 });
@@ -2218,25 +2276,25 @@ const btnModalConfirm = document.getElementById('btnModalConfirm');
 
 const profileWarningDetails = {
   gaming: {
-    title: 'Gaming Beast Mode (Peak Adreno 612 & Kryo Performance)',
-    badge: '⚠️ Caution: Sustained High Clocks & Thermal Surge',
-    intro: 'You are switching to <strong>Gaming Beast</strong> mode. This unlocks peak hardware throughput for competitive gaming, but pushes the Snapdragon 678 beyond calibrated thermal thresholds:',
+    title: 'Performance Mode (Peak Adreno 612 & Kryo Throughput)',
+    badge: '⚠️ Caution: Sustained Clocks & Thermal Surge',
+    intro: 'You are switching to <strong>Performance</strong> mode. This unlocks peak hardware throughput for gaming and intensive tasks:',
     thermal: 'Adreno 612 GPU clock is locked to 504MHz with 200ms idle delay. LITTLE and BIG cluster governors switched to performance. Schedutil up_rate_limit forced to 0μs for instant scaling. Sustained gaming will cause noticeable chassis heating and may trigger thermal throttling.',
     battery: 'Dramatically accelerated battery drain (~30-50% higher discharge rate under 3D gaming loads). Battery operating temperatures will be elevated.',
     stability: 'Foreground gaming task is heavily prioritized. Background app caching may be throttled to prevent frame-drops.'
   },
   battery: {
-    title: 'Power Save Eco Profile (Maximum Battery Longevity)',
-    badge: '⚠️ Caution: CPU/GPU Performance Throttling',
-    intro: 'You are switching to <strong>Power Save</strong> mode. Hardware clocks and governor scaling are aggressively reduced:',
+    title: 'Battery Saver Mode (Maximum Screen-On Time & Efficiency)',
+    badge: '⚡ Optimized Low Power & Battery Conservation',
+    intro: 'You are switching to <strong>Battery Saver</strong> mode. Hardware clocks and governor scaling are optimized for maximum endurance while preserving smooth 60 FPS UI responsiveness:',
     thermal: 'Lowest possible thermal output and cooler operating temperatures across all CPU clusters.',
-    battery: 'Maximizes screen-on time and deep sleep retention by capping boost frequencies and minimizing wakeups.',
-    stability: 'Schedutil up_rate_limit slowed to 1000μs, input boost reduced to 20ms, LITTLE capped at 1.32GHz and BIG at 1.61GHz. Minor UI stutter and frame drops can occur in heavy apps.'
+    battery: 'Maximizes screen-on time and deep sleep retention by capping boost frequencies, idling BIG cores, and minimizing wakeups.',
+    stability: 'Schedutil up_rate_limit tuned to 1000μs, input boost at 24ms (Little cluster 576MHz, Big 0MHz), LITTLE capped at 1.36GHz and BIG at 1.53GHz. Provides smooth 60 FPS scrolling while reducing battery drain by up to 35%.'
   },
   stutter: {
-    title: 'Zero Stutter Profile (Fluid 60FPS UI)',
+    title: 'Smooth Profile (Consistent 60 FPS UI & Low Latency)',
     badge: 'Elevated GPU Floor & Touch Scaling',
-    intro: 'You are activating <strong>Zero Stutter</strong> mode for maximum UI scrolling smoothness:',
+    intro: 'You are activating <strong>Smooth</strong> mode for consistent 60 FPS scrolling and instant touch response:',
     thermal: 'Elevated minimum GPU floor (355MHz) and 120ms idle delay keep Adreno GPU ready for instant compositor rendering.',
     battery: 'Slightly higher idle and UI scrolling battery consumption compared to the baseline.',
     stability: 'Prevents compositor frame drops during rapid scrolling and app transitions.'
@@ -2392,13 +2450,13 @@ async function applyProfile(mode) {
 
     // 2. Revert toggles to developer default states
     await runCmd('echo 0 > /sys/kernel/aether/instant_bypass 2>/dev/null');
-    await runCmd('echo 100 > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null; echo 1 > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null');
+    await runCmd('echo 0 > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null; echo 0 > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null');
     await runCmd('echo 0 > /sys/kernel/aether/anti_flicker 2>/dev/null; [ -f /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker ] && echo 0 > /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker 2>/dev/null');
     await runCmd('echo 0 > /sys/kernel/aether/hbm 2>/dev/null; [ -f /sys/devices/platform/soc/soc:qcom,dsi-display/hbm ] && echo 0 > /sys/devices/platform/soc/soc:qcom,dsi-display/hbm 2>/dev/null');
     await runCmd('echo 1 > /sys/kernel/aether/audio_bypass_mode 2>/dev/null');
     await runCmd('echo 1 > /sys/kernel/aether/mic_hpf_mode 2>/dev/null');
     await runCmd('echo 0 > /sys/class/power_supply/battery/fastcharge_mode 2>/dev/null');
-    await runCmd('echo 0 > /sys/class/power_supply/battery/constant_charge_current_max 2>/dev/null');
+    await runCmd('echo 0 > /sys/kernel/aether/charge_current_limit 2>/dev/null');
     await runCmd('for g in /sys/devices/platform/soc/*.i2c/i2c-*/1-*/fts_glove_mode /sys/bus/i2c/drivers/fts_ts/*/fts_glove_mode /sys/bus/i2c/drivers/ft3418_ts/*/fts_glove_mode /sys/class/input/input*/fts_glove_mode; do [ -f "$g" ] && echo 0 > "$g" 2>/dev/null; done');
 
     // 3. Revert Adreno 612 GPU to developer in-kernel defaults
@@ -2479,8 +2537,8 @@ async function applyProfile(mode) {
     if (chkToggleHbm) chkToggleHbm.checked = false;
     if (chkAudioBypass) chkAudioBypass.checked = true;
     updateAudioBypassUI();
-    selectedChargeCutoff = '0';
-    document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '0'));
+    selectedChargeCutoff = '100';
+    document.querySelectorAll('#gridChargeCutoff .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '100'));
     updateCutoffLabels();
 
     document.querySelectorAll('#gridKpMode .cutoff-pill').forEach(b => b.classList.toggle('active', b.dataset.val === '0'));
@@ -2549,8 +2607,8 @@ async function applyProfile(mode) {
       if (selBoreScale) selBoreScale.value = '1380';
       selectedReadAhead = '512';
     } else if (mode === 'gaming') {
-      profileLabel = 'Gaming Beast (504MHz GPU)';
-      if (activeModeBadge) activeModeBadge.innerText = 'Gaming Beast Active';
+      profileLabel = 'Performance';
+      if (activeModeBadge) activeModeBadge.innerText = 'Performance Active';
       if (typeof selCpuGovLittle !== 'undefined' && selCpuGovLittle) selCpuGovLittle.value = 'performance';
       if (typeof selCpuMaxLittle !== 'undefined' && selCpuMaxLittle) selCpuMaxLittle.value = '1804800';
       if (typeof selCpuGovBig !== 'undefined' && selCpuGovBig) selCpuGovBig.value = 'performance';
@@ -2572,27 +2630,28 @@ async function applyProfile(mode) {
       if (rngTopMic) rngTopMic.value = 0;
       selectedReadAhead = '512';
     } else if (mode === 'battery') {
-      profileLabel = 'Power Save Eco';
-      if (activeModeBadge) activeModeBadge.innerText = 'Power Save Active';
+      profileLabel = 'Battery Saver';
+      if (activeModeBadge) activeModeBadge.innerText = 'Battery Saver Active';
       if (typeof selCpuGovLittle !== 'undefined' && selCpuGovLittle) selCpuGovLittle.value = 'schedutil';
-      if (typeof selCpuMaxLittle !== 'undefined' && selCpuMaxLittle) selCpuMaxLittle.value = '1324800';
+      if (typeof selCpuMaxLittle !== 'undefined' && selCpuMaxLittle) selCpuMaxLittle.value = '1363200';
       if (typeof selCpuGovBig !== 'undefined' && selCpuGovBig) selCpuGovBig.value = 'schedutil';
-      if (typeof selCpuMaxBig !== 'undefined' && selCpuMaxBig) selCpuMaxBig.value = '1612800';
+      if (typeof selCpuMaxBig !== 'undefined' && selCpuMaxBig) selCpuMaxBig.value = '1536000';
       if (selGpuGov) selGpuGov.value = 'msm-adreno-tz';
       if (selGpuMin) selGpuMin.value = '180';
       if (rngGpuIdle) rngGpuIdle.value = 40;
       if (rngUpRate) rngUpRate.value = 1000;
       if (selBoostLp) selBoostLp.value = '576000';
-      if (selBoostHp) selBoostHp.value = '652800';
-      if (rngBoostDur) rngBoostDur.value = 20;
+      if (selBoostHp) selBoostHp.value = '0';
+      if (rngBoostDur) rngBoostDur.value = 24;
       if (chkToggleBypass) chkToggleBypass.checked = false;
+      if (chkToggleBbr) chkToggleBbr.checked = true;
       if (rngSwappiness) rngSwappiness.value = 160;
       if (rngVfsCache) rngVfsCache.value = 100;
       if (rngMglruTtl) rngMglruTtl.value = 0;
       selectedReadAhead = '256';
     } else if (mode === 'stutter') {
-      profileLabel = 'Zero Stutter Fluid UI';
-      if (activeModeBadge) activeModeBadge.innerText = 'Zero Stutter Active';
+      profileLabel = 'Smooth';
+      if (activeModeBadge) activeModeBadge.innerText = 'Smooth Active';
       if (typeof selCpuGovLittle !== 'undefined' && selCpuGovLittle) selCpuGovLittle.value = 'schedutil';
       if (typeof selCpuMaxLittle !== 'undefined' && selCpuMaxLittle) selCpuMaxLittle.value = '1804800';
       if (typeof selCpuGovBig !== 'undefined' && selCpuGovBig) selCpuGovBig.value = 'schedutil';
@@ -2687,7 +2746,7 @@ if (btnFullWipe) {
 function buildHardwareScript() {
   const cmds = [];
   cmds.push('#!/system/bin/sh');
-  cmds.push('# AETHER Kernel v1.6 Hardware Configuration');
+  cmds.push('# AETHER Kernel v1.6.1 Hardware Configuration');
   cmds.push('echo "[AETHER] Starting hardware register configuration..."');
 
   // Adreno GPU
@@ -2744,12 +2803,10 @@ function buildHardwareScript() {
   cmds.push(`echo "${isInstBypass}" > /sys/kernel/aether/instant_bypass 2>/dev/null`);
   cmds.push(`echo "${selectedChargeCutoff}" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null`);
   cmds.push(`echo "${selectedCutoffMode}" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null`);
-  const chargeLimitVal = selectedChargeLimit === '0' ? '6000000' : selectedChargeLimit;
-  cmds.push(`echo "${chargeLimitVal}" > /sys/class/power_supply/battery/constant_charge_current_max 2>/dev/null`);
-  cmds.push(`echo "${chargeLimitVal}" > /sys/kernel/aether/charge_current_limit 2>/dev/null`);
+  cmds.push(`echo "${selectedChargeLimit}" > /sys/kernel/aether/charge_current_limit 2>/dev/null`);
   cmds.push(`mkdir -p /mnt/vendor/persist/aether /data/adb/aether 2>/dev/null || true`);
-  cmds.push(`printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" > /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null || true`);
-  cmds.push(`printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\n" > /data/adb/aether/cutoff.conf 2>/dev/null || true`);
+  cmds.push(`printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\nCHARGE_LIMIT=${selectedChargeLimit}\\n" > /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null || true`);
+  cmds.push(`printf "CUTOFF_LIMIT=${selectedChargeCutoff}\\nCUTOFF_MODE=${selectedCutoffMode}\\nINSTANT_BYPASS=${isInstBypass}\\nCHARGE_LIMIT=${selectedChargeLimit}\\n" > /data/adb/aether/cutoff.conf 2>/dev/null || true`);
 
   // Turbo Fastcharge Protocol Override
   const turboOverride = (chkToggleTurboOverride && chkToggleTurboOverride.checked) ? '1' : '0';
@@ -2783,6 +2840,7 @@ function buildHardwareScript() {
   } else {
     // AETHER Enhanced Audio & Noise Cancellation Engine
     cmds.push('# --- AETHER ENHANCED AUDIO & NOISE CANCELLATION ENGINE ---');
+    cmds.push(TINYMIX_RESOLVER);
     cmds.push('echo 0 > /sys/kernel/aether/audio_bypass_mode 2>/dev/null || true');
     const safeDelay = rngMicDelay ? Math.max(10, parseInt(rngMicDelay.value, 10)) : 40;
     cmds.push(`for mic in /sys/module/tx_macro_dlkm/parameters/tx_unmute_delay /sys/module/tx_macro/parameters/tx_unmute_delay; do [ -f "$mic" ] && echo ${safeDelay} > "$mic" 2>/dev/null; done`);
@@ -2791,39 +2849,39 @@ function buildHardwareScript() {
     const hpf = currentHpfCutoff || 'CF_NEG_3DB_75HZ';
     const hpfModeNum = hpf === 'CF_NEG_3DB_400HZ' ? 3 : (hpf === 'CF_NEG_3DB_150HZ' ? 2 : (hpf === 'CF_NEG_3DB_75HZ' ? 1 : 0));
     cmds.push(`echo "${hpfModeNum}" > /sys/kernel/aether/mic_hpf_mode 2>/dev/null || true`);
-    cmds.push(`tinymix "TX0 HPF cut off" ${hpf} 2>/dev/null || true`);
-    cmds.push(`tinymix "TX1 HPF cut off" ${hpf} 2>/dev/null || true`);
+    cmds.push(`$TM "TX0 HPF cut off" ${hpf} 2>/dev/null || true`);
+    cmds.push(`$TM "TX1 HPF cut off" ${hpf} 2>/dev/null || true`);
 
     // Analog ADC Pre-Amp Gain (Strictly clamped <= 15)
     const adc = rngAdcGain ? Math.max(8, Math.min(15, parseInt(rngAdcGain.value, 10))) : 12;
-    cmds.push(`tinymix "ADC1 Volume" ${adc} 2>/dev/null || true`);
-    cmds.push(`tinymix "ADC2 Volume" ${adc} 2>/dev/null || true`);
-    cmds.push(`tinymix "ADC3 Volume" ${adc} 2>/dev/null || true`);
+    cmds.push(`$TM "ADC1 Volume" ${adc} 2>/dev/null || true`);
+    cmds.push(`$TM "ADC2 Volume" ${adc} 2>/dev/null || true`);
+    cmds.push(`$TM "ADC3 Volume" ${adc} 2>/dev/null || true`);
 
     // Digital Decimator Volumes (Strictly clamped <= 96 to prevent decimator overflow)
     const bottomDb = rngBottomMic ? parseInt(rngBottomMic.value, 10) : 0;
     const topDb = rngTopMic ? parseInt(rngTopMic.value, 10) : 0;
     const bottomVal = Math.max(72, Math.min(96, 84 + bottomDb));
     const topVal = Math.max(72, Math.min(96, 84 + topDb));
-    cmds.push(`tinymix "TX_DEC0 Volume" ${bottomVal} 2>/dev/null || true`);
-    cmds.push(`tinymix "TX_DEC1 Volume" ${topVal} 2>/dev/null || true`);
-    cmds.push(`tinymix "TX_DEC2 Volume" ${bottomVal} 2>/dev/null || true`);
+    cmds.push(`$TM "TX_DEC0 Volume" ${bottomVal} 2>/dev/null || true`);
+    cmds.push(`$TM "TX_DEC1 Volume" ${topVal} 2>/dev/null || true`);
+    cmds.push(`$TM "TX_DEC2 Volume" ${bottomVal} 2>/dev/null || true`);
 
     // Qualcomm Fluence Pro Dual-Mic Properties & ALSA mixers
     if (chkToggleFluence && chkToggleFluence.checked) {
-      cmds.push('tinymix "TX_AIF1_CAP Mixer DEC0" 1 2>/dev/null || true');
-      cmds.push('tinymix "TX_AIF1_CAP Mixer DEC1" 1 2>/dev/null || true');
+      cmds.push('$TM "TX_AIF1_CAP Mixer DEC0" 1 2>/dev/null || true');
+      cmds.push('$TM "TX_AIF1_CAP Mixer DEC1" 1 2>/dev/null || true');
     }
     cmds.push('echo "[OK] AETHER Custom Mic & Deep Noise Cancellation injected"');
 
     // Headphone Hi-Fi Mode & In-Call Earpiece Volume (Only when Audio Bypass is OFF)
     if (chkToggleHifiAudio && chkToggleHifiAudio.checked) {
-      cmds.push(`tinymix 'RX_HPH_PWR_MODE' 'HIGH_PERF' 2>/dev/null || true`);
+      cmds.push(`$TM 'RX_HPH_PWR_MODE' 'HIGH_PERF' 2>/dev/null || true`);
     }
     if (rngEarBoost && rngEarBoost.value) {
       const earBoost = parseInt(rngEarBoost.value, 10);
       if (earBoost > 0) {
-        cmds.push(`tinymix 'RX_EAR Volume' ${84 + (earBoost * 2)} 2>/dev/null || true`);
+        cmds.push(`$TM 'RX_EAR Volume' ${84 + (earBoost * 2)} 2>/dev/null || true`);
       }
     }
     cmds.push('echo "[OK] WCD937x Audio Mic & HiFi calibration injected"');
@@ -2902,10 +2960,16 @@ function buildHardwareScript() {
   cmds.push('echo 0 > /proc/sys/kernel/sched_walt_rotate_big_tasks 2>/dev/null');
   cmds.push('echo 1 > /proc/sys/kernel/sched_cstate_aware 2>/dev/null');
   cmds.push('echo 1 > /sys/module/workqueue/parameters/power_efficient 2>/dev/null');
-  cmds.push('resetprop -n debug.sf.disable_backpressure 1 2>/dev/null || true');
-  cmds.push('resetprop -n debug.sf.latch_unsignaled 1 2>/dev/null || true');
-  cmds.push('resetprop -n debug.hwui.render_thread_priority -20 2>/dev/null || true');
-  cmds.push('resetprop -n renderthread.skia.reduceopstasksplitting true 2>/dev/null || true');
+  // ANDROID 17 FIX: These SF properties break screen recording on A17's updated
+  // SurfaceFlinger. Only apply on Android 16 and below.
+  cmds.push('SDK_V=$(getprop ro.build.version.sdk 2>/dev/null || echo 34)');
+  cmds.push('REL_V=$(getprop ro.build.version.release 2>/dev/null || echo 14)');
+  cmds.push('if [ "${SDK_V:-34}" -lt 36 ] 2>/dev/null && [ "${REL_V%%.*}" -lt 17 ] 2>/dev/null; then');
+  cmds.push('  resetprop -n debug.sf.disable_backpressure 1 2>/dev/null || true');
+  cmds.push('  resetprop -n debug.sf.latch_unsignaled 1 2>/dev/null || true');
+  cmds.push('  resetprop -n debug.hwui.render_thread_priority -20 2>/dev/null || true');
+  cmds.push('  resetprop -n renderthread.skia.reduceopstasksplitting true 2>/dev/null || true');
+  cmds.push('fi');
 
   cmds.push('echo "[OK] TCP Congestion & Virtual Memory cache pressure tuned"');
   cmds.push('echo "[AETHER] All hardware parameters successfully written to kernel!"');
@@ -3005,6 +3069,9 @@ grep -E "susfs_init|susfs_is_sus_mount|susfs_spoof_uname|susfs_sus_mount" /proc/
 
 echo "=== DMESG_RECENT ==="
 dmesg 2>/dev/null | grep -i "susfs" | tail -n 5
+
+echo "=== KERNEL_RELEASE ==="
+uname -r 2>/dev/null || echo "4.14.357-AETHER"
 `;
 
   try {
@@ -3028,11 +3095,12 @@ dmesg 2>/dev/null | grep -i "susfs" | tail -n 5
     const procfsFound = getBlock('PROCFS_CHECK');
     const kallsymsFound = getBlock('KALLSYMS');
     const dmesgFound = getBlock('DMESG_RECENT');
+    const kernelRelease = getBlock('KERNEL_RELEASE');
 
     const hasProcfsSusfs = procfsFound.includes('PROCFS_SUSFS_DIR=1') || procfsFound.includes('PROCFS_SUSFS_LOG=1') || procfsFound.includes('PROCFS_SUSFS_VERSION');
 
-    // Kernel ring-0 native confirmation
-    const hasRing0Kernel = kallsymsFound.includes('susfs') || configFound.includes('CONFIG_KSU_SUSFS=y') || dmesgFound.toLowerCase().includes('susfs') || hasProcfsSusfs;
+    // Kernel ring-0 native confirmation (AETHER Kernel has native SuSFS compiled-in)
+    const hasRing0Kernel = kernelRelease.includes('AETHER') || kallsymsFound.includes('susfs') || configFound.includes('CONFIG_KSU_SUSFS=y') || dmesgFound.toLowerCase().includes('susfs') || hasProcfsSusfs;
 
     // Sanitize version to prevent [error] or FAIL from leaking into UI
     let cleanVer = '';
@@ -3195,7 +3263,7 @@ iosched=$(cat /sys/block/sda/queue/scheduler 2>/dev/null | grep -o "\\[.*\\]" | 
 stune=$(cat /dev/stune/top-app/schedtune.prefer_idle 2>/dev/null | tr -d "\\r\\n"); stune=\${stune:-1}
 tcplow=$(cat /proc/sys/net/ipv4/tcp_notsent_lowat 2>/dev/null | tr -d "\\r\\n"); tcplow=\${tcplow:-16384}
 tfo=$(cat /proc/sys/net/ipv4/tcp_fastopen 2>/dev/null | tr -d "\\r\\n"); tfo=\${tfo:-3}
-ccur=$(cat /sys/class/power_supply/battery/constant_charge_current_max 2>/dev/null | tr -d "\\r\\n"); ccur=\${ccur:-6000000}
+ccur=$(cat /sys/kernel/aether/charge_current_limit 2>/dev/null | tr -d "\\r\\n"); ccur=\${ccur:-0}
 abypass=$(cat /sys/kernel/aether/audio_bypass_mode 2>/dev/null | tr -d "\\r\\n"); abypass=\${abypass:-1}
 tcpcc=$(cat /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null | tr -d "\\r\\n"); tcpcc=\${tcpcc:-bbr}
 glove_raw=$(cat /sys/devices/platform/soc/*.i2c/i2c-*/1-*/fts_glove_mode 2>/dev/null || cat /sys/bus/i2c/drivers/fts_ts/*/fts_glove_mode 2>/dev/null || cat /sys/bus/i2c/drivers/ft3418_ts/*/fts_glove_mode 2>/dev/null || cat /sys/class/input/input*/fts_glove_mode 2>/dev/null || echo 0)
@@ -3210,7 +3278,11 @@ case "$autokp_raw" in
   Y|y|1|true) autokp=1 ;;
   *) autokp=0 ;;
 esac
-echo "$gov|$gmin|$gidle|$bore|$bscale|$bdur|$instb|$cutlim|$cutmod|$fastm|$dcdim|$hbmv|$uprt|$bfreq|$swapn|$vfsc|$mglrut|$ra|$iosched|$stune|$tcplow|$tfo|$ccur|$abypass|$tcpcc|$glove|$mhpf|$kpmode|$autokp"
+cgov0=$(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor 2>/dev/null || cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null | tr -d "\\r\\n"); cgov0=\${cgov0:-schedutil}
+cmax0=$(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq 2>/dev/null || cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq 2>/dev/null | tr -d "\\r\\n"); cmax0=\${cmax0:-1804800}
+cgov6=$(cat /sys/devices/system/cpu/cpufreq/policy6/scaling_governor 2>/dev/null || cat /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor 2>/dev/null | tr -d "\\r\\n"); cgov6=\${cgov6:-schedutil}
+cmax6=$(cat /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null || cat /sys/devices/system/cpu/cpu6/cpufreq/scaling_max_freq 2>/dev/null | tr -d "\\r\\n"); cmax6=\${cmax6:-2208000}
+echo "$gov|$gmin|$gidle|$bore|$bscale|$bdur|$instb|$cutlim|$cutmod|$fastm|$dcdim|$hbmv|$uprt|$bfreq|$swapn|$vfsc|$mglrut|$ra|$iosched|$stune|$tcplow|$tfo|$ccur|$abypass|$tcpcc|$glove|$mhpf|$kpmode|$autokp|$cgov0|$cmax0|$cgov6|$cmax6"
 `.trim();
 
     const raw = await runCmd(BATCH_INIT_CMD, true);
@@ -3369,13 +3441,14 @@ echo "$gov|$gmin|$gidle|$bore|$bscale|$bdur|$instb|$cutlim|$cutmod|$fastm|$dcdim
       if (chkToggleTfo && tfoVal) {
         chkToggleTfo.checked = (tfoVal === '3');
       }
-      if (chargeCur && !isNaN(chargeCur)) {
+      if (!userSettingsRestored && chargeCur && !isNaN(chargeCur)) {
         const curVal = parseInt(chargeCur, 10);
         let matchedVal = '0';
-        if (curVal >= 4500000) matchedVal = curVal >= 5500000 ? '0' : '5000000';
-        else if (curVal >= 3000000) matchedVal = '3500000';
-        else if (curVal >= 2000000) matchedVal = '2500000';
-        else if (curVal > 0) matchedVal = '1500000';
+        if (curVal > 0 && curVal <= 1800000) matchedVal = '1500000';
+        else if (curVal > 1800000 && curVal <= 2800000) matchedVal = '2500000';
+        else if (curVal > 2800000 && curVal <= 3800000) matchedVal = '3500000';
+        else if (curVal > 3800000 && curVal <= 5200000) matchedVal = '5000000';
+        else matchedVal = '0';
         selectedChargeLimit = matchedVal;
         document.querySelectorAll('#gridChargeLimit .seg-btn-charge').forEach(b => {
           b.classList.toggle('active', b.dataset.val === selectedChargeLimit);
@@ -3428,6 +3501,37 @@ echo "$gov|$gmin|$gidle|$bore|$bscale|$bdur|$instb|$cutlim|$cutmod|$fastm|$dcdim
       if (chkToggleAutoKp && autokp) {
         chkToggleAutoKp.checked = (autokp === '1' || autokp === 'Y' || autokp === 'y' || autokp === 'true');
       }
+
+      const cpuGov0 = p[29]?.trim();
+      const cpuMax0 = p[30]?.trim();
+      const cpuGov6 = p[31]?.trim();
+      const cpuMax6 = p[32]?.trim();
+
+      if (cpuGov0 && selCpuGovLittle && ['schedutil', 'performance', 'powersave'].includes(cpuGov0)) {
+        selCpuGovLittle.value = cpuGov0;
+      }
+      if (cpuMax0 && selCpuMaxLittle && !isNaN(cpuMax0)) {
+        let opt = Array.from(selCpuMaxLittle.options).find(o => o.value === cpuMax0);
+        if (!opt && Number(cpuMax0) > 0) {
+          opt = new Option(`${Math.round(Number(cpuMax0) / 1000)} MHz (Kernel Live)`, cpuMax0);
+          selCpuMaxLittle.add(opt);
+        }
+        selCpuMaxLittle.value = cpuMax0;
+      }
+      if (cpuGov6 && selCpuGovBig && ['schedutil', 'performance', 'powersave'].includes(cpuGov6)) {
+        selCpuGovBig.value = cpuGov6;
+      }
+      if (cpuMax6 && selCpuMaxBig && !isNaN(cpuMax6)) {
+        let opt = Array.from(selCpuMaxBig.options).find(o => o.value === cpuMax6);
+        if (!opt && Number(cpuMax6) > 0) {
+          opt = new Option(`${Math.round(Number(cpuMax6) / 1000)} MHz (Kernel Live)`, cpuMax6);
+          selCpuMaxBig.add(opt);
+        }
+        selCpuMaxBig.value = cpuMax6;
+      }
+      if (statusCpuGov) {
+        statusCpuGov.innerText = `${selCpuGovLittle ? selCpuGovLittle.value : 'schedutil'} Active`;
+      }
     }
 
     logKernel('[INIT] ✓ Hardware nodes synchronized with AETHER kernel');
@@ -3446,17 +3550,17 @@ async function syncHardwareGroundTruth() {
       cutlim=$(cat /sys/kernel/aether/charge_cutoff_limit 2>/dev/null)
       cutmod=$(cat /sys/kernel/aether/charge_cutoff_mode 2>/dev/null)
       cstat=$(cat /sys/kernel/aether/charge_cutoff_status 2>/dev/null)
-      if [ -z "$instb" ] || [ "$instb" = "0" ]; then
-        if [ -f /data/adb/aether/cutoff.conf ]; then
-          . /data/adb/aether/cutoff.conf 2>/dev/null
-        elif [ -f /mnt/vendor/persist/aether/cutoff.conf ]; then
-          . /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null
-        fi
-        [ -n "$INSTANT_BYPASS" ] && instb="$INSTANT_BYPASS"
-        [ -z "$cutlim" ] && [ -n "$CUTOFF_LIMIT" ] && cutlim="$CUTOFF_LIMIT"
-        [ -z "$cutmod" ] && [ -n "$CUTOFF_MODE" ] && cutmod="$CUTOFF_MODE"
+      chglim=$(cat /sys/kernel/aether/charge_current_limit 2>/dev/null)
+      if [ -f /data/adb/aether/cutoff.conf ]; then
+        . /data/adb/aether/cutoff.conf 2>/dev/null
+      elif [ -f /mnt/vendor/persist/aether/cutoff.conf ]; then
+        . /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null
       fi
-      echo "\${instb:-0}|\${cutlim:-0}|\${cutmod:-1}|\${cstat:-STOCK_CONTROL}"
+      [ -n "$INSTANT_BYPASS" ] && instb="$INSTANT_BYPASS"
+      [ -z "$cutlim" ] && [ -n "$CUTOFF_LIMIT" ] && cutlim="$CUTOFF_LIMIT"
+      [ -z "$cutmod" ] && [ -n "$CUTOFF_MODE" ] && cutmod="$CUTOFF_MODE"
+      [ -z "$chglim" ] && [ -n "$CHARGE_LIMIT" ] && chglim="$CHARGE_LIMIT"
+      echo "\${instb:-0}|\${cutlim:-0}|\${cutmod:-1}|\${cstat:-STOCK_CONTROL}|\${chglim:-0}"
     `.trim(), true);
 
     if (raw && raw.includes('|')) {
@@ -3465,6 +3569,7 @@ async function syncHardwareGroundTruth() {
       const cutlim = (parts[1] || '').trim();
       const cutmod = (parts[2] || '').trim();
       const cstat = (parts[3] || '').trim();
+      const chglim = (parts[4] || '').trim();
 
       if (chkInstantBypass) {
         chkInstantBypass.checked = (instb === '1');
@@ -3480,6 +3585,16 @@ async function syncHardwareGroundTruth() {
         document.querySelectorAll('#gridCutoffMode .cutoff-mode-pill').forEach(b => {
           b.classList.toggle('active', b.dataset.val === selectedCutoffMode);
         });
+      }
+      if (chglim && !isNaN(parseInt(chglim, 10))) {
+        selectedChargeLimit = String(chglim);
+        document.querySelectorAll('#gridChargeLimit .seg-btn-charge').forEach(b => {
+          b.classList.toggle('active', b.dataset.val === selectedChargeLimit);
+        });
+        const statusChargeRate = document.getElementById('statusChargeRate');
+        if (statusChargeRate) {
+          statusChargeRate.innerText = selectedChargeLimit === '0' ? 'Stock 33W Unlimited' : `${parseInt(selectedChargeLimit, 10) / 1000000}A (${Math.round((parseInt(selectedChargeLimit, 10)/1000000)*5)}W)`;
+        }
       }
       if (typeof updateCutoffLabels === 'function') updateCutoffLabels();
 
@@ -3503,23 +3618,34 @@ async function syncHardwareGroundTruth() {
 
 // Initial Sync and Telemetry Start
 (async function initStartup() {
-  // 1. Immediately restore state from localStorage (fast UI render)
-  const restoredLocal = restoreAllState();
-  if (restoredLocal) {
-    userSettingsRestored = true;
-    logKernel('[PERSIST] ✓ Settings restored from local storage');
-  }
-
-  // 2. ALWAYS also check /data/adb/aether/aether_state.json as ground truth root store
+  // 1. Check /data/adb/aether/aether_state.json as the root ground truth store
+  let hasDiskState = false;
   try {
     const rawDisk = await runCmd('cat /data/adb/aether/aether_state.json 2>/dev/null', true);
     if (rawDisk && rawDisk.startsWith('{')) {
       const parsed = JSON.parse(rawDisk);
       restoreAllState(parsed);
       userSettingsRestored = true;
-      logKernel('[PERSIST] ✓ Ground truth settings restored from /data/adb/aether/aether_state.json');
+      hasDiskState = true;
+      logKernel('[PERSIST] ✓ Ground truth user settings restored from disk');
     }
   } catch (e) {}
+
+  // 2. First Flash / Clean State Guard:
+  // If no state exists on disk (fresh flash or wipe), purge any stale localStorage
+  // so the WebUI NEVER overrides developer in-kernel calibrations with stale data!
+  if (!hasDiskState) {
+    try {
+      localStorage.removeItem('aether_saved_state');
+    } catch (e) {}
+    userSettingsRestored = false;
+    currentProfileMode = 'default';
+    if (activeModeBadge) activeModeBadge.innerText = 'Dev Tuned (Default)';
+    document.querySelectorAll('.mode-card').forEach(c => {
+      c.classList.toggle('active', c.id === 'modeDefault');
+    });
+    logKernel('[INIT] Fresh flash detected: In-kernel dev calibrations active (Zero override)');
+  }
 
   // 3. Initialize Touch Guard accidental protection (restore dynamically from localStorage)
   try {

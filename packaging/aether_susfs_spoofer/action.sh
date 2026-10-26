@@ -11,7 +11,7 @@ echo "╔═══════════════════════�
 echo "║   AETHER SUSFS STOCK GPAY & INTEGRITY REPAIR   ║"
 echo "╠════════════════════════════════════════════════╣"
 echo "║ Device : Xiaomi Redmi Note 10 (mojito / sunny) ║"
-echo "║ Kernel : Linux 4.14 AETHER v1.6                ║"
+echo "║ Kernel : Linux 4.14 AETHER v1.6.1              ║"
 echo "╚════════════════════════════════════════════════╝"
 echo ""
 

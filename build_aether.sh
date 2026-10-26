@@ -312,7 +312,7 @@ fi
 # Package WebUI Module
 if [ -d "${SCRIPT_DIR}/packaging/aether_kernel_control" ]; then
     info "Packaging AETHER Kernel Control (WebUI) Module..."
-    WEBUI_ZIP="${SCRIPT_DIR}/AETHER-Kernel-Control-WebUI-v1.6.0.zip"
+    WEBUI_ZIP="${SCRIPT_DIR}/AETHER-Kernel-Control-WebUI-v1.6.1.zip"
     (
         cd "${SCRIPT_DIR}/packaging/aether_kernel_control"
         zip -r9 -q "${WEBUI_ZIP}" * -x ".*" -x "__MACOSX"

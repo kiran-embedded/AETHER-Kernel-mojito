@@ -72,6 +72,11 @@
 #include <linux/security.h>
 #include <linux/spinlock.h>
 
+#ifdef CONFIG_REKERNEL
+#include <net/rekernel.h>
+#endif /* CONFIG_REKERNEL */
+
+
 #include <uapi/linux/android/binder.h>
 #include <uapi/linux/sched/types.h>
 #include "binder_alloc.h"
@@ -3405,6 +3410,23 @@ static void binder_transaction(struct binder_proc *proc,
 			     (u64)tr->data.ptr.offsets,
 			     (u64)tr->data_size, (u64)tr->offsets_size,
 			     (u64)extra_buffers_size);
+
+#ifdef CONFIG_REKERNEL
+	if (proc->tsk && target_proc->tsk &&
+	    proc->pid != target_proc->pid) {
+		if (reply && task_uid(target_proc->tsk).val <= MAX_SYSTEM_UID)
+			rekernel_report(BINDER, REPLY, proc->pid, proc->tsk,
+					target_proc->pid, target_proc->tsk,
+					false, "", tr->code);
+		else if (!reply &&
+			 task_uid(target_proc->tsk).val > MIN_USERAPP_UID)
+			rekernel_report(BINDER, TRANSACTION, proc->pid,
+					proc->tsk, target_proc->pid,
+					target_proc->tsk,
+					tr->flags & TF_ONE_WAY, "", tr->code);
+	}
+#endif /* CONFIG_REKERNEL */
+
 
 	if (!reply && !(tr->flags & TF_ONE_WAY))
 		t->from = thread;

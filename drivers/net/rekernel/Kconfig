@@ -1,0 +1,34 @@
+menu "Re:Kernel"
+
+config REKERNEL
+	bool "Re:Kernel support"
+	depends on NET
+	default y
+	help
+	  In-tree Re:Kernel integration for non-GKI kernels.
+
+	  It creates a netlink server which reports binder transactions,
+	  signals and incoming network packets that concern frozen (cached)
+	  applications, so that userspace can unfreeze them instead of
+	  letting them be killed ("tombstoned").
+
+	  If unsure, say Y.
+
+config REKERNEL_NETWORK
+	bool "Re:Kernel network monitoring"
+	depends on REKERNEL && NETFILTER && INET
+	default y
+	help
+	  Report incoming TCP traffic of user applications through the
+	  Re:Kernel netlink socket.
+
+	  If unsure, say Y.
+
+config REKERNEL_DEBUG
+	bool "Re:Kernel debug messages"
+	depends on REKERNEL
+	default n
+	help
+	  Enable Re:Kernel debug logging.
+
+endmenu

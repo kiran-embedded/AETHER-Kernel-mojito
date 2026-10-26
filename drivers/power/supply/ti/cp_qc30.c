@@ -56,8 +56,8 @@
 
 extern bool aether_is_bypass_active(void);
 
-#define BATT_MAX_CHG_VOLT		4400
-#define BATT_FAST_CHG_CURR		5400
+#define BATT_MAX_CHG_VOLT		4450
+#define BATT_FAST_CHG_CURR		6000
 #define	BUS_OVP_THRESHOLD		12000
 #define	BUS_OVP_ALARM_THRESHOLD		9500
 
@@ -704,19 +704,23 @@ static int cp_flash2_charge(unsigned int port)
 		sys_config.ibus_plus_deviation_val = 50;
 		sys_config.ibat_minus_deviation_val = 100;
 		sys_config.ibat_plus_deviation_val = 100;
-		/* reduce bus current in cv loop */
+		/* reduce bus current in cv loop with hard clamp at charge pump floor */
 		if (pm_state.bq2597x.vbat_volt > sys_config.bat_volt_lp_lmt - QC3P5_BQ_TAPER_HYS_MV) {
 			if (ibus_lmt_change_timer++ > IBUS_CHANGE_TIMEOUT) {
 				ibus_lmt_change_timer = 0;
 				effective_fcc_val = cp_get_effective_fcc_val(pm_state);
-				effective_fcc_val -= QC3P5_BQ_TAPER_DECREASE_STEP_MA;
-				pr_err("bq set taper fcc to: %d mA\n", effective_fcc_val);
+				if (effective_fcc_val > sys_config.fc2_taper_current + QC3P5_BQ_TAPER_DECREASE_STEP_MA)
+					effective_fcc_val -= QC3P5_BQ_TAPER_DECREASE_STEP_MA;
+				else
+					effective_fcc_val = sys_config.fc2_taper_current;
+				pr_info("bq set taper fcc to: %d mA (floor %d mA)\n",
+					effective_fcc_val, sys_config.fc2_taper_current);
 				if (!pm_state.fcc_votable)
 					pm_state.fcc_votable = find_votable("FCC");
 				if (pm_state.fcc_votable) {
 					vote(pm_state.fcc_votable, QC3P5_BQ_TAPER_FCC_VOTER,
 						true, effective_fcc_val * 1000);
-					pr_err("qc3p5_taper_fcc_voter vote ffc\n");
+					pr_debug("qc3p5_taper_fcc_voter vote fcc\n");
 				}
 			}
 		} else {
@@ -765,7 +769,8 @@ static int cp_flash2_charge(unsigned int port)
 
 	/* Seamless Handover Logic: Hand off from switching buck to charge pump smoothly */
 	if (pm_state.bq2597x.ibus_curr >= 500 && pm_state.sw_chager.charge_enabled) {
-		if (pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5) {
+		if (pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5 ||
+		    pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3) {
 			cp_enable_sw(false);
 			cp_update_sw_status();
 			pr_info("Charge pump active (ibus=%d mA), suspended switching charger\n",
@@ -794,9 +799,11 @@ static int cp_flash2_charge(unsigned int port)
 		return CP_ENABLE_FAIL;
 	}
 	if (pm_state.bq2597x.vbat_volt > sys_config.bat_volt_lp_lmt - 100 &&
-			pm_state.bq2597x.ibat_curr < sys_config.fc2_taper_current) {
-		if (fc2_taper_timer++ > TAPER_TIMEOUT) {
+			pm_state.bq2597x.ibat_curr <= sys_config.fc2_taper_current) {
+		if (fc2_taper_timer++ > 3) {
 			fc2_taper_timer = 0;
+			pr_info("Charge pump reached taper current (%d mA), hand over to switching charger\n",
+				pm_state.bq2597x.ibat_curr);
 			return TAPER_DONE;
 		}
 	} else {
@@ -1047,7 +1054,7 @@ void cp_statemachine(unsigned int port)
 		pr_info("FLASH2_ENTRY_1: vbat=%d, vbus=%d, target=%d, retry=%d\n",
 			pm_state.bq2597x.vbat_volt, pm_state.bq2597x.vbus_volt, target_vbus, tune_vbus_retry);
 
-		if (pm_state.bq2597x.vbus_volt < (target_vbus - 50)) {
+		if (pm_state.bq2597x.vbus_volt < (target_vbus - 80)) {
 			tune_vbus_retry++;
 			cp_tune_vbus_volt(VOLT_UP);
 		} else if (pm_state.bq2597x.vbus_volt > (target_vbus + 200)) {
@@ -1061,7 +1068,7 @@ void cp_statemachine(unsigned int port)
 			break;
 		}
 
-		if (tune_vbus_retry > 35) {
+		if (tune_vbus_retry > 60) {
 			pr_err("Failed to tune adapter volt into valid range (%d mV, target %d mV), charge with switching charger\n",
 				pm_state.bq2597x.vbus_volt, target_vbus);
 			pm_state.sw_fc2_init_fail = true;
@@ -1184,9 +1191,9 @@ static void cp_workfunc(struct work_struct *work)
 	}
 
 	if (pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3)
-		schedule_delayed_work(&pm_state.qc3_pm_work, HZ);
-	else if (pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5)
 		schedule_delayed_work(&pm_state.qc3_pm_work, msecs_to_jiffies(100));
+	else if (pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5)
+		schedule_delayed_work(&pm_state.qc3_pm_work, msecs_to_jiffies(80));
 }
 
 static int cp_qc30_notifier_call(struct notifier_block *nb,
@@ -1204,7 +1211,7 @@ static int cp_qc30_notifier_call(struct notifier_block *nb,
 		cp_get_usb_type();
 		if (pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3 || pm_state.usb_type == POWER_SUPPLY_TYPE_USB_HVDCP_3P5) {
 			if (!delayed_work_pending(&pm_state.qc3_pm_work))
-				schedule_delayed_work(&pm_state.qc3_pm_work, 3*HZ);
+				schedule_delayed_work(&pm_state.qc3_pm_work, msecs_to_jiffies(150));
 			usb_hvdcp3_on = true;
 		} else if (pm_state.usb_type == POWER_SUPPLY_TYPE_UNKNOWN && usb_hvdcp3_on == true) {
 			cancel_delayed_work(&pm_state.qc3_pm_work);

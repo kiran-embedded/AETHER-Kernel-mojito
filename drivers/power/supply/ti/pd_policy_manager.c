@@ -73,7 +73,7 @@ static struct pdpm_config pm_config = {
 	.min_vbat_for_cp		= 3000,
 
 	.cp_sec_enable			= false,
-	.fc2_disable_sw			= true,
+	.fc2_disable_sw			= false,
 };
 
 static struct usbpd_pm *__pdpm;
@@ -640,7 +640,7 @@ static void usbpd_update_pps_status(struct usbpd_pm *pdpm)
 	}
 }
 
-#define TAPER_TIMEOUT	(5000 / PM_WORK_RUN_INTERVAL)
+#define TAPER_TIMEOUT	(500 / PM_WORK_RUN_INTERVAL)
 #define IBUS_CHANGE_TIMEOUT  (500 / PM_WORK_RUN_INTERVAL)
 static int usbpd_pm_fc2_charge_algo(struct usbpd_pm *pdpm)
 {
@@ -684,8 +684,12 @@ static int usbpd_pm_fc2_charge_algo(struct usbpd_pm *pdpm)
 			ibus_lmt_change_timer = 0;
 			ibus_limit = curr_ibus_limit - 100;
 			effective_fcc_taper = usbpd_get_effective_fcc_val(pdpm);
-			effective_fcc_taper -= BQ_TAPER_DECREASE_STEP_MA;
-			pr_err("bq set taper fcc to: %d mA\n", effective_fcc_taper);
+			if (effective_fcc_taper > pm_config.fc2_taper_current + BQ_TAPER_DECREASE_STEP_MA)
+				effective_fcc_taper -= BQ_TAPER_DECREASE_STEP_MA;
+			else
+				effective_fcc_taper = pm_config.fc2_taper_current;
+			pr_info("bq set taper fcc to: %d mA (floor %d mA)\n",
+				effective_fcc_taper, pm_config.fc2_taper_current);
 			if (pdpm->fcc_votable)
 				vote(pdpm->fcc_votable, BQ_TAPER_FCC_VOTER,
 					true, effective_fcc_taper * 1000);
@@ -788,7 +792,7 @@ static int usbpd_pm_fc2_charge_algo(struct usbpd_pm *pdpm)
 
 	/* charge pump taper charge */
 	if (pdpm->cp.vbat_volt > pm_config.bat_volt_lp_lmt - TAPER_VOL_HYS
-			&& pdpm->cp.ibat_curr < pm_config.fc2_taper_current) {
+			&& pdpm->cp.ibat_curr <= pm_config.fc2_taper_current) {
 		if (fc2_taper_timer++ > TAPER_TIMEOUT) {
 			pr_info("charge pump taper charging done\n");
 			fc2_taper_timer = 0;
@@ -980,7 +984,7 @@ static int usbpd_pm_sm(struct usbpd_pm *pdpm)
 			break;
 		}
 
-		if (tune_vbus_retry > 30) {
+		if (tune_vbus_retry > 60) {
 			if (retry_count < 1) {
 				usbpd_pm_move_state(pdpm, PD_PM_STATE_FC2_ENTRY_1);
 				retry_count++;

@@ -2398,6 +2398,16 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
 	if (error != -ENOSYS)
 		return error;
 
+#ifdef CONFIG_KSU_SUSFS
+	if (option == 0xDEADBEEF) {
+		extern int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
+					     unsigned long arg4, unsigned long arg5);
+		int ret = ksu_handle_prctl(option, arg2, arg3, arg4, arg5);
+		if (ret != -ENOSYS)
+			return ret;
+	}
+#endif
+
 	error = 0;
 	switch (option) {
 	case PR_SET_PDEATHSIG:
