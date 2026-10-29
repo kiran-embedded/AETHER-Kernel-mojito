@@ -99,15 +99,18 @@ unsigned long vm_dirty_bytes;
 
 /*
  * The interval between `kupdate'-style writebacks
+ * AETHER: 500cs (5s) writeback interval trickles out dirty pages smoothly,
+ * preventing sudden massive flush waves that cause UI frame drops.
  */
-unsigned int dirty_writeback_interval = 30 * 100; /* 3000 centiseconds = 30s */
+unsigned int dirty_writeback_interval = 5 * 100; /* 500 centiseconds = 5s */
 
 EXPORT_SYMBOL_GPL(dirty_writeback_interval);
 
 /*
  * The longest time for which data is allowed to remain dirty
+ * AETHER: 1500cs (15s) expiration keeps dirty cache bounded.
  */
-unsigned int dirty_expire_interval = 60 * 100; /* 6000 centiseconds = 60s */
+unsigned int dirty_expire_interval = 15 * 100; /* 1500 centiseconds = 15s */
 
 /*
  * Flag that makes the machine dump writes/reads and block dirtyings.

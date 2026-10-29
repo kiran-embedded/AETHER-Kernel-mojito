@@ -6140,6 +6140,10 @@ static int ufshcd_slave_configure(struct scsi_device *sdev)
 	queue_flag_clear_unlocked(QUEUE_FLAG_ADD_RANDOM, q);
 	queue_flag_clear_unlocked(QUEUE_FLAG_IO_STAT, q);
 
+	/* AETHER: Native 512KB readahead for burst app binary and asset loading */
+	if (q->backing_dev_info)
+		q->backing_dev_info->ra_pages = (512 * 1024) / PAGE_SIZE;
+
 	if (hba->scsi_cmd_timeout) {
 		blk_queue_rq_timeout(q, hba->scsi_cmd_timeout * HZ);
 		scsi_set_cmd_timeout_override(sdev, hba->scsi_cmd_timeout * HZ);

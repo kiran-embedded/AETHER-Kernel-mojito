@@ -24,6 +24,7 @@
 #include <linux/device.h>
 #include <linux/genhd.h>
 #include <linux/highmem.h>
+#include <linux/mm.h>
 #include <linux/slab.h>
 #include <linux/backing-dev.h>
 #include <linux/string.h>
@@ -1842,6 +1843,11 @@ static ssize_t disksize_store(struct device *dev,
 
 	down_write(&zram->init_lock);
 	if (init_done(zram)) {
+		if (PAGE_ALIGN(disksize) == zram->disksize) {
+			/* Already initialized to this exact size by in-kernel driver */
+			up_write(&zram->init_lock);
+			return len;
+		}
 		pr_info("Cannot change disksize for initialized device\n");
 		err = -EBUSY;
 		goto out_unlock;
@@ -2052,11 +2058,22 @@ static int zram_add(void)
 
 	/* Actual capacity set using syfs (/sys/block/zram<id>/disksize */
 	set_capacity(zram->disk, 0);
-	/* zram devices sort of resembles non-rotational disks */
+	/*
+	 * AETHER In-Kernel Queue Calibration (PDF Section 3.2):
+	 * 1. nonrot: SSD-like non-rotational memory block device.
+	 * 2. add_random = 0: Disables entropy contribution to eliminate entropy spinlock contention.
+	 * 3. nomerges = 2: All request merges disabled on in-RAM memory buffers (no CPU spinlock overhead).
+	 * 4. iostats = 0: Disables disk I/O accounting statistics to eliminate spinlock contention.
+	 * 5. rq_affinity = 2: Directs softirq I/O completion strictly to requesting CPU core.
+	 * 6. read_ahead_kb = 0: Zero read-ahead prevents redundant page decompression.
+	 */
 	queue_flag_set_unlocked(QUEUE_FLAG_NONROT, zram->disk->queue);
 	queue_flag_clear_unlocked(QUEUE_FLAG_ADD_RANDOM, zram->disk->queue);
 	queue_flag_set_unlocked(QUEUE_FLAG_NOMERGES, zram->disk->queue);
+	queue_flag_clear_unlocked(QUEUE_FLAG_NOXMERGES, zram->disk->queue);
 	queue_flag_clear_unlocked(QUEUE_FLAG_IO_STAT, zram->disk->queue);
+	queue_flag_set_unlocked(QUEUE_FLAG_SAME_COMP, zram->disk->queue);
+	queue_flag_set_unlocked(QUEUE_FLAG_SAME_FORCE, zram->disk->queue);
 
 	/*
 	 * To ensure that we always get PAGE_SIZE aligned
@@ -2084,10 +2101,42 @@ static int zram_add(void)
 
 	zram->disk->queue->backing_dev_info->capabilities |=
 			(BDI_CAP_STABLE_WRITES | BDI_CAP_SYNCHRONOUS_IO);
+	zram->disk->queue->backing_dev_info->ra_pages = 0;
 	disk_to_dev(zram->disk)->groups = zram_disk_attr_groups;
 	add_disk(zram->disk);
 
 	strlcpy(zram->compressor, default_compressor, sizeof(zram->compressor));
+
+	/*
+	 * AETHER In-Kernel Auto-Sizing (PDF Section 3 & 3.1):
+	 * Pre-initialize device 0 with calibrated dynamic size:
+	 * 3GB for 4GB RAM models (<= 4500MB), 4GB for 6GB RAM models (> 4500MB).
+	 */
+	if (device_id == 0) {
+		unsigned long total_ram_mb = (totalram_pages() << (PAGE_SHIFT - 10)) / 1024;
+		u64 default_disksize;
+
+		if (total_ram_mb <= 4500)
+			default_disksize = 3ULL * 1024 * 1024 * 1024;
+		else
+			default_disksize = 4ULL * 1024 * 1024 * 1024;
+
+		down_write(&zram->init_lock);
+		if (!init_done(zram) && zram_meta_alloc(zram, default_disksize)) {
+			struct zcomp *comp = zcomp_create(zram->compressor);
+			if (!IS_ERR(comp)) {
+				zram->comp = comp;
+				zram->disksize = default_disksize;
+				set_capacity(zram->disk, zram->disksize >> SECTOR_SHIFT);
+				revalidate_disk(zram->disk);
+				pr_info("zram0: in-kernel dynamic auto-sized to %llu MB with '%s' compression (rq_affinity=2, nomerges=2, read_ahead=0)\n",
+					default_disksize >> 20, zram->compressor);
+			} else {
+				zram_meta_free(zram, default_disksize);
+			}
+		}
+		up_write(&zram->init_lock);
+	}
 
 	zram_debugfs_register(zram);
 	pr_info("Added device: %s\n", zram->disk->disk_name);

@@ -53,7 +53,11 @@ static int tx_unmute_delay = TX_MACRO_TX_UNMUTE_DELAY_MS;
 module_param(tx_unmute_delay, int, 0664);
 MODULE_PARM_DESC(tx_unmute_delay, "delay to unmute the tx path");
 
+extern int aether_audio_bypass_mode;
 extern int aether_mic_hpf_mode;
+extern int aether_mic_unmute_delay;
+extern int aether_mic_gain_bottom;
+extern int aether_mic_gain_top;
 
 
 static const DECLARE_TLV_DB_SCALE(digital_gain, 0, 1, 0);
@@ -439,10 +443,14 @@ static void tx_macro_tx_hpf_corner_freq_callback(struct work_struct *work)
 		bolero_clear_amic_tx_hold(codec->dev, adc_n);
 	}
 tx_hpf_set:
-	if (aether_mic_hpf_mode == 1)
-		hpf_cut_off_freq = CF_MIN_3DB_75HZ;
-	else if (aether_mic_hpf_mode == 2)
-		hpf_cut_off_freq = CF_MIN_3DB_150HZ;
+	if (!aether_audio_bypass_mode) {
+		if (aether_mic_hpf_mode == 0)
+			hpf_cut_off_freq = CF_MIN_3DB_4HZ;
+		else if (aether_mic_hpf_mode == 1)
+			hpf_cut_off_freq = CF_MIN_3DB_75HZ;
+		else if (aether_mic_hpf_mode == 2)
+			hpf_cut_off_freq = CF_MIN_3DB_150HZ;
+	}
 	snd_soc_update_bits(codec, dec_cfg_reg, TX_HPF_CUT_OFF_FREQ_MASK,
 			    hpf_cut_off_freq << 5);
 	snd_soc_update_bits(codec, hpf_gate_reg, 0x03, 0x02);
@@ -470,6 +478,22 @@ static void tx_macro_mute_update_callback(struct work_struct *work)
 		BOLERO_CDC_TX0_TX_PATH_CTL +
 			TX_MACRO_TX_PATH_OFFSET * decimator;
 	snd_soc_update_bits(codec, tx_vol_ctl_reg, 0x10, 0x00);
+
+	/* Ensure AETHER calibrated mic gain is written upon unmute (only when not in bypass) */
+	if (!aether_audio_bypass_mode) {
+		if (decimator == 0 && aether_mic_gain_bottom != 0) {
+			u16 gain_reg = BOLERO_CDC_TX0_TX_VOL_CTL + TX_MACRO_TX_PATH_OFFSET * decimator;
+			int g = 84 + aether_mic_gain_bottom;
+			if (g >= 0 && g <= 124)
+				snd_soc_write(codec, gain_reg, g);
+		} else if (decimator == 1 && aether_mic_gain_top != 0) {
+			u16 gain_reg = BOLERO_CDC_TX0_TX_VOL_CTL + TX_MACRO_TX_PATH_OFFSET * decimator;
+			int g = 84 + aether_mic_gain_top;
+			if (g >= 0 && g <= 124)
+				snd_soc_write(codec, gain_reg, g);
+		}
+	}
+
 	dev_dbg(tx_priv->dev, "%s: decimator %u unmute\n",
 		__func__, decimator);
 }
@@ -745,10 +769,14 @@ static int tx_macro_enable_dec(struct snd_soc_dapm_widget *w,
 
 		hpf_cut_off_freq = (snd_soc_read(codec, dec_cfg_reg) &
 				   TX_HPF_CUT_OFF_FREQ_MASK) >> 5;
-		if (aether_mic_hpf_mode == 1)
-			hpf_cut_off_freq = CF_MIN_3DB_75HZ;
-		else if (aether_mic_hpf_mode == 2)
-			hpf_cut_off_freq = CF_MIN_3DB_150HZ;
+		if (!aether_audio_bypass_mode) {
+			if (aether_mic_hpf_mode == 0)
+				hpf_cut_off_freq = CF_MIN_3DB_4HZ;
+			else if (aether_mic_hpf_mode == 1)
+				hpf_cut_off_freq = CF_MIN_3DB_75HZ;
+			else if (aether_mic_hpf_mode == 2)
+				hpf_cut_off_freq = CF_MIN_3DB_150HZ;
+		}
 		tx_priv->tx_hpf_work[decimator].hpf_cut_off_freq =
 							hpf_cut_off_freq;
 
@@ -758,7 +786,7 @@ static int tx_macro_enable_dec(struct snd_soc_dapm_widget *w,
 					    CF_MIN_3DB_150HZ << 5);
 		/* schedule work queue to Remove Mute */
 		schedule_delayed_work(&tx_priv->tx_mute_dwork[decimator].dwork,
-				      msecs_to_jiffies(tx_unmute_delay));
+				      msecs_to_jiffies((!aether_audio_bypass_mode && aether_mic_unmute_delay > 0) ? aether_mic_unmute_delay : tx_unmute_delay));
 		if (tx_priv->tx_hpf_work[decimator].hpf_cut_off_freq !=
 							CF_MIN_3DB_150HZ) {
 			schedule_delayed_work(
@@ -771,9 +799,21 @@ static int tx_macro_enable_dec(struct snd_soc_dapm_widget *w,
 			usleep_range(1000, 1010);
 			snd_soc_update_bits(codec, hpf_gate_reg, 0x02, 0x00);
 		}
-		/* apply gain after decimator is enabled */
-		snd_soc_write(codec, tx_gain_ctl_reg,
-			      snd_soc_read(codec, tx_gain_ctl_reg));
+		/* apply gain after decimator is enabled (only when not in bypass) */
+		if (!aether_audio_bypass_mode && decimator == 0 && aether_mic_gain_bottom != 0) {
+			int g = 84 + aether_mic_gain_bottom;
+			if (g < 0) g = 0;
+			if (g > 124) g = 124;
+			snd_soc_write(codec, tx_gain_ctl_reg, g);
+		} else if (!aether_audio_bypass_mode && decimator == 1 && aether_mic_gain_top != 0) {
+			int g = 84 + aether_mic_gain_top;
+			if (g < 0) g = 0;
+			if (g > 124) g = 124;
+			snd_soc_write(codec, tx_gain_ctl_reg, g);
+		} else {
+			snd_soc_write(codec, tx_gain_ctl_reg,
+				      snd_soc_read(codec, tx_gain_ctl_reg));
+		}
 		if (tx_priv->bcs_enable) {
 			snd_soc_update_bits(codec, dec_cfg_reg,
 					0x01, 0x01);

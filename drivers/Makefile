@@ -195,3 +195,7 @@ obj-$(CONFIG_GNSS)		+= gnss/
 # ── KernelSU-Next Root Subsystem ──────────────────────────────────────
 obj-$(CONFIG_KSU) += kernelsu/
 
+# ── AETHER Engine Closed-Loop Performance Architecture ────────────
+obj-$(CONFIG_AETHER_ENGINE) += aether/
+
+

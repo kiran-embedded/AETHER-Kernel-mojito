@@ -1,5 +1,5 @@
 #!/system/bin/sh
-echo "=== AETHER KERNEL v1.6.1 HARDWARE STATUS ==="
+echo "=== AETHER KERNEL v1.8 HARDWARE STATUS ==="
 echo "Kernel: $(uname -r)"
 echo "SUSFS: $([ -f /proc/sys/fs/susfs/version ] && cat /proc/sys/fs/susfs/version || echo 'Active (v2.3.0)')"
 echo "TCP Congestion: $(cat /proc/sys/net/ipv4/tcp_congestion_control 2>/dev/null)"

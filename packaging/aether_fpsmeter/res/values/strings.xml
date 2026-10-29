@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AETHER FPS Meter</string>
+    <string name="tile_fps_name">FPS Meter</string>
+    <string name="tile_fps_running">Active</string>
+    <string name="tile_fps_stopped">Off</string>
+</resources>

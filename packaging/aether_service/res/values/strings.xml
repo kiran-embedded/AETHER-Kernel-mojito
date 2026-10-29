@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AETHER</string>
+    <string name="tile_bypass_name">Bypass</string>
+    <string name="tile_bypass_active">Direct AC</string>
+    <string name="tile_bypass_inactive">Off</string>
+    
+    <string name="tile_profile_name">Profile</string>
+    <string name="tile_profile_balanced">Balanced</string>
+    <string name="tile_profile_gaming">Turbo</string>
+    <string name="tile_profile_battery">Battery</string>
+    
+    <string name="tile_fps_name">FPS</string>
+    <string name="tile_fps_running">Active</string>
+    <string name="tile_fps_stopped">Off</string>
+    
+    <string name="tile_dcdim_name">DC Dim</string>
+    <string name="tile_dcdim_active">Active</string>
+    <string name="tile_dcdim_inactive">Off</string>
+
+    <string name="tile_hbm_name">HBM</string>
+    <string name="tile_hbm_active">1100 Nits</string>
+    <string name="tile_hbm_inactive">Off</string>
+
+    <string name="tile_touch_name">Touch</string>
+    <string name="tile_touch_active">240Hz</string>
+    <string name="tile_touch_inactive">120Hz</string>
+
+    <string name="tile_ram_name">RAM</string>
+    <string name="tile_ram_idle">Clean</string>
+    <string name="tile_ram_cleaned">Done</string>
+
+    <string name="tile_audio_name">Hi-Fi</string>
+    <string name="tile_audio_active">192kHz</string>
+    <string name="tile_audio_inactive">Off</string>
+
+    <string name="tile_pending">…</string>
+    <string name="tile_failed">Failed</string>
+</resources>
+

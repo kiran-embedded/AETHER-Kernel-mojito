@@ -49,9 +49,31 @@ static ssize_t anti_flicker_store(struct kobject *kobj, struct kobj_attribute *a
 }
 static struct kobj_attribute anti_flicker_attr = __ATTR_RW(anti_flicker);
 
+/* 3. Real-Time Measured Hardware Display FPS (Game-Turbo format: fps: X.X duration:300 frame_count:0) */
+static ssize_t measured_fps_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	unsigned int raw_fps = aether_get_measured_fps();
+	unsigned int fps_int = raw_fps / 10;
+	unsigned int fps_dec = raw_fps % 10;
+	return scnprintf(buf, PAGE_SIZE, "fps: %u.%u duration:300 frame_count:0\n", fps_int, fps_dec);
+}
+static struct kobj_attribute measured_fps_attr = __ATTR_RO(measured_fps);
+
+/* 4. Instant Single-Value FPS (Rootless & Zero-Parse format: X.X) */
+static ssize_t fps_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	unsigned int raw_fps = aether_get_measured_fps();
+	unsigned int fps_int = raw_fps / 10;
+	unsigned int fps_dec = raw_fps % 10;
+	return scnprintf(buf, PAGE_SIZE, "%u.%u\n", fps_int, fps_dec);
+}
+static struct kobj_attribute fps_attr = __ATTR_RO(fps);
+
 static struct attribute *aether_display_attrs[] = {
 	&hbm_attr.attr,
 	&anti_flicker_attr.attr,
+	&measured_fps_attr.attr,
+	&fps_attr.attr,
 	NULL,
 };
 

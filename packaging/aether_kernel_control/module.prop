@@ -1,7 +1,8 @@
 id=aether_kernel_control
 name=AETHER Kernel Control
-version=v1.6.1
-versionCode=161
+version=v1.8
+versionCode=180
 author=Kiran
-description=Native WebUI Hardware Control Panel for AETHER Kernel. Features real-time hardware telemetry, AMOLED display controls, BORE scheduler tuning, charging controls, bundled ALSA tinymix engine (Credits: Dinodva), autonomous bootloop protection, and clean uninstaller.
+description=⚡ Native WebUI • Real-time Telemetry & Floating FPS Bubble • AMOLED HBM & DC Dim • BORE & MGLRU Tuner • Schedutil Boost • 33W Fast Charge Control
 webRoot=webroot
+banner=banner.png

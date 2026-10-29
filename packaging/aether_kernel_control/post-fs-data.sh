@@ -77,6 +77,11 @@ resetprop --delete libc.debug.malloc 2>/dev/null || true
 
 # ── 4. Ring-0 SysFS Node Permissions Initialization ─────
 # 1. Allow system & webui to manipulate DC Dim, HBM, DRM disp_param and FPS Counter nodes
+chmod 0755 /sys/class/drm /sys/class/drm/card0 /sys/class/drm/card0/sde-crtc-* 2>/dev/null || true
+chmod 0755 /sys/devices/platform/soc/*.qcom,mdss_mdp /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0 /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0/sde-crtc-* 2>/dev/null || true
+chmod 0755 /sys/class/graphics /sys/class/graphics/fb* 2>/dev/null || true
+chmod 0755 /sys/kernel/aether /sys/kernel/kprofiles 2>/dev/null || true
+
 chown system:graphics /sys/class/drm/card*-DSI-*/disp_param /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card*/card*-DSI-*/disp_param 2>/dev/null || true
 chmod 0666 /sys/class/drm/card*-DSI-*/disp_param /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card*/card*-DSI-*/disp_param 2>/dev/null || true
 chown system:system /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker /sys/devices/platform/soc/c440000.qcom,spmi/spmi-0/spmi0-05/c440000.qcom,spmi:qcom,pm6150l@5:qcom,lcdb@ec00/regulator/regulator.63/soc:qcom,dsi-display-lab/anti_flicker 2>/dev/null || true
@@ -85,8 +90,12 @@ chmod 0666 /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker /sys/devi
 chown system:system /sys/devices/platform/soc/soc:qcom,dsi-display/hbm /sys/devices/platform/soc/c440000.qcom,spmi/spmi-0/spmi0-05/c440000.qcom,spmi:qcom,pm6150l@5:qcom,lcdb@ec00/regulator/regulator.63/soc:qcom,dsi-display-lab/hbm 2>/dev/null || true
 chmod 0666 /sys/devices/platform/soc/soc:qcom,dsi-display/hbm /sys/devices/platform/soc/c440000.qcom,spmi/spmi-0/spmi0-05/c440000.qcom,spmi:qcom,pm6150l@5:qcom,lcdb@ec00/regulator/regulator.63/soc:qcom,dsi-display-lab/hbm 2>/dev/null || true
 
-chown system:graphics /sys/devices/platform/soc/ae00000.qcom,mdss_mdp/drm/card0/sde-crtc-0/measured_fps 2>/dev/null || true
-chmod 0666 /sys/devices/platform/soc/ae00000.qcom,mdss_mdp/drm/card0/sde-crtc-0/measured_fps 2>/dev/null || true
+chown system:graphics /sys/class/drm/card0/sde-crtc-*/measured_fps /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0/sde-crtc-*/measured_fps /sys/class/graphics/fb*/measured_fps 2>/dev/null || true
+chmod 0666 /sys/class/drm/card0/sde-crtc-*/measured_fps /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0/sde-crtc-*/measured_fps /sys/class/graphics/fb*/measured_fps 2>/dev/null || true
+chmod 0666 /sys/class/drm/card0/sde-crtc-*/fps_periodicity_ms /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0/sde-crtc-*/fps_periodicity_ms 2>/dev/null || true
+for crtc_p in /sys/class/drm/card0/sde-crtc-*/fps_periodicity_ms /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0/sde-crtc-*/fps_periodicity_ms; do
+    [ -f "$crtc_p" ] && echo 250 > "$crtc_p" 2>/dev/null || true
+done
 
 # 2. Allow system & webui to manipulate KProfiles modes and parameters
 chown system:system /sys/module/kprofiles/parameters/auto_kp 2>/dev/null || true
@@ -100,22 +109,13 @@ chown system:system /sys/kernel/aether/* 2>/dev/null || true
 chmod 0666 /sys/kernel/aether/* 2>/dev/null || true
 
 # 4. Safe live Magisk / KernelSU policy injection
-#    ANDROID 17 FIX: Expanded for shell/untrusted_app sysfs access
-#    required by KernelSU-Next WebUI command execution on A17.
-if command -v magiskpolicy >/dev/null 2>&1; then
-    magiskpolicy --live "allow init sysfs file setattr" 2>/dev/null || true
-    magiskpolicy --live "allow system_app vendor_sysfs_graphics dir search" 2>/dev/null || true
-    magiskpolicy --live "allow system_app vendor_sysfs_graphics file { ioctl read write getattr lock append map open watch watch_reads }" 2>/dev/null || true
-    magiskpolicy --live "allow system_app sysfs dir search" 2>/dev/null || true
-    magiskpolicy --live "allow system_app sysfs file { ioctl read write getattr open }" 2>/dev/null || true
-    magiskpolicy --live "allow shell sysfs dir { search read open getattr }" 2>/dev/null || true
-    magiskpolicy --live "allow shell sysfs file { ioctl read write getattr open }" 2>/dev/null || true
-    magiskpolicy --live "allow shell sysfs_type dir { search read open getattr }" 2>/dev/null || true
-    magiskpolicy --live "allow shell sysfs_type file { ioctl read write getattr open }" 2>/dev/null || true
-    magiskpolicy --live "allow untrusted_app sysfs dir { search read open getattr }" 2>/dev/null || true
-    magiskpolicy --live "allow untrusted_app sysfs file { ioctl read getattr open }" 2>/dev/null || true
-    magiskpolicy --live "allow platform_app sysfs dir { search read open getattr }" 2>/dev/null || true
-    magiskpolicy --live "allow platform_app sysfs file { ioctl read write getattr open }" 2>/dev/null || true
-fi
+#    ANDROID 17 FIX: Expanded for shell/untrusted_app sysfs & IPC access
+#    required by KernelSU-Next WebUI and AETHER Engine on Android 11-17.
+for pol in /data/adb/aether/magiskpolicy "$MODDIR/tools/magiskpolicy" magiskpolicy supolicy /data/adb/ksu/bin/ksud /data/adb/magisk/magiskpolicy; do
+    if [ -x "$pol" ] || command -v "$pol" >/dev/null 2>&1; then
+        [ -f "$MODDIR/sepolicy.rule" ] && "$pol" --live -f "$MODDIR/sepolicy.rule" 2>/dev/null || true
+        break
+    fi
+done
 
 exit 0

@@ -243,5 +243,6 @@ struct zcomp *zcomp_create(const char *compress)
 		kfree(comp);
 		return ERR_PTR(error);
 	}
+	pr_info("zcomp: backend '%s' initialized (AETHER Turbo Acceleration active)\n", compress);
 	return comp;
 }

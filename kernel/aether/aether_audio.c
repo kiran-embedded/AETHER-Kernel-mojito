@@ -28,11 +28,22 @@ int aether_mic_hpf_mode = 1;
 EXPORT_SYMBOL(aether_mic_hpf_mode);
 
 int aether_mic_unmute_delay = 40;
+EXPORT_SYMBOL(aether_mic_unmute_delay);
+
 int aether_mic_adc_gain = 12;
+EXPORT_SYMBOL(aether_mic_adc_gain);
+
 int aether_mic_gain_bottom = 0;
+EXPORT_SYMBOL(aether_mic_gain_bottom);
+
 int aether_mic_gain_top = 0;
+EXPORT_SYMBOL(aether_mic_gain_top);
+
 int aether_earpiece_boost = 0;
+EXPORT_SYMBOL(aether_earpiece_boost);
+
 int aether_hifi_mode = 0;
+EXPORT_SYMBOL(aether_hifi_mode);
 
 /* 1. Audio Bypass Mode Attribute (Default 1: Stock Audio) */
 static ssize_t audio_bypass_mode_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)

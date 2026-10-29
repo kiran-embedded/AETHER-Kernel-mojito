@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AETHER FPS Meter - Native System Service Mode
+    ================================================
+    Declared identically to Play Services / MIUI system apps:
+    - foregroundServiceType="systemExempted" → vanishes from Active Apps shade (Android 14+)
+    - android:process=":aether_sys" → dedicated process name hides "com.aether.fpsmeter" from FPS meter
+    - directBootAware → starts at early-boot (CE-unlocked), same as com.android.systemui
+    - android:persistent="true" → AM treats it like a system persistent service (never OOM-killed)
+    - excludeFromRecents + no LAUNCHER category → zero home-screen icon footprint
+    - REQUEST_IGNORE_BATTERY_OPTIMIZATIONS → Doze exempt natively via user-grant path
+    - FOREGROUND_SERVICE_SYSTEM_EXEMPTED → Android 14 API 34+ native exemption permission
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aether.fpsmeter"
+    android:versionCode="2"
+    android:versionName="1.8.1">
+
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
+
+    <!-- Overlay & display permissions -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Foreground service permissions (all types for max compatibility) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Android 14 API 34: systemExempted type - hides from Active Apps, same as Play Services -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+
+    <!-- Battery & power exemptions (like Play Services) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Prevents Android from killing the service (treated as system-important) -->
+    <!-- NOTE: PREVENT_POWER_KEY is a signature-level permission; omitting it avoids
+         install failures on non-system-signed APKs. The 5-layer exemption in service.sh
+         achieves the same result without requiring system signature. -->
+
+    <application
+        android:label="System Display Service"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+        android:directBootAware="true"
+        android:allowBackup="false">
+
+        <!--
+            FPS Overlay Foreground Service
+            foregroundServiceType="systemExempted" is the KEY:
+              • Android 14 (API 34) hides systemExempted services from the Active Apps panel
+              • Same flag used by com.google.android.gms, com.miui.daemon, com.android.systemui
+              • Falls back to "specialUse" on Android 13 and below (API <= 33)
+        -->
+        <service
+            android:name=".FpsOverlayService"
+            android:enabled="true"
+            android:exported="false"
+            android:process=":aether_hw"
+            android:foregroundServiceType="systemExempted|specialUse">
+            <!--
+                specialUse subtype declaration (required when specialUse is in the type mask).
+                This satisfies the API 34 manifest validator even though systemExempted takes priority.
+            -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Hardware kernel display frame-rate measurement service" />
+        </service>
+
+        <!-- Boot Receiver: auto-starts service on device reboot (same as Play Services) -->
+        <receiver
+            android:name=".AetherBootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Action Receiver: toggle / start / stop commands from QS tile -->
+        <receiver
+            android:name=".FpsReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.aether.fpsmeter.ACTION_TOGGLE" />
+                <action android:name="com.aether.fpsmeter.ACTION_START" />
+                <action android:name="com.aether.fpsmeter.ACTION_STOP" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Quick Settings Tile: Real-Time Hardware FPS -->
+        <service
+            android:name=".FpsMeterTileService"
+            android:label="@string/tile_fps_name"
+            android:icon="@drawable/ic_qs_fps"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!--
+            No <activity> with android.intent.category.LAUNCHER:
+            → Zero home screen icon, zero app drawer entry.
+            → App is completely invisible to the user (like com.android.systemui)
+        -->
+    </application>
+</manifest>

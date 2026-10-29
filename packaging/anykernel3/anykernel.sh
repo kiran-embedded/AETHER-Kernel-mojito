@@ -5,7 +5,7 @@
 ### AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=AETHER CORE v1.6.1 by Kiran (ProjectAether)
+kernel.string=AETHER CORE v1.8 by Kiran (ProjectAether)
 do.devicecheck=1
 do.modules=0
 do.systemless=1
@@ -181,7 +181,7 @@ ui_print "  ╔═════════════════════�
 ui_print "  ║                 A E T H E R                  ║";
 ui_print "  ║             Custom Linux Kernel              ║";
 ui_print "  ╠══════════════════════════════════════════════╣";
-ui_print "  ║  Version  : v1.6.1                           ║";
+ui_print "  ║  Version  : v1.8                             ║";
 ui_print "  ║  Device   : $dev_display";
 ui_print "  ║  Platform : Snapdragon 678 (SM6150)          ║";
 ui_print "  ║  System   : $rom_display";
@@ -273,9 +273,15 @@ ui_print " ";
 
 # Step 5: Runtime Configuration & Optimization
 ui_print "  [5/5] Configuring runtime services & nodes...";
-mount /data 2>/dev/null;
-if [ -d /data/adb ]; then
-    mkdir -p /data/adb/ksu/bin /data/adb/service.d /data/adb/post-fs-data.d;
+mount /data 2>/dev/null || mount -o rw /dev/block/bootdevice/by-name/userdata /data 2>/dev/null || true;
+DATA_MOUNTED=0;
+if [ -d /data/adb ] || [ -d /data/system ] || [ -d /data/media ] || touch /data/.aether_test 2>/dev/null; then
+    rm -f /data/.aether_test 2>/dev/null;
+    mkdir -p /data/adb /data/adb/ksu/bin /data/adb/service.d /data/adb/post-fs-data.d /data/adb/aether /data/adb/ksu/service.d /data/adb/ap/service.d 2>/dev/null;
+    DATA_MOUNTED=1;
+fi;
+
+if [ "$DATA_MOUNTED" = "1" ]; then
     if [ -f "$home/tools/ksud" ]; then
         cp -f "$home/tools/ksud" /data/adb/ksu/bin/ksud;
         chmod 0755 /data/adb/ksu/bin/ksud;
@@ -288,6 +294,198 @@ if [ -d /data/adb ]; then
         chown 0:0 /data/adb/ksu/bin/ksu_susfs;
         ui_print "        └─ SUSFS binary initialized";
     fi;
+
+    # Purge legacy AETHER daemon (0% CPU polling daemons)
+    killall -9 aetherd 2>/dev/null || true;
+    rm -f /data/adb/aether/aetherd /data/adb/service.d/00_aether_engine.sh /data/adb/ksu/service.d/00_aether_engine.sh /data/adb/ap/service.d/00_aether_engine.sh 2>/dev/null || true;
+    rm -f /data/adb/modules/aether_kernel_control/tools/aetherd 2>/dev/null || true;
+    ui_print "        └─ Pure In-Kernel RAM architecture (Zero Polling Daemons)";
+
+    # KernelSU / Magisk / APatch Systemless Module Deployment
+    MOD_DIR="/data/adb/modules/aether_service"
+    mkdir -p "$MOD_DIR/system/app/AetherEngineCore" "$MOD_DIR/system/app/AetherFpsMeter" 2>/dev/null;
+    cat << 'EOF' > "$MOD_DIR/module.prop"
+id=aether_service
+name=AETHER Engine Core & FPS Meter
+version=v1.8
+versionCode=180
+author=Kiran
+description=Systemless integration of AETHER Engine Core Quick Settings and Hardware FPS Overlay for Xiaomi Redmi Note 10.
+EOF
+    chmod 0644 "$MOD_DIR/module.prop" 2>/dev/null || true;
+
+    # Deploy APKs to systemless modules (/data/adb/modules/aether_service and aether_kernel_control if present)
+    for m in "$MOD_DIR" /data/adb/modules/aether_kernel_control; do
+        if [ -d "$m" ]; then
+            mkdir -p "$m/system/app/AetherEngineCore" "$m/system/app/AetherFpsMeter" 2>/dev/null;
+            if [ -f "$home/tools/AetherEngineCore.apk" ]; then
+                cp -f "$home/tools/AetherEngineCore.apk" "$m/system/app/AetherEngineCore/AetherEngineCore.apk" 2>/dev/null || true;
+                chmod 0644 "$m/system/app/AetherEngineCore/AetherEngineCore.apk" 2>/dev/null || true;
+                chown 0:0 "$m/system/app/AetherEngineCore/AetherEngineCore.apk" 2>/dev/null || true;
+                chcon u:object_r:system_file:s0 "$m/system/app/AetherEngineCore/AetherEngineCore.apk" 2>/dev/null || true;
+            fi;
+            if [ -f "$home/tools/AetherFpsMeter.apk" ]; then
+                cp -f "$home/tools/AetherFpsMeter.apk" "$m/system/app/AetherFpsMeter/AetherFpsMeter.apk" 2>/dev/null || true;
+                chmod 0644 "$m/system/app/AetherFpsMeter/AetherFpsMeter.apk" 2>/dev/null || true;
+                chown 0:0 "$m/system/app/AetherFpsMeter/AetherFpsMeter.apk" 2>/dev/null || true;
+                chcon u:object_r:system_file:s0 "$m/system/app/AetherFpsMeter/AetherFpsMeter.apk" 2>/dev/null || true;
+            fi;
+            [ -f "$home/tools/sepolicy.rule" ] && cp -f "$home/tools/sepolicy.rule" "$m/sepolicy.rule" 2>/dev/null || true;
+        fi;
+    done;
+
+    if [ -f "$home/tools/AetherEngineCore.apk" ]; then
+        cp -f "$home/tools/AetherEngineCore.apk" /data/adb/aether/AetherEngineCore.apk;
+        chmod 0644 /data/adb/aether/AetherEngineCore.apk;
+        chown 0:0 /data/adb/aether/AetherEngineCore.apk;
+        ui_print "        └─ AETHER Quick Settings Tiles APK provisioned (0% CPU)";
+    fi;
+
+    if [ -f "$home/tools/AetherFpsMeter.apk" ]; then
+        cp -f "$home/tools/AetherFpsMeter.apk" /data/adb/aether/AetherFpsMeter.apk;
+        chmod 0644 /data/adb/aether/AetherFpsMeter.apk;
+        chown 0:0 /data/adb/aether/AetherFpsMeter.apk;
+        if [ -d /data/media/0 ]; then
+            mkdir -p /data/media/0/Download 2>/dev/null || true;
+            cp -f "$home/tools/AetherEngineCore.apk" /data/media/0/Download/AetherEngineCore.apk 2>/dev/null || true;
+            cp -f "$home/tools/AetherFpsMeter.apk" /data/media/0/Download/AetherFpsMeter.apk 2>/dev/null || true;
+        fi;
+        ui_print "        └─ AETHER Floating FPS Meter APK provisioned";
+    fi;
+
+    if [ -f "$home/tools/magiskpolicy" ]; then
+        cp -f "$home/tools/magiskpolicy" /data/adb/aether/magiskpolicy;
+        chmod 0755 /data/adb/aether/magiskpolicy;
+        chown 0:0 /data/adb/aether/magiskpolicy;
+    fi;
+
+    if [ -f "$home/tools/sepolicy.rule" ]; then
+        cp -f "$home/tools/sepolicy.rule" /data/adb/aether/sepolicy.rule;
+        chmod 0644 /data/adb/aether/sepolicy.rule;
+        if [ -x "$home/tools/magiskpolicy" ]; then
+            "$home/tools/magiskpolicy" --live -f "$home/tools/sepolicy.rule" 2>/dev/null || true;
+        fi;
+        ui_print "        └─ AETHER IPC SELinux policies configured";
+    fi;
+
+    # Service script for boot completion: pure in-kernel RAM calibration + FPS meter provisioning
+    cat << 'EOF' > /data/adb/service.d/00_aether_init.sh
+#!/system/bin/sh
+# Prevent duplicate execution during same boot cycle
+if [ -f /dev/.aether_init_done ]; then
+    exit 0
+fi
+touch /dev/.aether_init_done 2>/dev/null || true
+
+mkdir -p /data/adb/aether
+exec > /data/adb/aether/engine_boot.log 2>&1
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] AETHER Pure In-Kernel Init Started"
+
+# Clean up any legacy or duplicate service scripts across Magisk/KSU/APatch
+rm -f /data/adb/service.d/00_aether_engine.sh /data/adb/ksu/service.d/00_aether_engine.sh /data/adb/ap/service.d/00_aether_engine.sh 2>/dev/null || true
+rm -f /data/adb/ksu/service.d/00_aether_init.sh /data/adb/ap/service.d/00_aether_init.sh 2>/dev/null || true
+
+# Wait for boot completion with bounded timeout
+BOOT_TIMEOUT=60
+while [ "$BOOT_TIMEOUT" -gt 0 ] && [ "$(getprop sys.boot_completed)" != "1" ]; do
+    sleep 2
+    BOOT_TIMEOUT=$((BOOT_TIMEOUT - 2))
+done
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Android framework report sys.boot_completed=1"
+
+# Ensure character device node and hardware FPS nodes are accessible
+chmod 0666 /dev/aether_ctl 2>/dev/null || true
+chmod 0755 /sys/class/drm /sys/class/drm/card0 /sys/class/drm/card0/sde-crtc-* 2>/dev/null || true
+chmod 0755 /sys/devices/platform/soc/*.qcom,mdss_mdp /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0 /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0/sde-crtc-* 2>/dev/null || true
+chmod 0755 /sys/class/graphics /sys/class/graphics/fb* 2>/dev/null || true
+chmod 0666 /sys/class/drm/card0/sde-crtc-*/* /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0/sde-crtc-*/* 2>/dev/null || true
+chmod 0666 /sys/class/drm/card0/sde-crtc-*/fps_periodicity_ms /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0/sde-crtc-*/fps_periodicity_ms 2>/dev/null || true
+for crtc_p in /sys/class/drm/card0/sde-crtc-*/fps_periodicity_ms /sys/devices/platform/soc/*.qcom,mdss_mdp/drm/card0/sde-crtc-*/fps_periodicity_ms; do
+    [ -f "$crtc_p" ] && echo 250 > "$crtc_p" 2>/dev/null || true
+done
+
+# Terminate legacy aetherd daemon (0% daemon overhead)
+killall -9 aetherd 2>/dev/null || true
+rm -f /data/adb/aether/aetherd /data/adb/aether/aetherd.log 2>/dev/null || true
+
+# Clean migration from user-installed app under /data/app to systemless /system/app
+for pkg in com.aether.engine.service com.aether.fpsmeter; do
+    pkg_path=$(pm path "$pkg" 2>/dev/null | head -n 1 | cut -d: -f2)
+    case "$pkg_path" in
+        /data/app/*)
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Migrating $pkg from /data/app to systemless system app..."
+            pm uninstall -k "$pkg" >/dev/null 2>&1 || true
+            ;;
+    esac
+done
+
+# Fallback install if systemless overlay did not load and app is missing
+for apk_pkg in "AetherEngineCore.apk:com.aether.engine.service" "AetherFpsMeter.apk:com.aether.fpsmeter"; do
+    apk_file="${apk_pkg%%:*}"
+    pkg_name="${apk_pkg##*:}"
+    if which pm >/dev/null 2>&1 && [ -f "/data/adb/aether/$apk_file" ]; then
+        if ! pm path "$pkg_name" >/dev/null 2>&1; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fallback installing $pkg_name..."
+            pm install -r -d -g "/data/adb/aether/$apk_file" >/dev/null 2>&1 || true
+        fi
+    fi
+done
+
+# Grant required permissions and whitelist for FPS overlay
+if pm path com.aether.fpsmeter >/dev/null 2>&1; then
+    appops set --user 0 com.aether.fpsmeter SYSTEM_ALERT_WINDOW allow 2>/dev/null || appops set com.aether.fpsmeter SYSTEM_ALERT_WINDOW allow 2>/dev/null || true
+    pm grant --user 0 com.aether.fpsmeter android.permission.SYSTEM_ALERT_WINDOW 2>/dev/null || pm grant com.aether.fpsmeter android.permission.SYSTEM_ALERT_WINDOW 2>/dev/null || true
+    pm grant --user 0 com.aether.fpsmeter android.permission.POST_NOTIFICATIONS 2>/dev/null || pm grant com.aether.fpsmeter android.permission.POST_NOTIFICATIONS 2>/dev/null || true
+    dumpsys deviceidle whitelist +com.aether.fpsmeter +com.aether.engine.service 2>/dev/null || cmd deviceidle whitelist +com.aether.fpsmeter +com.aether.engine.service 2>/dev/null || true
+fi
+
+# ── Pure In-Kernel RAM Calibration (v1.2 Golden Profile: Zero Polling Overhead) ──
+echo 100 > /proc/sys/vm/swappiness 2>/dev/null || true
+[ -f /proc/sys/vm/direct_vm_swappiness ] && echo 20 > /proc/sys/vm/direct_vm_swappiness 2>/dev/null || true
+echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
+echo 200 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
+echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
+echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
+echo 0 > /proc/sys/vm/page-cluster 2>/dev/null || true
+echo 20 > /proc/sys/vm/compaction_proactiveness 2>/dev/null || true
+echo 0 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
+echo 0 > /proc/sys/vm/percpu_pagelist_fraction 2>/dev/null || true
+echo 524288 > /proc/sys/vm/max_map_count 2>/dev/null || true
+echo 10 > /proc/sys/vm/stat_interval 2>/dev/null || true
+echo 10 > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
+echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null || true
+echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null || true
+echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null || true
+
+if [ -f /sys/kernel/mm/lru_gen/enabled ]; then
+    echo 7 > /sys/kernel/mm/lru_gen/enabled 2>/dev/null || echo y > /sys/kernel/mm/lru_gen/enabled 2>/dev/null || true
+    echo 1000 > /sys/kernel/mm/lru_gen/min_ttl_ms 2>/dev/null || true
+fi
+
+for zq in /sys/block/zram0/queue; do
+    if [ -d "$zq" ]; then
+        echo 0 > "$zq/read_ahead_kb" 2>/dev/null || true
+        echo 2 > "$zq/rq_affinity" 2>/dev/null || true
+        echo 2 > "$zq/nomerges" 2>/dev/null || true
+        echo 0 > "$zq/iostats" 2>/dev/null || true
+        echo 0 > "$zq/add_random" 2>/dev/null || true
+    fi
+done
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] AETHER Pure In-Kernel Boot Provisioning Complete (0 userspace daemons)."
+
+# Storage & Cache Maintenance: only remove AETHER-specific staging artifacts
+(
+    sleep 35
+    rm -f /data/local/tmp/AetherEngineCore.apk /data/local/tmp/AetherFpsMeter.apk /data/local/tmp/aether_fps 2>/dev/null || true
+) &
+EOF
+    chmod 0755 /data/adb/service.d/00_aether_init.sh;
+    chown 0:0 /data/adb/service.d/00_aether_init.sh;
+    # Clean up duplicate scripts across manager directories
+    rm -f /data/adb/ksu/service.d/00_aether_init.sh /data/adb/ap/service.d/00_aether_init.sh 2>/dev/null || true;
+    rm -f /data/adb/service.d/00_aether_engine.sh /data/adb/ksu/service.d/00_aether_engine.sh /data/adb/ap/service.d/00_aether_engine.sh 2>/dev/null || true;
+
 
     # Purge legacy throttled charging overrides from previous flashes/scripts
     if [ -f /data/adb/service.d/01_displayfeatures.sh ]; then
@@ -489,20 +687,19 @@ done
 
 # Schedutil per-cluster rate limits are applied in the Battery Drain Fix section below.
 
-# CPU & Devfreq Boost (Touch & Input responsiveness without waking big cores)
+# CPU & Devfreq Boost (Default EAS: Little cores brief assist, Big cores untouched, no sched migration)
 for cb in /sys/module/cpu_boost/parameters /sys/module/cpu_input_boost/parameters; do
     if [ -d "$cb" ]; then
-        # Boost efficiency cores (0-5) to 1.0 GHz for instant touch response; keep big cores (6-7) at 0 to eliminate battery drain
         echo "0:1017600 1:1017600 2:1017600 3:1017600 4:1017600 5:1017600 6:0 7:0" > "$cb/input_boost_freq" 2>/dev/null || true
-        echo 64 > "$cb/input_boost_ms" 2>/dev/null || true
-        echo 64 > "$cb/input_boost_duration" 2>/dev/null || true
-        echo 1 > "$cb/sched_boost_on_input" 2>/dev/null || true
+        echo 40 > "$cb/input_boost_ms" 2>/dev/null || true
+        echo 40 > "$cb/input_boost_duration" 2>/dev/null || true
+        echo 0 > "$cb/sched_boost_on_input" 2>/dev/null || true
     fi
 done
 for dfb in /sys/module/devfreq_boost/parameters; do
     if [ -d "$dfb" ]; then
-        echo 48 > "$dfb/devfreq_boost_duration" 2>/dev/null || true
-        echo 64 > "$dfb/devfreq_wake_boost_duration" 2>/dev/null || true
+        echo 32 > "$dfb/devfreq_boost_duration" 2>/dev/null || true
+        echo 32 > "$dfb/devfreq_wake_boost_duration" 2>/dev/null || true
     fi
 done
 
@@ -532,8 +729,8 @@ echo "4096 65536 2097152" > /proc/sys/net/ipv4/tcp_wmem 2>/dev/null || true
 
 # ── 1. ZRAM Setup ─────────────────────────────────────────────────
 # Compression: LZ4 (low CPU overhead for decompression during memory pressure)
-# Minimal CPU overhead prevents latency spikes during memory pressure.
-# Size: 2GB ZRAM with LZ4 + deduplication + writeback
+# Dynamic ZRAM Sizing & Calibration:
+# 3GB for 4GB RAM models / 4GB for 6GB models with LZ4 35ns SIMD acceleration
 if [ -b /dev/block/zram0 ]; then
     swapoff /dev/block/zram0 2>/dev/null || true
     echo 1 > /sys/block/zram0/reset 2>/dev/null || true
@@ -550,27 +747,39 @@ if [ -b /dev/block/zram0 ]; then
     mkswap /dev/block/zram0 2>/dev/null || true
     # Priority 32767: ALWAYS prefer ZRAM over any filesystem swap
     swapon /dev/block/zram0 -p 32767 2>/dev/null || true
+
+    # ZRAM Block Device Queue (0 read-ahead, CPU-affinity 2, no merges, no iostats, no random)
+    for zq in /sys/block/zram0/queue; do
+        if [ -d "$zq" ]; then
+            echo 0 > "$zq/read_ahead_kb" 2>/dev/null || true
+            echo 2 > "$zq/rq_affinity" 2>/dev/null || true
+            echo 2 > "$zq/nomerges" 2>/dev/null || true
+            echo 0 > "$zq/iostats" 2>/dev/null || true
+            echo 0 > "$zq/add_random" 2>/dev/null || true
+        fi
+    done
 fi
 
-# ── 2. Virtual Memory — Core Tunables (PDF Section 3.1) ─────────────
-# SWAPPINESS: 160
-#   Allows MGLRU to seamlessly migrate cold anon pages to ZRAM while preserving file cache.
-echo 160 > /proc/sys/vm/swappiness 2>/dev/null || true
+# ── 2. Virtual Memory — Core Tunables ─────────────────────────────
+# SWAPPINESS: 100
+#   Allows MGLRU to seamlessly migrate cold anon pages to ZRAM without thrashing.
+echo 100 > /proc/sys/vm/swappiness 2>/dev/null || true
+[ -f /proc/sys/vm/direct_vm_swappiness ] && echo 20 > /proc/sys/vm/direct_vm_swappiness 2>/dev/null || true
 
 # VFS_CACHE_PRESSURE: 100 — Maintains balanced 1:1 reclaim ratio between dentry/inode caches and page cache
 echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null || true
 
-# MIN_FREE_KBYTES: 32768 (32MB baseline for smooth Camera/CMA allocation headroom)
-echo 32768 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
+# MIN_FREE_KBYTES: 16384 (16MB baseline for smooth Camera/CMA allocation headroom without inflating watermarks)
+echo 16384 > /proc/sys/vm/min_free_kbytes 2>/dev/null || true
 
-# EXTRA_FREE_KBYTES: 24576 (24MB early kswapd proactive reclaim buffer)
-echo 24576 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
+# EXTRA_FREE_KBYTES: 0 (Prevents direct reclaim stalls and ZRAM compression freezes)
+echo 0 > /proc/sys/vm/extra_free_kbytes 2>/dev/null || true
 
-# WATERMARK_SCALE_FACTOR: 200 — widens free buffer gap to 2.0%, eliminates direct reclaim freezes
+# WATERMARK_SCALE_FACTOR: 200 — 2.0% gap wakes kswapd smoothly before direct reclaim
 echo 200 > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
 
 # DIRTY WRITEBACK: Tuned for UFS + F2FS
-echo 5 > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
+echo 10 > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
 echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null || true
 echo 500 > /proc/sys/vm/dirty_writeback_centisecs 2>/dev/null || true
 echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null || true
@@ -578,8 +787,8 @@ echo 1500 > /proc/sys/vm/dirty_expire_centisecs 2>/dev/null || true
 # PAGE CLUSTER: 0 (single 4KB page reads, zero decompression stalls on relaunch)
 echo 0 > /proc/sys/vm/page-cluster 2>/dev/null || true
 
-# COMPACT_UNEVICTABLE_ALLOWED: 1 (safe memory compaction without unevictable locks)
-echo 1 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
+# COMPACT_UNEVICTABLE_ALLOWED: 0 (prevent kcompactd spinning on unmovable/pinned pages)
+echo 0 > /proc/sys/vm/compact_unevictable_allowed 2>/dev/null || true
 
 # COMPACTION PROACTIVENESS: 20
 echo 20 > /proc/sys/vm/compaction_proactiveness 2>/dev/null || true
@@ -710,21 +919,11 @@ echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled 2>/dev/null || true
 echo 1 > /sys/module/lpm_levels/parameters/lpm_prediction 2>/dev/null || true
 echo 1 > /sys/module/lpm_levels/parameters/lpm_ipi_prediction 2>/dev/null || true
 
-# ── 9. Schedutil — Per-Cluster Rate Limits ────────────────────────
-# Policy 0 (Silver/little cores: cpu0-5): fast up (500µs), slow down (20ms)
-#   → Efficiency cores ramp fast for responsiveness, decay slowly to save power
-# Policy 6 (Gold/big cores: cpu6-7): moderate up (800µs), very slow down (25ms)
-#   → Big cores avoid unnecessary frequency spikes during idle
-for pol in /sys/devices/system/cpu/cpufreq/policy0 /sys/devices/system/cpu/cpufreq/policy{0,1,2,3,4,5}; do
+# ── 9. Schedutil — Default Balanced Rate Limits ───────────────────────
+for pol in /sys/devices/system/cpu/cpufreq/policy0 /sys/devices/system/cpu/cpufreq/policy6; do
     if [ -d "$pol/schedutil" ]; then
-        echo 500  > "$pol/schedutil/up_rate_limit_us" 2>/dev/null || true
+        echo 1000  > "$pol/schedutil/up_rate_limit_us" 2>/dev/null || true
         echo 20000 > "$pol/schedutil/down_rate_limit_us" 2>/dev/null || true
-    fi
-done
-for pol in /sys/devices/system/cpu/cpufreq/policy6 /sys/devices/system/cpu/cpufreq/policy{6,7}; do
-    if [ -d "$pol/schedutil" ]; then
-        echo 800  > "$pol/schedutil/up_rate_limit_us" 2>/dev/null || true
-        echo 25000 > "$pol/schedutil/down_rate_limit_us" 2>/dev/null || true
     fi
 done
 
@@ -775,7 +974,7 @@ fi
 
 # 7. AMOLED DC Dimming, Standard Touch Sensitivity & Haptics
 for d in /sys/devices/platform/soc/soc:qcom,dsi-display/anti_flicker; do
-    [ -f "$d" ] && echo 1 > "$d" 2>/dev/null || true
+    [ -f "$d" ] && echo 0 > "$d" 2>/dev/null || true
 done
 for g in /sys/devices/platform/soc/*.i2c/i2c-*/1-*/fts_glove_mode /sys/bus/i2c/drivers/fts_ts/*/fts_glove_mode; do
     [ -f "$g" ] && echo 0 > "$g" 2>/dev/null || true
@@ -794,20 +993,37 @@ for chg_node in \
 do
     [ -f "$chg_node" ] && chmod 0666 "$chg_node" && chown system:system "$chg_node" 2>/dev/null || true
 done
+echo 1 > /sys/class/power_supply/battery/fastcharge_mode 2>/dev/null || true
+echo 1 > /sys/class/power_supply/bms/fastcharge_mode 2>/dev/null || true
 
 # 9. AETHER Hardware Charge Cutoff & Bypass Persistence (Offline & Normal Boot)
 if [ -f /mnt/vendor/persist/aether/cutoff.conf ]; then
     . /mnt/vendor/persist/aether/cutoff.conf 2>/dev/null
     [ -n "$CUTOFF_LIMIT" ] && echo "$CUTOFF_LIMIT" > /sys/kernel/aether/charge_cutoff_limit 2>/dev/null || true
     [ -n "$CUTOFF_MODE" ] && echo "$CUTOFF_MODE" > /sys/kernel/aether/charge_cutoff_mode 2>/dev/null || true
+    [ -n "$INSTANT_BYPASS" ] && echo "$INSTANT_BYPASS" > /sys/kernel/aether/instant_bypass 2>/dev/null || true
+    [ -n "$SCREEN_BOOST" ] && echo "$SCREEN_BOOST" > /sys/kernel/aether/aacc_screen_boost 2>/dev/null || true
+    [ -n "$CHARGE_LIMIT" ] && [ "$CHARGE_LIMIT" != "0" ] && echo "$CHARGE_LIMIT" > /sys/kernel/aether/charge_current_limit 2>/dev/null || true
 fi
 
 # 10. Steady-state Readahead & Background CPUset Isolation
 # Executes once on boot completion (<20ms runtime, 0 background daemons)
 for q in /sys/block/sd*/queue /sys/block/dm-*/queue; do
     if [ -d "$q" ]; then
+        [ -f "$q/scheduler" ] && echo mq-deadline > "$q/scheduler" 2>/dev/null || true
         echo 512 > "$q/read_ahead_kb" 2>/dev/null || true
         echo 64  > "$q/nr_requests" 2>/dev/null || true
+        echo 2   > "$q/rq_affinity" 2>/dev/null || true
+        echo 0   > "$q/iostats" 2>/dev/null || true
+        echo 0   > "$q/add_random" 2>/dev/null || true
+        if [ -d "$q/iosched" ]; then
+            echo 100  > "$q/iosched/read_expire" 2>/dev/null || true
+            echo 2000 > "$q/iosched/write_expire" 2>/dev/null || true
+            echo 4    > "$q/iosched/writes_starved" 2>/dev/null || true
+            echo 4    > "$q/iosched/fifo_batch" 2>/dev/null || true
+            echo 1    > "$q/iosched/front_merges" 2>/dev/null || true
+            echo 32   > "$q/iosched/async_depth" 2>/dev/null || true
+        fi
     fi
 done
 
@@ -856,6 +1072,8 @@ fi
     # On Android 17+, traced is required for SensorService, rotation, and brightness
     if [ "$IS_A17" -eq 0 ]; then
         resetprop -n persist.traced.enable 0 2>/dev/null || setprop persist.traced.enable 0 2>/dev/null || true
+    else
+        resetprop --delete persist.traced.enable 2>/dev/null || true
     fi
     resetprop -n persist.sys.assert.enable false 2>/dev/null || setprop persist.sys.assert.enable false 2>/dev/null || true
     resetprop -n persist.sys.strictmode.visual 0 2>/dev/null || setprop persist.sys.strictmode.visual 0 2>/dev/null || true
@@ -865,16 +1083,21 @@ fi
     resetprop --delete persist.libc.debug.malloc 2>/dev/null || true
     resetprop --delete libc.debug.malloc 2>/dev/null || true
 
+    # Android memory management props for active ZRAM & MGLRU utilization
+    resetprop -n persist.sys.zram_enabled 1 2>/dev/null || setprop persist.sys.zram_enabled 1 2>/dev/null || true
+    resetprop -n sys.use_memfd true 2>/dev/null || setprop sys.use_memfd true 2>/dev/null || true
+
+    # Userspace LMKD: Preserved ROM vendor calibration for Android 17 stability
+
     # ┌─────────────────────────────────────────────────────────────┐
-    # │  Layer 7: 60 FPS Animation & SurfaceFlinger Pacing          │
+    # │  Layer 7: SurfaceFlinger Safety & Buffer Queue Protections  │
     # └─────────────────────────────────────────────────────────────┘
-    # Android 16 and below only — breaks screen recording and rotation on Android 17
-    if [ "$IS_A17" -eq 0 ]; then
-        resetprop -n debug.sf.disable_backpressure 1 2>/dev/null || setprop debug.sf.disable_backpressure 1 2>/dev/null || true
-        resetprop -n debug.sf.latch_unsignaled 1 2>/dev/null || setprop debug.sf.latch_unsignaled 1 2>/dev/null || true
-        resetprop -n debug.hwui.render_thread_priority -20 2>/dev/null || setprop debug.hwui.render_thread_priority -20 2>/dev/null || true
-        resetprop -n renderthread.skia.reduceopstasksplitting true 2>/dev/null || setprop renderthread.skia.reduceopstasksplitting true 2>/dev/null || true
-    fi
+    # CRITICAL FIX: debug.sf.disable_backpressure and latch_unsignaled break screen recording
+    # and cause linear block allocation crashes in c2.qti.avc.encoder. Always delete them!
+    resetprop --delete debug.sf.disable_backpressure 2>/dev/null || true
+    resetprop --delete debug.sf.latch_unsignaled 2>/dev/null || true
+    resetprop --delete debug.hwui.render_thread_priority 2>/dev/null || true
+    resetprop --delete renderthread.skia.reduceopstasksplitting 2>/dev/null || true
 
     # ┌─────────────────────────────────────────────────────────────┐
     # │  Layer 8: Reduce MIUI/HyperOS Background Service Bloat     │
@@ -932,6 +1155,12 @@ EOF
     chmod 0666 /sys/module/tx_macro_dlkm/parameters/* 2>/dev/null || true;
     chmod 0666 /sys/module/tx_macro/parameters/* 2>/dev/null || true;
     chmod 0666 /dev/snd/* 2>/dev/null || true;
+else
+    ui_print " ";
+    ui_print "  [!] Notice: /data partition is unmounted or encrypted in recovery.";
+    ui_print "      Flash 'AETHER-Kernel-Control-WebUI-v1.8.zip' via KernelSU";
+    ui_print "      or Magisk Manager in Android OS to complete APK installation.";
+    ui_print " ";
 fi;
 
 sleep 0.2;

@@ -3,7 +3,7 @@
  * Re:Kernel - in-tree integration for non-GKI kernels.
  *
  * Original project: https://github.com/Sakion-Team/Re-Kernel
- * Adapted for the WestCoast 4.14 kernel.
+ * Adapted for the AETHER 4.14 kernel.
  */
 
 #include <linux/init.h>

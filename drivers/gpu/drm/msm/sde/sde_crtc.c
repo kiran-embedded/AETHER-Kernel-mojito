@@ -142,35 +142,52 @@ static inline int _sde_crtc_power_enable(struct sde_crtc *sde_crtc, bool enable)
 									enable);
 }
 
+static atomic_t aether_latest_fps = ATOMIC_INIT(0);
+static ktime_t aether_last_commit_time;
+
+unsigned int aether_get_measured_fps(void)
+{
+	ktime_t now = ktime_get();
+	u64 last_us = (u64)ktime_to_us(aether_last_commit_time);
+	u64 now_us = (u64)ktime_to_us(now);
+
+	/* If display has not pushed a frame for > 1.0 second, screen is static/idle (0.0 FPS) */
+	if (last_us == 0 || (now_us > last_us && (now_us - last_us) >= 1000000ULL))
+		return 0;
+
+	return (unsigned int)atomic_read(&aether_latest_fps);
+}
+EXPORT_SYMBOL(aether_get_measured_fps);
+
 /**
  * sde_crtc_calc_fps() - Calculates fps value.
  * @sde_crtc   : CRTC structure
  *
  * This function is called at frame done. It counts the number
- * of frames done for every 1 sec. Stores the value in measured_fps.
- * measured_fps value is 10 times the calculated fps value.
- * For example, measured_fps= 594 for calculated fps of 59.4
+ * of frames done and calculates real-time fps every 300ms.
  */
 static void sde_crtc_calc_fps(struct sde_crtc *sde_crtc)
 {
 	ktime_t current_time_us;
 	u64 fps, diff_us;
+	u32 duration;
 
 	current_time_us = ktime_get();
+	aether_last_commit_time = current_time_us;
+
 	diff_us = (u64)ktime_us_delta(current_time_us,
 			sde_crtc->fps_info.last_sampled_time_us);
 	sde_crtc->fps_info.frame_count++;
 
-	if (diff_us >= DEFAULT_FPS_PERIOD_1_SEC) {
+	duration = sde_crtc->fps_info.fps_periodic_duration;
+	if (duration == 0)
+		duration = 300 * MILI_TO_MICRO;
 
-		 /* Multiplying with 10 to get fps in floating point */
-		fps = ((u64)sde_crtc->fps_info.frame_count)
-						* DEFAULT_FPS_PERIOD_1_SEC * 10;
+	if (diff_us >= duration) {
+		fps = ((u64)sde_crtc->fps_info.frame_count) * 1000000ULL * 10;
 		do_div(fps, diff_us);
 		sde_crtc->fps_info.measured_fps = (unsigned int)fps;
-		SDE_DEBUG(" FPS for crtc%d is %d.%d\n",
-				sde_crtc->base.base.id, (unsigned int)fps/10,
-				(unsigned int)fps%10);
+		atomic_set(&aether_latest_fps, (int)fps);
 		sde_crtc->fps_info.last_sampled_time_us = current_time_us;
 		sde_crtc->fps_info.frame_count = 0;
 	}
@@ -814,19 +831,37 @@ static ssize_t measured_fps_show(struct device *device,
 
 	current_time = ktime_get();
 
+	/* Real-Time Idle Detection: If no frame was committed in the last 1000ms, screen is static (0.0 FPS) */
+	{
+		u64 last_frame_time = (u64)ktime_to_us(sde_crtc->fps_info.time_buf[current_time_index]);
+		u64 now_us = (u64)ktime_to_us(current_time);
+		u64 idle_delta = (now_us > last_frame_time) ? (now_us - last_frame_time) : 0;
+		if (last_frame_time == 0 || idle_delta >= 1000000) {
+			sde_crtc->fps_info.measured_fps = 0;
+			return scnprintf(buf, PAGE_SIZE, "fps: 0.0 duration:0 frame_count:0\n");
+		}
+	}
+
 	for (i = 0; i < MAX_FRAME_COUNT; i++) {
-		u64 ptime = (u64)ktime_to_us(current_time);
 		u64 buftime = (u64)ktime_to_us(
 			sde_crtc->fps_info.time_buf[current_time_index]);
 		diff_us = (u64)ktime_us_delta(current_time,
 			sde_crtc->fps_info.time_buf[current_time_index]);
-		if (ptime > buftime && diff_us >= (u64)
-				sde_crtc->fps_info.fps_periodic_duration) {
+		if (buftime == 0) {
+			if (frame_count > 0 && diff_us > 0) {
+				fps = frame_count * 1000000ULL * 10;
+				do_div(fps, diff_us);
+				sde_crtc->fps_info.measured_fps = (unsigned int)fps;
+			}
+			break;
+		}
 
-			/* Multiplying with 10 to get fps in floating point */
-			fps = frame_count * DEFAULT_FPS_PERIOD_1_SEC * 10;
-			do_div(fps, diff_us);
-			sde_crtc->fps_info.measured_fps = (unsigned int)fps;
+		if (diff_us >= (u64)sde_crtc->fps_info.fps_periodic_duration) {
+			if (frame_count > 0 && diff_us > 0) {
+				fps = frame_count * 1000000ULL * 10;
+				do_div(fps, diff_us);
+				sde_crtc->fps_info.measured_fps = (unsigned int)fps;
+			}
 			SDE_DEBUG("measured fps: %d\n",
 					sde_crtc->fps_info.measured_fps);
 			break;
@@ -840,26 +875,29 @@ static ssize_t measured_fps_show(struct device *device,
 	}
 
 	if (i == MAX_FRAME_COUNT) {
-
 		current_time_index = (sde_crtc->fps_info.next_time_index == 0) ?
 		MAX_FRAME_COUNT - 1 : (sde_crtc->fps_info.next_time_index - 1);
 
 		diff_us = (u64)ktime_us_delta(current_time,
 			sde_crtc->fps_info.time_buf[current_time_index]);
 
-		if (diff_us >= sde_crtc->fps_info.fps_periodic_duration) {
-
-			/* Multiplying with 10 to get fps in floating point */
-			fps = (frame_count) * DEFAULT_FPS_PERIOD_1_SEC * 10;
+		if (diff_us > 0 && frame_count > 0) {
+			fps = (frame_count) * 1000000ULL * 10;
 			do_div(fps, diff_us);
 			sde_crtc->fps_info.measured_fps = (unsigned int)fps;
 		}
 	}
 
+	if (sde_crtc->fps_info.measured_fps == 0 && frame_count > 0 && diff_us > 0) {
+		fps = frame_count * 1000000ULL * 10;
+		do_div(fps, diff_us);
+		sde_crtc->fps_info.measured_fps = (unsigned int)fps;
+	}
+
 	fps_int = (uint64_t) sde_crtc->fps_info.measured_fps;
 	fps_decimal = do_div(fps_int, 10);
 	return scnprintf(buf, PAGE_SIZE,
-	"fps: %d.%d duration:%d frame_count:%llu\n", fps_int, fps_decimal,
+	"fps: %llu.%llu duration:%d frame_count:%llu\n", fps_int, fps_decimal,
 			sde_crtc->fps_info.fps_periodic_duration, frame_count);
 }
 
@@ -6865,16 +6903,13 @@ struct drm_crtc *sde_crtc_init(struct drm_device *dev, struct drm_plane *plane)
 
 	sde_crtc->enabled = false;
 
-	/* Below parameters are for fps calculation for sysfs node */
-	sde_crtc->fps_info.fps_periodic_duration = DEFAULT_FPS_PERIOD_1_SEC;
-	sde_crtc->fps_info.time_buf = kmalloc_array(MAX_FRAME_COUNT,
+	/* Below parameters are for fps calculation for sysfs node (300ms real-time window) */
+	sde_crtc->fps_info.fps_periodic_duration = 300 * MILI_TO_MICRO;
+	sde_crtc->fps_info.time_buf = kcalloc(MAX_FRAME_COUNT,
 			sizeof(ktime_t), GFP_KERNEL);
 
 	if (!sde_crtc->fps_info.time_buf)
 		SDE_ERROR("invalid buffer\n");
-	else
-		memset(sde_crtc->fps_info.time_buf, 0,
-			sizeof(*(sde_crtc->fps_info.time_buf)));
 
 	INIT_LIST_HEAD(&sde_crtc->frame_event_list);
 	INIT_LIST_HEAD(&sde_crtc->user_event_list);

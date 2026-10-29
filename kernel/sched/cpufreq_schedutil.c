@@ -967,8 +967,8 @@ static int sugov_init(struct cpufreq_policy *policy)
 		goto stop_kthread;
 	}
 
-	/* AETHER: 500us up-rate delivers 0.5ms ultra-fast frequency ramp for stutter-free UI interactions */
-	tunables->up_rate_limit_us = 500;
+	/* Default schedutil rate limits: balanced responsiveness without excessive high-OPP ramping */
+	tunables->up_rate_limit_us = 1000;
 	tunables->down_rate_limit_us = 20000;
 	tunables->hispeed_load = DEFAULT_HISPEED_LOAD;
 	tunables->hispeed_freq = 0;
@@ -1039,6 +1039,7 @@ static int sugov_start(struct cpufreq_policy *policy)
 		sg_policy->tunables->up_rate_limit_us * NSEC_PER_USEC;
 	sg_policy->down_rate_delay_ns =
 		sg_policy->tunables->down_rate_limit_us * NSEC_PER_USEC;
+	update_min_rate_limit_ns(sg_policy);
 	sg_policy->last_freq_update_time = 0;
 	sg_policy->next_freq = UINT_MAX;
 	sg_policy->work_in_progress = false;

@@ -2437,7 +2437,7 @@ static int selinux_bprm_set_creds(struct linux_binprm *bprm)
 	if (new_tsec->sid == old_tsec->sid) {
 		rc = avc_has_perm(&selinux_state,
 				  old_tsec->sid, isec->sid,
-				  SECCLASS_FILE, FILE__EXECUTE_NO_TRANS, &ad);
+				  isec->sclass, FILE__EXECUTE_NO_TRANS, &ad);
 		if (rc)
 			return rc;
 	} else {
@@ -2450,7 +2450,7 @@ static int selinux_bprm_set_creds(struct linux_binprm *bprm)
 
 		rc = avc_has_perm(&selinux_state,
 				  new_tsec->sid, isec->sid,
-				  SECCLASS_FILE, FILE__ENTRYPOINT, &ad);
+				  isec->sclass, FILE__ENTRYPOINT, &ad);
 		if (rc)
 			return rc;
 
@@ -3035,9 +3035,17 @@ static int selinux_inode_init_security_anon(struct inode *inode,
 	struct common_audit_data ad;
 	struct inode_security_struct *isec;
 	int rc;
+	bool is_memfd = false;
 
 	if (unlikely(!selinux_initialized(&selinux_state)))
 		return 0;
+
+	if (name != NULL && name->name != NULL &&
+	    (!strcmp(name->name, "[memfd]") || !strncmp(name->name, "memfd:", 6))) {
+		if (!selinux_policycap_memfd_class())
+			return 0;
+		is_memfd = true;
+	}
 
 	isec = selinux_inode(inode);
 
@@ -3058,7 +3066,7 @@ static int selinux_inode_init_security_anon(struct inode *inode,
 		isec->sclass = context_isec->sclass;
 		isec->sid = context_isec->sid;
 	} else {
-		isec->sclass = SECCLASS_ANON_INODE;
+		isec->sclass = is_memfd ? SECCLASS_MEMFD_FILE : SECCLASS_ANON_INODE;
 		rc = security_transition_sid(
 			&selinux_state, tsec->sid, tsec->sid,
 			isec->sclass, name, &isec->sid);

@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0-only
+menuconfig AETHER_ENGINE
+	bool "AETHER Closed-Loop Kernel Performance Engine"
+	default y
+	help
+	  AETHER Engine provides hardware deadline-aware scheduling, sub-frame
+	  VSYNC salvage, slack-time energy harvesting, and bottleneck attribution
+	  for Qualcomm Snapdragon platforms.
+
+	  If unsure, say Y.

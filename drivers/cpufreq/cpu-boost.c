@@ -411,9 +411,9 @@ static int cpu_boost_init(void)
 	INIT_WORK(&powerkey_input_boost_work, do_powerkey_input_boost);
 	INIT_DELAYED_WORK(&input_boost_rem, do_input_boost_rem);
 
-	/* Short, bounded touch boost: schedutil handles sustained demand. */
-	input_boost_ms = 48;
-	sched_boost_on_input = 1;
+	/* Default CPU touch boost: Little cores brief wake-up, big cores untouched, no sched migration */
+	input_boost_ms = 40;
+	sched_boost_on_input = 0;
 
 	for_each_possible_cpu(cpu) {
 		s = &per_cpu(sync_info, cpu);
@@ -421,7 +421,7 @@ static int cpu_boost_init(void)
 		if (cpu < 6)
 			s->input_boost_freq = 1017600;
 		else
-			s->input_boost_freq = 1209600;
+			s->input_boost_freq = 0; /* Keep Gold cores completely default/untouched on touch */
 		s->powerkey_input_boost_freq = 1497600;
 	}
 	input_boost_enabled = true;

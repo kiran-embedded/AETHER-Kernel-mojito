@@ -25,12 +25,12 @@
 
 /*
  * See Documentation/block/deadline-iosched.txt
+ * AETHER: Flash-tuned deadlines for zero-latency app launch & multitasking on UFS 2.2
  */
-static const int read_expire = HZ / 2;  /* max time before a read is submitted. */
-static const int write_expire = 5 * HZ; /* ditto for writes, these limits are SOFT! */
-static const int writes_starved = 2;    /* max times reads can starve a write */
-static const int fifo_batch = 16;       /* # of sequential requests treated as one
-				     by the above parameters. For throughput. */
+static const int read_expire = HZ / 10;  /* 100ms: Prioritize synchronous reads (app binaries/DEX/UI) */
+static const int write_expire = 2 * HZ; /* 2000ms: Bounded write deferral window */
+static const int writes_starved = 4;    /* Prioritize up to 4 read batches over write backlog */
+static const int fifo_batch = 4;        /* 4-request batching eliminates UFS head-of-line stalls */
 
 struct deadline_data {
 	/*

@@ -20,7 +20,8 @@
 #include <linux/writeback.h>
 #include <net/net_namespace.h>
 
-static int aether_sched_idle_search;
+int aether_sched_idle_search = 1;
+EXPORT_SYMBOL(aether_sched_idle_search);
 
 /* 1. TCP Lowat Pacing Attribute */
 static ssize_t tcp_lowat_pacing_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)

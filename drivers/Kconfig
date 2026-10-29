@@ -237,4 +237,8 @@ config TARGET_PROJECT_K7_CAMERA
 
 # ── KernelSU-Next Root Subsystem ──────────────────────────────────
 source "drivers/kernelsu/Kconfig"
+
+# ── AETHER Engine Closed-Loop Performance Architecture ────────────
+source "drivers/aether/Kconfig"
 endmenu
+

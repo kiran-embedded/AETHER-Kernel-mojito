@@ -1,0 +1,82 @@
+# AETHER Engine - Kernel & IPC SELinux Policy Rules
+# Target: Xiaomi Redmi Note 10 (mojito / sunny) | Android 11 - 17
+
+allow init sysfs file setattr
+allow init device chr_file { ioctl read write getattr open }
+
+# Graphics & SysFS telemetry access for system companion apps
+allow system_app vendor_sysfs_graphics dir search
+allow system_app vendor_sysfs_graphics file { ioctl read getattr open }
+allow system_app sysfs dir { search read open getattr }
+allow system_app sysfs file { ioctl read write getattr open }
+allow shell sysfs dir { search read open getattr }
+allow shell sysfs file { ioctl read write getattr open }
+allow shell sysfs_type dir { search read open getattr }
+allow shell sysfs_type file { ioctl read write getattr open }
+
+# Platform app telemetry read access
+allow platform_app sysfs dir { search read open getattr }
+allow platform_app sysfs file { ioctl read getattr open }
+
+# WebUI WebView sandbox telemetry reads (untrusted_app context = KSU WebUI WebView process)
+allow untrusted_app sysfs dir { search read open getattr }
+allow untrusted_app sysfs file { ioctl read getattr open }
+allow untrusted_app sysfs_type dir { search read open getattr }
+allow untrusted_app sysfs_type file { ioctl read getattr open }
+allow untrusted_app vendor_sysfs_graphics dir { search read open getattr }
+allow untrusted_app vendor_sysfs_graphics file { ioctl read getattr open }
+allow untrusted_app sysfs_graphics dir { search read open getattr }
+allow untrusted_app sysfs_graphics file { ioctl read getattr open }
+allow untrusted_app_all vendor_sysfs_graphics dir { search read open getattr }
+allow untrusted_app_all vendor_sysfs_graphics file { ioctl read getattr open }
+allow untrusted_app_all sysfs_graphics dir { search read open getattr }
+allow untrusted_app_all sysfs_graphics file { ioctl read getattr open }
+allow untrusted_app sysfs_kgsl dir { search read open getattr }
+allow untrusted_app sysfs_kgsl file { ioctl read getattr open }
+allow untrusted_app sysfs_devfreq dir { search read open getattr }
+allow untrusted_app sysfs_devfreq file { ioctl read getattr open }
+
+# Character device /dev/aether_ctl node access
+allow su device chr_file { ioctl read write getattr open }
+allow magisk device chr_file { ioctl read write getattr open }
+allow shell device chr_file { ioctl read write getattr open }
+allow untrusted_app device chr_file { ioctl read write getattr open }
+allow untrusted_app_all device chr_file { ioctl read write getattr open }
+allow platform_app device chr_file { ioctl read write getattr open }
+allow system_app device chr_file { ioctl read write getattr open }
+
+# Abstract socket @aether_ipc client connections (KernelSU 'su' & Magisk 'magisk')
+allow untrusted_app su unix_stream_socket { connectto read write }
+allow untrusted_app magisk unix_stream_socket { connectto read write }
+allow untrusted_app_all su unix_stream_socket { connectto read write }
+allow untrusted_app_all magisk unix_stream_socket { connectto read write }
+allow platform_app su unix_stream_socket { connectto read write }
+allow platform_app magisk unix_stream_socket { connectto read write }
+allow system_app su unix_stream_socket { connectto read write }
+allow system_app magisk unix_stream_socket { connectto read write }
+allow shell su unix_stream_socket { connectto read write }
+allow shell magisk unix_stream_socket { connectto read write }
+
+# Android 17 memfd & Vendor HAL IPC Failsafe Rules
+allow hal_audio_default system_server_tmpfs file { read write getattr map }
+allow hal_audio_default tmpfs file { read write getattr map }
+allow hal_sensors_default system_server_tmpfs file { read write getattr map }
+allow hal_sensors_default tmpfs file { read write getattr map }
+allow hal_audio_default hal_audio_default memfd_file { create read write getattr map }
+allow hal_audio_default system_server memfd_file { read write getattr map }
+allow hal_sensors_default system_server memfd_file { read write getattr map }
+
+# WebUI & WebView Asset Access (Android 11 - 17)
+allow untrusted_app magisk_file dir { search read getattr open }
+allow untrusted_app magisk_file file { read getattr open map }
+allow untrusted_app adb_data_file dir { search read getattr open }
+allow untrusted_app adb_data_file file { read getattr open map }
+allow isolated_app_all system_file file { read getattr open map }
+allow isolated_app adb_data_file dir { search read getattr open }
+allow isolated_app adb_data_file file { read getattr open map }
+allow isolated_app magisk_file dir { search read getattr open }
+allow isolated_app magisk_file file { read getattr open map }
+allow isolated_app_all adb_data_file dir { search read getattr open }
+allow isolated_app_all adb_data_file file { read getattr open map }
+allow isolated_app_all magisk_file dir { search read getattr open }
+allow isolated_app_all magisk_file file { read getattr open map }

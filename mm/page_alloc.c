@@ -313,16 +313,18 @@ compound_page_dtor * const compound_page_dtors[] = {
 };
 
 /*
- * AETHER In-Kernel Predictive Memory Architecture:
- * 32MB min_free_kbytes guarantees emergency allocation headroom for Camera/CMA.
- * 24MB extra_free_kbytes provides early kswapd proactive reclaim without
- * locking excessive RAM in artificial zone reserves.
- * 200 watermark_scale_factor (2.0%) creates smooth background paging increments.
+ * AETHER In-Kernel Low-Latency Memory Architecture:
+ * 16MB min_free_kbytes guarantees atomic/camera allocation headroom without
+ * wasting physical memory.
+ * 0 extra_free_kbytes eliminates artificial direct-reclaim stalls and ZRAM
+ * compression lag during app launches and multitasking.
+ * 200 watermark_scale_factor (2.0% in-kernel baseline) ensures a wide, proactive
+ * kswapd background buffer before memory drops to direct reclaim watermarks.
  */
-int min_free_kbytes = 32768;
+int min_free_kbytes = 16384;
 int user_min_free_kbytes = -1;
 int watermark_scale_factor = 200;
-int extra_free_kbytes = 24576;
+int extra_free_kbytes = 0;
 
 static unsigned long __meminitdata nr_kernel_pages;
 static unsigned long __meminitdata nr_all_pages;
@@ -7315,9 +7317,9 @@ int __meminit init_per_zone_wmark_min(void)
 	new_min_free_kbytes = int_sqrt(lowmem_kbytes * 16);
 
 	if (user_min_free_kbytes <= 0) {
-		/* AETHER: In-Kernel Predictive Memory Architecture Baseline */
-		min_free_kbytes = 32768;
-		extra_free_kbytes = 24576;
+		/* AETHER: In-Kernel Low-Latency Baseline */
+		min_free_kbytes = 16384;
+		extra_free_kbytes = 0;
 		watermark_scale_factor = 200;
 		percpu_pagelist_fraction = 0;
 	} else {

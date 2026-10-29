@@ -140,3 +140,25 @@ TODAY_DEVELOPMENT_HISTORY_*.md
 *.orig
 *.rej
 sha256sum.txt
+
+# Kernel and package binaries
+packaging/anykernel3/Image
+packaging/anykernel3/dtb
+*.pdf
+*.txt
+packaging/aetherd/
+generate_aether_blueprint_pdf.py
+
+# Intermediate APK build artifacts
+packaging/aether_service/build/
+packaging/aether_service/bin/
+packaging/aether_service/gen/
+packaging/aether_service/*.apk*
+packaging/aether_fpsmeter/build/
+packaging/aether_fpsmeter/bin/
+packaging/aether_fpsmeter/gen/
+packaging/aether_fpsmeter/dex/
+packaging/aether_fpsmeter/*.apk*
+*.class
+*.dex
+

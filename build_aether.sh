@@ -281,6 +281,30 @@ ok "Manifest saved:     ${ARTIFACTS_DIR}/build_manifest.json"
 # ------------------------------------------------------------------------------
 # 9. Packaging Phase (AnyKernel3, WebUI, SuSFS Spoofer)
 # ------------------------------------------------------------------------------
+# Note: AETHER Engine native daemon (aetherd) is purged to eliminate background polling CPU overhead.
+# AetherEngineCore.apk is retained as the zero-resource Quick Settings Tile Provider (0% daemon overhead).
+rm -f "${SCRIPT_DIR}/packaging/anykernel3/tools/aetherd" "${SCRIPT_DIR}/packaging/aether_kernel_control/tools/aetherd" 2>/dev/null || true
+
+if [ -f "${SCRIPT_DIR}/packaging/aether_fpsmeter/build_apk.sh" ]; then
+    info "Compiling AETHER FPS Monitor APK..."
+    "${SCRIPT_DIR}/packaging/aether_fpsmeter/build_apk.sh"
+    cp -f "${SCRIPT_DIR}/packaging/aether_fpsmeter/AetherFpsMeter.apk" "${SCRIPT_DIR}/packaging/anykernel3/tools/AetherFpsMeter.apk"
+    mkdir -p "${SCRIPT_DIR}/packaging/aether_kernel_control/tools"
+    mkdir -p "${SCRIPT_DIR}/packaging/aether_kernel_control/system/app/AetherFpsMeter"
+    cp -f "${SCRIPT_DIR}/packaging/aether_fpsmeter/AetherFpsMeter.apk" "${SCRIPT_DIR}/packaging/aether_kernel_control/tools/AetherFpsMeter.apk"
+    cp -f "${SCRIPT_DIR}/packaging/aether_fpsmeter/AetherFpsMeter.apk" "${SCRIPT_DIR}/packaging/aether_kernel_control/system/app/AetherFpsMeter/AetherFpsMeter.apk"
+fi
+
+if [ -f "${SCRIPT_DIR}/packaging/aether_service/build_apk.sh" ]; then
+    info "Compiling AETHER Quick Settings Tiles APK (Zero-Resource Tile Provider)..."
+    "${SCRIPT_DIR}/packaging/aether_service/build_apk.sh"
+    cp -f "${SCRIPT_DIR}/packaging/aether_service/AetherEngineCore.apk" "${SCRIPT_DIR}/packaging/anykernel3/tools/AetherEngineCore.apk"
+    mkdir -p "${SCRIPT_DIR}/packaging/aether_kernel_control/tools"
+    mkdir -p "${SCRIPT_DIR}/packaging/aether_kernel_control/system/app/AetherEngineCore"
+    cp -f "${SCRIPT_DIR}/packaging/aether_service/AetherEngineCore.apk" "${SCRIPT_DIR}/packaging/aether_kernel_control/tools/AetherEngineCore.apk"
+    cp -f "${SCRIPT_DIR}/packaging/aether_service/AetherEngineCore.apk" "${SCRIPT_DIR}/packaging/aether_kernel_control/system/app/AetherEngineCore/AetherEngineCore.apk"
+fi
+
 info "Packaging flashable AnyKernel3 ZIP..."
 AK3_STAGING="${ARTIFACTS_DIR}/package_staging"
 rm -rf "${AK3_STAGING}"
@@ -293,7 +317,8 @@ if [ -d "${AK3_STAGING}" ]; then
     cp -f "${IMAGE_OUT}" "${AK3_STAGING}/Image"
     find "${OUT_DIR}/arch/arm64/boot/dts/qcom" -name "*sm6150*.dtb" -exec cp -f {} "${AK3_STAGING}/dtb" \; 2>/dev/null || true
     
-    KERNEL_ZIP="${SCRIPT_DIR}/AETHER-Kernel-mojito-v1.6.1-stable-mglru-${AETHER_KSU_TAG:-ksunext}-susfs.zip"
+    KERNEL_ZIP="${SCRIPT_DIR}/AETHER-Kernel-mojito-v1.8-stable-mglru-${AETHER_KSU_TAG:-ksunext}-susfs.zip"
+    rm -f "${KERNEL_ZIP}" "${KERNEL_ZIP}.sha256"
     (
         cd "${AK3_STAGING}"
         zip -r9 -q "${KERNEL_ZIP}" * -x ".*" -x "__MACOSX"
@@ -304,7 +329,7 @@ if [ -d "${AK3_STAGING}" ]; then
     if [ -d "/media/kirancybergrid/SANDISK" ]; then
         cp -f "${KERNEL_ZIP}" "/media/kirancybergrid/SANDISK/" 2>/dev/null || true
         [ -d "/media/kirancybergrid/SANDISK/aether kernal android 17" ] && cp -f "${KERNEL_ZIP}"* "/media/kirancybergrid/SANDISK/aether kernal android 17/" 2>/dev/null || true
-        [ -d "/media/kirancybergrid/SANDISK/AETHER_v1.6_Latest" ] && cp -f "${KERNEL_ZIP}" "/media/kirancybergrid/SANDISK/AETHER_v1.6_Latest/" 2>/dev/null || true
+        [ -d "/media/kirancybergrid/SANDISK/AETHER_v1.8_Latest" ] && cp -f "${KERNEL_ZIP}" "/media/kirancybergrid/SANDISK/AETHER_v1.8_Latest/" 2>/dev/null || true
         ok "Synced Kernel ZIP to SD Card (/media/kirancybergrid/SANDISK/)"
     fi
 fi
@@ -312,7 +337,8 @@ fi
 # Package WebUI Module
 if [ -d "${SCRIPT_DIR}/packaging/aether_kernel_control" ]; then
     info "Packaging AETHER Kernel Control (WebUI) Module..."
-    WEBUI_ZIP="${SCRIPT_DIR}/AETHER-Kernel-Control-WebUI-v1.6.1.zip"
+    WEBUI_ZIP="${SCRIPT_DIR}/AETHER-Kernel-Control-WebUI-v1.8.zip"
+    rm -f "${WEBUI_ZIP}" "${WEBUI_ZIP}.sha256"
     (
         cd "${SCRIPT_DIR}/packaging/aether_kernel_control"
         zip -r9 -q "${WEBUI_ZIP}" * -x ".*" -x "__MACOSX"
@@ -332,6 +358,7 @@ fi
 if [ -d "${SCRIPT_DIR}/packaging/aether_susfs_spoofer" ]; then
     info "Packaging AETHER SuSFS Stock Spoofer Module..."
     SPOOFER_ZIP="${SCRIPT_DIR}/AETHER-SuSFS-Stock-Spoofer-v2.3.0.zip"
+    rm -f "${SPOOFER_ZIP}" "${SPOOFER_ZIP}.sha256"
     (
         cd "${SCRIPT_DIR}/packaging/aether_susfs_spoofer"
         zip -r9 -q "${SPOOFER_ZIP}" * -x ".*" -x "__MACOSX"

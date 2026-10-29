@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Radiant High Brightness Sun Rays -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M12,1.8v2.2 M12,20v2.2 M1.8,12h2.2 M20,12h2.2 M4.8,4.8l1.6,1.6 M17.6,17.6l1.6,1.6 M4.8,19.2l1.6,-1.6 M17.6,6.4l1.6,-1.6"/>
+    <!-- Bold 'HBM' Typography Inside Sun -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M5.2,9h1.1v2.1h1.4V9h1.1v6H7.7v-2.4H6.3V15H5.2z M9.8,9h2.2c0.5,0 0.9,0.3 0.9,0.8v0.7c0,0.3 -0.2,0.5 -0.4,0.7 0.3,0.2 0.5,0.4 0.5,0.8v0.8c0,0.5 -0.4,0.9 -0.9,0.9H9.8z M10.8,10.2v1.2h1.2c0.2,0 0.3,-0.1 0.3,-0.2v-0.8c0,-0.1 -0.1,-0.2 -0.3,-0.2z M10.8,12.6v1.2h1.2c0.2,0 0.3,-0.1 0.3,-0.2v-0.8c0,-0.1 -0.1,-0.2 -0.3,-0.2z M14.5,9h1.2l1,2.8 1,-2.8h1.2v6h-1.1v-3.2l-0.8,2.3h-0.6l-0.8,-2.3V15h-1.1z"/>
+</vector>

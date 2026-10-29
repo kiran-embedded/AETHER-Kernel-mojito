@@ -2042,7 +2042,10 @@ static int smb5_batt_set_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX:
 		chg->batt_profile_fcc_ua = val->intval;
-		vote(chg->fcc_votable, BATT_PROFILE_VOTER, true, val->intval);
+		if (val->intval <= 0 || val->intval == -EINVAL)
+			vote(chg->fcc_votable, BATT_PROFILE_VOTER, false, 0);
+		else
+			vote(chg->fcc_votable, BATT_PROFILE_VOTER, true, val->intval);
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT:
 		smb5_config_iterm(chg, val->intval, 0);

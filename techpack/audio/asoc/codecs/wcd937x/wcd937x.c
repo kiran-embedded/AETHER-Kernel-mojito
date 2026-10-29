@@ -59,6 +59,11 @@ enum {
 static const DECLARE_TLV_DB_SCALE(line_gain, 0, 7, 1);
 static const DECLARE_TLV_DB_SCALE(analog_gain, 0, 25, 1);
 
+extern int aether_audio_bypass_mode;
+extern int aether_mic_adc_gain;
+extern int aether_mic_gain_bottom;
+extern int aether_mic_gain_top;
+
 static int wcd937x_handle_post_irq(void *data);
 static int wcd937x_reset(struct device *dev);
 static int wcd937x_reset_low(struct device *dev);
@@ -1261,6 +1266,20 @@ static int wcd937x_enable_req(struct snd_soc_dapm_widget *w,
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH2, 0x40, 0x00);
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH2, 0x80, 0x80);
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH3, 0x80, 0x80);
+
+		/* AETHER Hardware Analog Preamp Gain Calibration (only when not in bypass) */
+		if (!aether_audio_bypass_mode && aether_mic_adc_gain >= 8 && aether_mic_adc_gain <= 20) {
+			int b_adc = aether_mic_adc_gain + (aether_mic_gain_bottom / 2);
+			int t_adc = aether_mic_adc_gain + (aether_mic_gain_top / 2);
+			if (b_adc < 8) b_adc = 8;
+			if (b_adc > 20) b_adc = 20;
+			if (t_adc < 8) t_adc = 8;
+			if (t_adc > 20) t_adc = 20;
+
+			snd_soc_update_bits(codec, WCD937X_ANA_TX_CH1, 0x1F, b_adc);
+			snd_soc_update_bits(codec, WCD937X_ANA_TX_CH2, 0x1F, aether_mic_adc_gain);
+			snd_soc_update_bits(codec, WCD937X_ANA_TX_CH3, 0x1F, t_adc);
+		}
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		snd_soc_update_bits(codec, WCD937X_ANA_TX_CH1, 0x80, 0x00);

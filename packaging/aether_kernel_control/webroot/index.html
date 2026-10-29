@@ -2,11 +2,21 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
   <meta name="theme-color" content="#000000">
-  <title>AETHER Kernel Control v1.6.1</title>
+  <title>AETHER Kernel Control v1.8</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
   <link rel="stylesheet" href="style.css">
+  <style>
+    html, body {
+      background-color: #000000 !important;
+      color: #ffffff !important;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+  </style>
 </head>
 <body>
   <div class="app-wrapper">
@@ -14,87 +24,421 @@
     <!-- Top Navigation Bar -->
     <header class="app-bar">
       <div class="brand">
-        <div class="brand-icon">⚡</div>
-        <div>
-          <h1 class="brand-title">AETHER Control <span class="version-pill">v1.6.1</span></h1>
+        <div class="brand-icon-box" aria-hidden="true">
+          <svg class="brand-bolt-svg" viewBox="0 0 24 24" width="22" height="22" fill="none">
+            <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="url(#boltGrad)" stroke="#00d4ff" stroke-width="1.2" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="boltGrad" x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#ffffff"/>
+                <stop offset="0.6" stop-color="#00d4ff"/>
+                <stop offset="1" stop-color="#0284c7"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">AETHER Control <span class="version-pill">v1.8</span></h1>
           <p class="brand-sub">Redmi Note 10 • Snapdragon 678</p>
         </div>
       </div>
       <div class="top-actions">
-        <button class="theme-toggle" id="btnThemeToggle" title="Toggle Light/Dark Theme">
-          <span id="themeIcon">☀️</span>
+        <button class="icon-circle-btn theme-toggle" id="btnThemeToggle" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
+          <svg class="theme-icon-svg theme-icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="currentColor">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg class="theme-icon-svg theme-icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <span id="themeIcon" style="display:none;">☀️</span>
         </button>
+        <button class="icon-circle-btn menu-btn" id="btnMenuDots" title="Menu Options" aria-label="Menu Options">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <circle cx="12" cy="5" r="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="12" cy="19" r="2"/>
+          </svg>
+        </button>
+
+        <!-- Modern Top Action Dropdown Menu -->
+        <div class="menu-dropdown" id="menuDotsDropdown" style="display: none;">
+          <div class="menu-dropdown-header">
+            <span>AETHER Core v1.8</span>
+            <span class="badge-pill" style="font-size: 9px; padding: 2px 7px; background: rgba(0, 212, 255, 0.2); color: #00d4ff; border-color: rgba(0, 212, 255, 0.4);">Ring-0 Direct</span>
+          </div>
+          <button class="menu-item-btn" id="menuOptHelp">
+            <span class="menu-item-icon">📖</span>
+            <div class="menu-item-text">
+              <strong>Tuning Knowledge Base</strong>
+              <small>What each setting does, increase/decrease impact</small>
+            </div>
+          </button>
+          <button class="menu-item-btn" id="menuOptDiagnostics">
+            <span class="menu-item-icon">⚡</span>
+            <div class="menu-item-text">
+              <strong>Kernel Sysfs Audit</strong>
+              <small>Direct hardware proof & driver connection</small>
+            </div>
+          </button>
+          <button class="menu-item-btn" id="menuOptPolling">
+            <span class="menu-item-icon">⏱️</span>
+            <div class="menu-item-text">
+              <strong>Telemetry Polling Rate</strong>
+              <small id="lblMenuPolling">Current: 3s rate (Tap to cycle)</small>
+            </div>
+          </button>
+          <button class="menu-item-btn" id="menuOptTouchGuard">
+            <span class="menu-item-icon">🛡️</span>
+            <div class="menu-item-text">
+              <strong>Accidental Touch Lock</strong>
+              <small id="lblMenuTouch">Lock/unlock sliders & controls</small>
+            </div>
+          </button>
+          <button class="menu-item-btn" id="menuOptCompactZram">
+            <span class="menu-item-icon">🧹</span>
+            <div class="menu-item-text">
+              <strong>Compact ZRAM Pool</strong>
+              <small>Flush inactive pages & reclaim RAM</small>
+            </div>
+          </button>
+          <button class="menu-item-btn" id="menuOptExportSysfs">
+            <span class="menu-item-icon">📋</span>
+            <div class="menu-item-text">
+              <strong>Copy Kernel Tweaks</strong>
+              <small>Export active shell commands to clipboard</small>
+            </div>
+          </button>
+          <button class="menu-item-btn" id="menuOptAbout">
+            <span class="menu-item-icon">ℹ️</span>
+            <div class="menu-item-text">
+              <strong>About AETHER Engine</strong>
+              <small>Snapdragon 678 • Kiran_Embedded</small>
+            </div>
+          </button>
+        </div>
       </div>
     </header>
 
     <!-- Master Hardware Safety Lock (Accidental Touch Protection) -->
     <section class="safety-guard-bar unlocked" id="safetyGuardBar">
-      <div class="safety-guard-title">
-        <span class="safety-guard-icon" id="safetyGuardIcon">🔓</span>
-        <div>
-          <span class="safety-guard-heading" id="safetyGuardHeading">Touch Controls: Unlocked</span>
+      <div class="safety-guard-left">
+        <div class="safety-guard-icon-box">
+          <svg class="guard-padlock-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path class="shackle-unlocked" d="M7 11V7a5 5 0 0 1 9.9-1"/>
+            <path class="shackle-locked" d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <span class="safety-guard-icon" id="safetyGuardIcon" style="display:none;">🔓</span>
+        </div>
+        <div class="safety-guard-meta">
+          <div class="safety-guard-heading-wrap">
+            <span class="safety-guard-heading" id="safetyGuardHeading">Touch Controls: <span style="color:#00d4ff;font-weight:800;">Unlocked</span></span>
+          </div>
           <span class="safety-guard-sub" id="safetyGuardSub">Controls active. Sliders & switches respond directly to touch.</span>
         </div>
       </div>
       <button class="safety-guard-btn is-unlocked" id="btnToggleTouchGuard" title="Toggle Accidental Touch Lock">
-        <span id="btnTouchGuardIcon">🔓</span> <span id="btnTouchGuardText">Unlocked</span>
+        <span class="guard-btn-icon-wrap" id="btnTouchGuardIcon">🔓</span>
+        <span class="guard-btn-text" id="btnTouchGuardText">Unlocked</span>
+        <svg class="chevron-svg" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
       </button>
     </section>
 
-    <!-- Live Telemetry Section (Pulsing Indicator) -->
+    <!-- Live Telemetry Section -->
     <section class="telemetry-section">
       <div class="telemetry-header">
-        <span class="telemetry-section-title">Hardware Telemetry</span>
-        <div class="live-indicator"><span class="pulse-dot"></span> Live Polling (3s)</div>
+        <div class="telemetry-title-wrap">
+          <span class="telemetry-accent-bar"></span>
+          <span class="telemetry-section-title">HARDWARE TELEMETRY</span>
+        </div>
+        <div class="live-indicator">
+          <span class="pulse-dot"></span>
+          <span class="live-text">LIVE POLLING (3S)</span>
+          <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
       </div>
+
       <div class="telemetry-panel">
-        <div class="telemetry-item">
-          <span class="telemetry-label">CPU CLOCK</span>
-          <span class="telemetry-value" id="valCpuFreq">-- MHz</span>
+        <!-- CPU CLOCK -->
+        <div class="telemetry-item clickable" id="telItemCpu" data-tab="tab-advanced" data-target="cardCpuGovernors" title="Quick Tweak: CPU Frequencies & Governors">
+          <div class="telemetry-item-top">
+            <div class="telemetry-item-icon-title">
+              <svg class="tel-icon tel-icon-cpu" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                <rect x="9" y="9" width="6" height="6"/>
+                <line x1="9" y1="1" x2="9" y2="4"/>
+                <line x1="15" y1="1" x2="15" y2="4"/>
+                <line x1="9" y1="20" x2="9" y2="23"/>
+                <line x1="15" y1="20" x2="15" y2="23"/>
+                <line x1="20" y1="9" x2="23" y2="9"/>
+                <line x1="20" y1="15" x2="23" y2="15"/>
+                <line x1="1" y1="9" x2="4" y2="9"/>
+                <line x1="1" y1="15" x2="4" y2="15"/>
+              </svg>
+              <span class="telemetry-label">CPU CLOCK</span>
+            </div>
+            <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+          <div class="telemetry-value-row">
+            <span class="telemetry-value" id="valCpuFreq">749 / 1210 MHz</span>
+          </div>
+          <div class="tel-progress-track">
+            <div class="tel-progress-bar bar-cpu"></div>
+          </div>
         </div>
-        <div class="telemetry-item">
-          <span class="telemetry-label">GPU CLOCK</span>
-          <span class="telemetry-value" id="valGpuFreq">-- MHz</span>
+
+        <!-- GPU CLOCK -->
+        <div class="telemetry-item clickable" id="telItemGpu" data-tab="tab-advanced" data-target="cardGpuTuning" title="Quick Tweak: Adreno 612 GPU Clocks">
+          <div class="telemetry-item-top">
+            <div class="telemetry-item-icon-title">
+              <svg class="tel-icon tel-icon-gpu" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                <text x="12" y="14" font-size="7" font-weight="900" text-anchor="middle" fill="#a855f7" stroke="none" font-family="-apple-system, sans-serif">GPU</text>
+                <line x1="6" y1="19" x2="6" y2="21"/>
+                <line x1="10" y1="19" x2="10" y2="21"/>
+                <line x1="14" y1="19" x2="14" y2="21"/>
+                <line x1="18" y1="19" x2="18" y2="21"/>
+              </svg>
+              <span class="telemetry-label">GPU CLOCK</span>
+            </div>
+            <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+          <div class="telemetry-value-row">
+            <span class="telemetry-value" id="valGpuFreq">290 MHz (82%)</span>
+          </div>
+          <div class="tel-progress-track">
+            <div class="tel-progress-bar bar-gpu"></div>
+          </div>
         </div>
-        <div class="telemetry-item">
-          <span class="telemetry-label">BATTERY</span>
-          <span class="telemetry-value" id="valBattery">--°C / --%</span>
+
+        <!-- BATTERY -->
+        <div class="telemetry-item clickable" id="telItemBattery" data-tab="tab-quick" data-target="cardBatteryProtection" title="Quick Tweak: Battery Care & Cutoff">
+          <div class="telemetry-item-top">
+            <div class="telemetry-item-icon-title">
+              <svg class="tel-icon tel-icon-battery" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="18" height="12" rx="2"/>
+                <path d="M22 10v4" stroke-width="2.5"/>
+                <path d="M11 9l-2 3h4l-2 3" stroke="#10b981" stroke-width="1.8" stroke-linejoin="round" fill="#10b981"/>
+              </svg>
+              <span class="telemetry-label">BATTERY</span>
+            </div>
+            <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+          <div class="telemetry-value-row">
+            <span class="telemetry-value" id="valBattery">34.3°C / 80%</span>
+          </div>
+          <div class="tel-progress-track">
+            <div class="tel-progress-bar bar-battery"></div>
+          </div>
         </div>
-        <div class="telemetry-item">
-          <span class="telemetry-label">DRM FPS</span>
-          <span class="telemetry-value highlight" id="valFps">-- FPS</span>
+
+        <!-- DRM FPS -->
+        <div class="telemetry-item clickable" id="telItemFps" data-tab="tab-quick" data-target="cardFpsMeter" title="Quick Tweak: DRM Floating FPS Meter">
+          <div class="telemetry-item-top">
+            <div class="telemetry-item-icon-title">
+              <svg class="tel-icon tel-icon-fps" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="20" height="12" rx="6"/>
+                <line x1="7" y1="10" x2="7" y2="14"/>
+                <line x1="5" y1="12" x2="9" y2="12"/>
+                <circle cx="16" cy="10" r="1" fill="#f43f5e"/>
+                <circle cx="18" cy="12" r="1" fill="#f43f5e"/>
+                <circle cx="14" cy="12" r="1" fill="#f43f5e"/>
+                <circle cx="16" cy="14" r="1" fill="#f43f5e"/>
+              </svg>
+              <span class="telemetry-label">DRM FPS</span>
+            </div>
+            <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+          <div class="telemetry-value-row">
+            <span class="telemetry-value highlight" id="valFps">0.0 FPS</span>
+          </div>
+          <div class="tel-progress-track">
+            <div class="tel-progress-bar bar-fps"></div>
+          </div>
         </div>
-        <div class="telemetry-item">
-          <span class="telemetry-label">MEM AVAILABLE</span>
-          <span class="telemetry-value highlight" id="valMemory">--</span>
+
+        <!-- MEM AVAILABLE -->
+        <div class="telemetry-item clickable" id="telItemMem" data-tab="tab-advanced" data-target="cardVmEngine" title="Quick Tweak: Virtual Memory & Cache Pressure">
+          <div class="telemetry-item-top">
+            <div class="telemetry-item-icon-title">
+              <svg class="tel-icon tel-icon-mem" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2"/>
+                <line x1="8" y1="6" x2="16" y2="6"/>
+                <line x1="8" y1="10" x2="16" y2="10"/>
+                <line x1="8" y1="14" x2="16" y2="14"/>
+                <line x1="8" y1="18" x2="16" y2="18"/>
+                <line x1="2" y1="6" x2="4" y2="6"/>
+                <line x1="2" y1="12" x2="4" y2="12"/>
+                <line x1="2" y1="18" x2="4" y2="18"/>
+                <line x1="20" y1="6" x2="22" y2="6"/>
+                <line x1="20" y1="12" x2="22" y2="12"/>
+                <line x1="20" y1="18" x2="22" y2="18"/>
+              </svg>
+              <span class="telemetry-label">MEM AVAILABLE</span>
+            </div>
+            <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+          <div class="telemetry-value-row">
+            <span class="telemetry-value highlight" id="valMemory">1.1 GB • 1355 MB</span>
+          </div>
+          <div class="tel-progress-track">
+            <div class="tel-progress-bar bar-mem"></div>
+          </div>
+        </div>
+
+        <!-- ZRAM COMP -->
+        <div class="telemetry-item clickable" id="telItemZram" data-tab="tab-advanced" data-target="cardZramEngine" title="Quick Tweak: ZRAM Compression & Swap">
+          <div class="telemetry-item-top">
+            <div class="telemetry-item-icon-title">
+              <svg class="tel-icon tel-icon-zram" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="8" ry="3"/>
+                <path d="M4 5v5c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/>
+                <path d="M4 10v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5"/>
+                <path d="M4 15v4c0 1.66 3.58 3 8 3s8-1.34 8-3v-4"/>
+              </svg>
+              <span class="telemetry-label">ZRAM COMP</span>
+            </div>
+            <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+          <div class="telemetry-value-row">
+            <span class="telemetry-value highlight" id="valZram">LZ4 • 3.32x</span>
+          </div>
+          <div class="tel-progress-track">
+            <div class="tel-progress-bar bar-zram"></div>
+          </div>
         </div>
       </div>
-      <!-- Live Real-Time Kernel Subsystems Strip (Verified AETHER Hardware Features) -->
+
+      <!-- Live Real-Time Kernel Subsystems Strip (2x3 Grid Layout) -->
       <div class="kernel-live-strip" id="kernelLiveStrip">
-        <div class="live-engine-chip">
-          <span class="chip-dot active" id="dotBore"></span>
-          <span class="chip-label">BORE CFS:</span>
-          <strong id="liveBoreStatus" style="color: var(--color-success);">v5.1.0 Active</strong>
+        <!-- BORE CFS -->
+        <div class="live-engine-chip clickable" data-tab="tab-advanced" data-target="cardBoreEngine" title="Quick Tweak: BORE Scheduler Scale">
+          <div class="chip-main">
+            <svg class="chip-svg text-cyan" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span class="chip-dot active" id="dotBore" style="display:none;"></span>
+            <span class="chip-label">BORE:</span>
+            <strong id="liveBoreStatus" class="chip-status-active">v3.1.8 Active</strong>
+          </div>
+          <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
         </div>
-        <div class="live-engine-chip">
-          <span class="chip-dot active" id="dotMglru"></span>
-          <span class="chip-label">MGLRU:</span>
-          <strong id="liveMglruStatus" style="color: var(--color-success);">Multi-Gen Active</strong>
+
+        <!-- MGLRU -->
+        <div class="live-engine-chip clickable" data-tab="tab-advanced" data-target="cardVmEngine" title="Quick Tweak: MGLRU & Virtual Memory">
+          <div class="chip-main">
+            <svg class="chip-svg text-cyan" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span class="chip-dot active" id="dotMglru" style="display:none;"></span>
+            <span class="chip-label">MGLRU:</span>
+            <strong id="liveMglruStatus" class="chip-status-active">Active</strong>
+          </div>
+          <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
         </div>
-        <div class="live-engine-chip">
-          <span class="chip-dot active" id="dotSusfs"></span>
-          <span class="chip-label">SuSFS:</span>
-          <strong id="liveSusfsStatus" style="color: var(--color-success);">v2.3.0 Active</strong>
+
+        <!-- ZRAM -->
+        <div class="live-engine-chip clickable" id="chipLiveZram" data-tab="tab-advanced" data-target="cardZramEngine" title="Quick Tweak: ZRAM Compression Pool">
+          <div class="chip-main">
+            <svg class="chip-svg text-cyan" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            <span class="chip-dot active" id="dotZram" style="display:none;"></span>
+            <span class="chip-label">ZRAM:</span>
+            <strong id="liveZramStatus" class="chip-status-active">3.0 GB Active</strong>
+          </div>
+          <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
         </div>
-        <div class="live-engine-chip">
-          <span class="chip-dot active" id="dotGpuGov"></span>
-          <span class="chip-label">Adreno 612:</span>
-          <strong id="liveGpuGovStatus" style="color: var(--accent-cyan);">msm-adreno-tz</strong>
+
+        <!-- SuSFS -->
+        <div class="live-engine-chip clickable" data-tab="tab-susfs" title="Quick Tweak: SuSFS Kernel Stealth Subsystem">
+          <div class="chip-main">
+            <svg class="chip-svg text-cyan" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span class="chip-dot active" id="dotSusfs" style="display:none;"></span>
+            <span class="chip-label">SuSFS:</span>
+            <strong id="liveSusfsStatus" class="chip-status-active">v2.3.0 Active</strong>
+          </div>
+          <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
         </div>
-        <div class="live-engine-chip">
-          <span class="chip-dot active" id="dotAetherEngine"></span>
-          <span class="chip-label">Sandwiched:</span>
-          <strong id="liveAetherEngineStatus" style="color: var(--color-success);">v1.6.1 Engine Active</strong>
+
+        <!-- Adreno 612 GPU -->
+        <div class="live-engine-chip clickable" data-tab="tab-advanced" data-target="cardGpuTuning" title="Quick Tweak: Adreno 612 GPU Governor">
+          <div class="chip-main">
+            <svg class="chip-svg text-cyan" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+              <rect x="8" y="8" width="8" height="8" rx="1"></rect>
+              <line x1="9" y1="1" x2="9" y2="4"></line>
+              <line x1="15" y1="1" x2="15" y2="4"></line>
+              <line x1="9" y1="20" x2="9" y2="23"></line>
+              <line x1="15" y1="20" x2="15" y2="23"></line>
+              <line x1="20" y1="9" x2="23" y2="9"></line>
+              <line x1="20" y1="15" x2="23" y2="15"></line>
+              <line x1="1" y1="9" x2="4" y2="9"></line>
+              <line x1="1" y1="15" x2="4" y2="15"></line>
+            </svg>
+            <span class="chip-dot active" id="dotGpuGov" style="display:none;"></span>
+            <span class="chip-label">GPU:</span>
+            <strong id="liveGpuGovStatus" class="chip-status-cyan">msm-adreno-tz</strong>
+          </div>
+          <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+
+        <!-- AETHER Engine -->
+        <div class="live-engine-chip clickable" id="chipAetherEngineLive" title="Tap for Kernel Diagnostics & Proof">
+          <div class="chip-main">
+            <svg class="chip-svg text-cyan" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            <span class="chip-dot active" id="dotAetherEngine" style="display:none;"></span>
+            <span class="chip-label">AETHER:</span>
+            <strong id="liveAetherEngineStatus" class="chip-status-active">Active</strong>
+          </div>
+          <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
         </div>
       </div>
     </section>
@@ -102,76 +446,239 @@
     <!-- ONE-TAP QUICK HARDWARE PROFILES -->
     <section class="modes-section">
       <div class="section-title-row">
-        <h2>⚡ Hardware Profiles</h2>
-        <span class="mode-status-badge" id="activeModeBadge">Dev Tuned (Default)</span>
+        <div class="title-with-icon">
+          <svg class="section-header-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14"></line>
+            <line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line>
+            <line x1="20" y1="12" x2="20" y2="3"></line>
+            <line x1="1" y1="14" x2="7" y2="14"></line>
+            <line x1="9" y1="8" x2="15" y2="8"></line>
+            <line x1="17" y1="16" x2="23" y2="16"></line>
+          </svg>
+          <h2 class="section-title-text">Hardware Profiles</h2>
+        </div>
+        <div class="custom-config-pill" id="customConfigPillWrap">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span class="mode-status-badge" id="activeModeBadge">CUSTOM CONFIGURATION</span>
+          <svg class="chevron-svg" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
       </div>
 
-      <!-- Dev Tuned Kernel Default Mode -->
+      <!-- Default Mode Card (Top Tile) -->
       <button class="mode-card full-tile active" id="modeDefault" data-mode="default">
-        <div class="mode-icon">🔄</div>
+        <div class="mode-icon-box">
+          <svg class="mode-svg text-cyan" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14"></line>
+            <line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line>
+            <line x1="20" y1="12" x2="20" y2="3"></line>
+            <line x1="1" y1="14" x2="7" y2="14"></line>
+            <line x1="9" y1="8" x2="15" y2="8"></line>
+            <line x1="17" y1="16" x2="23" y2="16"></line>
+          </svg>
+        </div>
         <div class="mode-info">
           <div class="mode-header-row">
-            <span class="mode-name">Dev Tuned (Kernel Default)</span>
-            <span class="badge-pill">Active</span>
+            <div class="mode-title-group">
+              <span class="mode-name">Default</span>
+              <span class="badge-pill badge-selected" id="badgeDefaultPill">Selected</span>
+            </div>
+            <div class="mode-right-group">
+              <span class="badge-pill badge-stock">STOCK</span>
+              <svg class="chevron-svg text-muted" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
           </div>
-          <span class="mode-desc">Calibrated in-kernel baseline (BORE 1380, Sultan boost 64ms, LZ4 ZRAM, BBR TCP, stock 33W charging).</span>
+          <span class="mode-desc">Standard system baseline with balanced performance, battery efficiency, and charging safety.</span>
         </div>
       </button>
 
+      <!-- Sub-Grid for Profiles -->
       <div class="mode-cards-grid">
+        <!-- Multitask -->
         <button class="mode-card" id="modeStable" data-mode="stable">
-          <div class="mode-icon">🛡️</div>
-          <div class="mode-info">
-            <span class="mode-name">Stable</span>
-            <span class="badge-pill">Recommended</span>
-            <span class="mode-desc">Calibrated for stability, battery life, and smooth daily use</span>
+          <div class="mode-card-top">
+            <svg class="mode-svg text-cyan" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path>
+              <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path>
+              <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path>
+              <path d="M12 9V4s3.03.55 4 2c1.08 1.62 0 5 0 5"></path>
+            </svg>
+            <div class="mode-card-title-col">
+              <span class="mode-name">Multitask</span>
+              <span class="badge-pill badge-recommended">RECOMMENDED</span>
+            </div>
+            <svg class="chevron-svg text-muted" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
           </div>
+          <span class="mode-desc">Enhanced memory retention and responsive app switching.</span>
         </button>
 
+        <!-- Balanced -->
         <button class="mode-card" id="modeBalanced" data-mode="balanced">
-          <div class="mode-icon">⚖️</div>
-          <div class="mode-info">
-            <span class="mode-name">Balanced</span>
-            <span class="mode-desc">Smooth daily performance with adaptive energy scaling</span>
+          <div class="mode-card-top">
+            <svg class="mode-svg text-emerald" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
+            </svg>
+            <div class="mode-card-title-col">
+              <span class="mode-name">Balanced</span>
+            </div>
+            <svg class="chevron-svg text-muted" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
           </div>
+          <span class="mode-desc">Smooth daily performance with adaptive energy scaling.</span>
         </button>
 
+        <!-- Performance -->
         <button class="mode-card" id="modeGaming" data-mode="gaming">
-          <div class="mode-icon">🎮</div>
-          <div class="mode-info">
-            <span class="mode-name">Performance</span>
-            <span class="mode-desc">GPU 504MHz lock, 0μs ramp, peak clocks</span>
+          <div class="mode-card-top">
+            <svg class="mode-svg text-rose" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="6"/>
+              <line x1="7" y1="10" x2="7" y2="14"/>
+              <line x1="5" y1="12" x2="9" y2="12"/>
+              <circle cx="16" cy="10" r="1" fill="#f43f5e"/>
+              <circle cx="18" cy="12" r="1" fill="#f43f5e"/>
+              <circle cx="14" cy="12" r="1" fill="#f43f5e"/>
+              <circle cx="16" cy="14" r="1" fill="#f43f5e"/>
+            </svg>
+            <div class="mode-card-title-col">
+              <span class="mode-name">Performance</span>
+              <span class="badge-pill badge-turbo">PEAK</span>
+            </div>
+            <svg class="chevron-svg text-muted" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
           </div>
+          <span class="mode-desc">GPU 504MHz lock, 0μs ramp, peak clocks.</span>
         </button>
 
+        <!-- Battery Saver -->
         <button class="mode-card" id="modeBattery" data-mode="battery">
-          <div class="mode-icon">🔋</div>
-          <div class="mode-info">
-            <span class="mode-name">Battery Saver</span>
-            <span class="mode-desc">Optimized clocks, deep sleep, maximum endurance</span>
+          <div class="mode-card-top">
+            <svg class="mode-svg text-amber" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="18" height="12" rx="2"></rect>
+              <path d="M22 10v4" stroke-width="2.5"></path>
+              <path d="M7 12h6"></path>
+            </svg>
+            <div class="mode-card-title-col">
+              <span class="mode-name">Battery Saver</span>
+            </div>
+            <svg class="chevron-svg text-muted" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
           </div>
+          <span class="mode-desc">Optimized clocks, deep sleep, maximum endurance.</span>
         </button>
 
+        <!-- Smooth -->
         <button class="mode-card" id="modeZeroStutter" data-mode="stutter">
-          <div class="mode-icon">🚀</div>
-          <div class="mode-info">
-            <span class="mode-name">Smooth</span>
-            <span class="mode-desc">Instant touch response, 60 FPS frame pacing</span>
+          <div class="mode-card-top">
+            <svg class="mode-svg text-purple" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <div class="mode-card-title-col">
+              <span class="mode-name">Smooth</span>
+            </div>
+            <svg class="chevron-svg text-muted" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
           </div>
+          <span class="mode-desc">Instant touch response, 60 FPS frame pacing.</span>
+        </button>
+
+        <!-- Ultra Battery Saver (Emergency Situation) -->
+        <button class="mode-card" id="modeUltraBattery" data-mode="ultra_battery">
+          <div class="mode-card-top">
+            <svg class="mode-svg text-emerald" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="16" height="11" rx="2" ry="2"/>
+              <path d="M22 11v3"/>
+              <path d="M10 9l-3 4h4l-2 3"/>
+            </svg>
+            <div class="mode-card-title-col">
+              <span class="mode-name">Ultra Battery</span>
+              <span class="badge-pill badge-emergency">EMERGENCY</span>
+            </div>
+            <svg class="chevron-svg text-muted" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+          <span class="mode-desc">Emergency power cut, deep sleep, max endurance.</span>
         </button>
       </div>
 
       <!-- Dynamic Custom User Choice Banner -->
       <div class="user-choice-banner" id="userChoiceNotice" style="display: none;">
-        <span>⚙️ Custom User Choice: You have personalized hardware tweaks active.</span>
+        <span>⚙️ Custom Configuration: You have customized hardware settings active.</span>
       </div>
     </section>
+
+    <!-- ACTION DOCK: Apply on Boot, Reset Defaults, Live Ring-0 Direct (Positioned directly below modes matching reference UI) -->
+    <div class="action-dock" id="mainActionDock">
+      <div class="dock-switch-row">
+        <div class="dock-switch-label">
+          <svg class="dock-gear-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span class="dock-switch-text">Apply Settings on Boot</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="chkApplyOnBoot" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="dock-btn-row">
+        <button class="btn-action btn-danger" id="btnResetDefaults" title="Restore factory safe settings">
+          <div class="btn-dock-content">
+            <svg class="btn-dock-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            <span class="btn-dock-label">Reset All Defaults</span>
+          </div>
+          <svg class="chevron-svg text-danger" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+
+        <div class="live-hardware-badge" id="badgeLiveStatus">
+          <div class="btn-dock-content">
+            <svg class="live-ring-svg" viewBox="0 0 24 24" width="22" height="22" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="#00d4ff" stroke-width="2.5" stroke-opacity="0.9"></circle>
+              <circle cx="12" cy="12" r="5" fill="#00d4ff" fill-opacity="0.25"></circle>
+            </svg>
+            <span class="badge-dock-label">Live Ring-0 Direct</span>
+          </div>
+          <svg class="chevron-svg text-cyan" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+      </div>
+    </div>
 
     <!-- Tab Bar -->
     <nav class="nav-tabs">
       <button class="tab-item active" data-tab="tab-quick">🎛️ Essentials</button>
       <button class="tab-item" data-tab="tab-audio">🎙️ Audio & Sound</button>
-      <button class="tab-item" data-tab="tab-advanced">🛠️ Kernel Tunables</button>
+      <button class="tab-item" data-tab="tab-advanced">🛠️ Kernel Configuration</button>
       <button class="tab-item" data-tab="tab-susfs">🛡️ SUSFS Stealth</button>
       <button class="tab-item" data-tab="tab-help">❓ Help Center</button>
     </nav>
@@ -222,6 +729,25 @@
             </div>
             <label class="toggle-switch" style="margin-top: 2px; flex-shrink: 0;">
               <input type="checkbox" id="chkInstantBypass">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Section 1B: Screen Boost (Gaming & GPS Fast Charge) -->
+        <div class="power-subcard" style="margin-top: 10px;">
+          <div class="switch-row" style="align-items: flex-start;">
+            <div style="flex: 1; padding-right: 12px;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+                <h4 style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">🚀 Screen Boost (Uncapped 33W Charge)</h4>
+                <span class="badge-pill" id="badgeScreenBoost" style="font-size: 9.5px;">Off</span>
+              </div>
+              <p class="card-sub" style="font-size: 11.5px; line-height: 1.45; margin-bottom: 0;">
+                Expands 33W Turbo headroom to <strong>41.0°C</strong> and lifts MSCC stage limits. Prevents screen-on throttle down so the phone charges at peak speed while gaming, streaming, or running GPS navigation. Hard safety cutoff (44.0°C) is always active.
+              </p>
+            </div>
+            <label class="toggle-switch" style="margin-top: 2px; flex-shrink: 0;">
+              <input type="checkbox" id="chkScreenBoost">
               <span class="toggle-track"></span>
             </label>
           </div>
@@ -353,13 +879,31 @@
           </button>
         </div>
 
-        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+        <div class="switch-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
           <div>
             <div style="font-size: 12.5px; font-weight: 700; color: var(--text-primary);">Auto-Battery on Screen Off</div>
             <div style="font-size: 11px; color: var(--text-secondary);">Drops into battery profile when screen is locked via DRM notifier</div>
           </div>
           <label class="toggle-switch">
             <input type="checkbox" id="chkToggleAutoKp" checked>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Real-Time Floating FPS Meter -->
+      <div class="card" id="cardFpsMeter">
+        <div class="tile-category-row">
+          <span class="tile-category cat-display">⚡ Performance & Display</span>
+          <span class="tile-status" id="statusFpsMeter">Inactive</span>
+        </div>
+        <div class="switch-row">
+          <div>
+            <h3 class="card-title">Real-Time Floating FPS Meter</h3>
+            <p class="card-sub">Ultra-efficient hardware Choreographer VSYNC framerate bubble. Draggable AMOLED floating pill with zero CPU & battery overhead.</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="chkToggleFpsMeter">
             <span class="toggle-track"></span>
           </label>
         </div>
@@ -423,7 +967,7 @@
       <div class="card">
         <div class="tile-category-row">
           <span class="tile-category cat-power">⚡ Battery Power</span>
-          <span class="tile-status" id="statusTurbo">Auto QC/PD</span>
+          <span class="tile-status" id="statusTurbo">Force 33W Turbo</span>
         </div>
         <div class="switch-row">
           <div>
@@ -431,7 +975,7 @@
             <p class="card-sub">Forces maximum 33W fast charging negotiation on compliant QuickCharge and PowerDelivery bricks.</p>
           </div>
           <label class="toggle-switch">
-            <input type="checkbox" id="chkToggleTurboOverride">
+            <input type="checkbox" id="chkToggleTurboOverride" checked>
             <span class="toggle-track"></span>
           </label>
         </div>
@@ -565,7 +1109,7 @@
               <span style="font-size: 16px;">🛡️</span>
               <div>
                 <strong style="font-size: 12px; color: var(--accent-cyan); display: block;">Stock Factory Audio Routing Active</strong>
-                <span style="font-size: 11px; color: var(--text-secondary);">Controls below are in stock bypass mode. Adjust any slider or tap Unlock to customize mic tuning.</span>
+                <span style="font-size: 11px; color: var(--text-secondary);">Controls below are in stock bypass mode. Adjust any slider or tap Unlock to customize microphone audio.</span>
               </div>
             </div>
             <button class="chip-btn" id="btnUnlockBypassNotice" style="padding: 4px 10px; font-size: 10.5px; border-color: var(--accent-cyan) !important; color: var(--accent-cyan) !important;">Unlock</button>
@@ -700,7 +1244,7 @@
             <h3 class="card-title">Bottom Microphone Gain (Voice Calls)</h3>
             <span class="badge-val" id="lblBottomMic">0 dB (Stock)</span>
           </div>
-          <p class="card-sub">Fine-tunes digital decimator gain for primary talk mic. Strictly protected with a 96-integer ceiling (+12dB) to prevent any audio mute or decimator overflow.</p>
+          <p class="card-sub">Adjusts digital decimator gain for primary talk mic. Strictly protected with a 96-integer ceiling (+12dB) to prevent any audio mute or decimator overflow.</p>
           <div class="slider-container">
             <input type="range" class="custom-slider" id="rngBottomMic" min="-6" max="10" step="2" value="0">
           </div>
@@ -796,10 +1340,10 @@
       </div>
     </main>
 
-    <!-- ==================== TAB 3: KERNEL TUNABLES ==================== -->
+    <!-- ==================== TAB 3: KERNEL CONFIGURATION ==================== -->
     <main class="tab-page" id="tab-advanced">
       <!-- GPU Controls -->
-      <div class="card">
+      <div class="card" id="cardGpuTuning">
         <div class="tile-category-row">
           <span class="tile-category cat-gpu">🎮 Adreno 612 GPU</span>
           <span class="tile-status" id="statusGpuTile">Adaptive</span>
@@ -818,25 +1362,37 @@
         <div class="form-group">
           <label class="form-label" for="selGpuMin">Minimum Clock Floor</label>
           <select class="custom-select" id="selGpuMin">
-            <option value="180">180 MHz (Stock)</option>
-            <option value="267">267 MHz</option>
-            <option value="355">355 MHz</option>
-            <option value="430">430 MHz</option>
-            <option value="504">504 MHz (Performance)</option>
-            <option value="610">610 MHz (Turbo)</option>
-            <option value="845">845 MHz (Max Lock)</option>
+            <option value="290" selected>290 MHz (Stock Floor - 0% Idle)</option>
+            <option value="435">435 MHz (Balanced Floor)</option>
+            <option value="550">550 MHz (Gaming Floor)</option>
+            <option value="700">700 MHz (Performance Floor)</option>
+            <option value="745">745 MHz (Ultra Gaming)</option>
+            <option value="845">845 MHz (Max Turbo Lock)</option>
           </select>
+          <!-- Modern Quick Freq Chips (GPU) -->
+          <div class="btn-segmented gpufreq-chips" id="chipsGpuMin" style="margin-top: 6px;">
+            <button class="seg-btn-gpufreq active" data-target="selGpuMin" data-val="290">290 (Stock)</button>
+            <button class="seg-btn-gpufreq" data-target="selGpuMin" data-val="435">435 (Bal)</button>
+            <button class="seg-btn-gpufreq" data-target="selGpuMin" data-val="550">550 (Game)</button>
+            <button class="seg-btn-gpufreq" data-target="selGpuMin" data-val="700">700 (Perf)</button>
+            <button class="seg-btn-gpufreq" data-target="selGpuMin" data-val="845">845 (Max)</button>
+          </div>
         </div>
 
         <div class="slider-head" style="margin-top: 10px;">
           <label class="form-label">GPU Downclock Latency (Idle Timer)</label>
           <span class="badge-val" id="lblGpuIdle">64 ms</span>
         </div>
-        <input type="range" class="custom-slider" id="rngGpuIdle" min="40" max="200" step="4" value="64">
+        <input type="range" class="custom-slider" id="rngGpuIdle" min="4" max="500" step="4" value="64">
+        <p class="card-sub" style="margin-top: 8px; font-size: 11px; line-height: 1.5; color: var(--text-secondary);">
+          💡 <strong>GPU Idle on No Movement:</strong> With <em>msm-adreno-tz</em> governor + <em>290 MHz stock floor</em>, the GPU automatically
+          power-collapses to idle (0 MHz / 0% load) when the screen has no animation or touch input. The idle timer controls how quickly it
+          drops into power collapse after activity stops (64 ms default). Setting higher frequency floors (550, 700, 845 MHz) guarantees instant frame pacing in games like BGMI.
+        </p>
       </div>
 
       <!-- CPU Input Boost -->
-      <div class="card">
+      <div class="card" id="cardCpuBoost">
         <div class="tile-category-row">
           <span class="tile-category cat-cpu">⚡ Kryo 460 CPU</span>
           <span class="tile-status" id="statusCpuBoostTile" style="color: var(--color-success);">Adaptive touch boost</span>
@@ -860,27 +1416,27 @@
         <div class="form-group">
           <label class="form-label" for="selBoostHp">BIG Cores Touch Frequency</label>
           <select class="custom-select" id="selBoostHp">
-            <option value="0" selected>Disabled (0 MHz)</option>
+            <option value="0" selected>Disabled (0 MHz - Kernel Default)</option>
             <option value="652800">652 MHz</option>
-            <option value="1209600">1209 MHz</option>
+            <option value="1209600">1209 MHz (Performance)</option>
             <option value="1536000">1536 MHz</option>
-            <option value="1843200">1843 MHz (Performance)</option>
+            <option value="1843200">1843 MHz</option>
             <option value="2208000">2208 MHz (Max Frequency)</option>
           </select>
         </div>
 
         <div class="slider-head" style="margin-top: 10px;">
           <label class="form-label">Touch Boost Duration</label>
-          <span class="badge-val" id="lblBoostDur">64 ms</span>
+          <span class="badge-val" id="lblBoostDur">40 ms (Kernel Default)</span>
         </div>
-        <input type="range" class="custom-slider" id="rngBoostDur" min="16" max="200" step="8" value="64">
+        <input type="range" class="custom-slider" id="rngBoostDur" min="16" max="200" step="4" value="40">
       </div>
 
       <!-- BORE CPU Scheduler -->
-      <div class="card">
+      <div class="card" id="cardBoreEngine">
         <div class="tile-category-row">
           <span class="tile-category cat-cpu">🧠 BORE Scheduler</span>
-          <span class="tile-status" id="statusBoreTile" style="color: var(--color-success);">Active (v3.1.8 • Scale 1380)</span>
+          <span class="tile-status" id="statusBoreTile" style="color: var(--color-success);">Active (v3.1.8 • Scale 1280)</span>
         </div>
         <h3 class="card-title">Burst-Oriented Response Enhancer (BORE)</h3>
         <p class="card-sub">Prioritizes short interactive bursts while retaining CFS fairness under sustained load.</p>
@@ -897,8 +1453,8 @@
           <label class="form-label" for="selBoreScale">Burst Penalty Scale (Dispatch Priority)</label>
           <select class="custom-select" id="selBoreScale">
             <option value="1024">Light penalty (1024)</option>
-            <option value="1280">Balanced (1280)</option>
-            <option value="1380" selected>Balanced Dev Tuned (1380)</option>
+            <option value="1280" selected>Moderate (1280 - Kernel Default)</option>
+            <option value="1380">Standard (1380)</option>
             <option value="1536">Heavy Batch Suppression (1536)</option>
           </select>
         </div>
@@ -951,13 +1507,27 @@
       </div>
 
       <!-- CPU Governors & Cluster Frequencies -->
-      <div class="card">
+      <div class="card" id="cardCpuGovernors">
         <div class="tile-category-row">
           <span class="tile-category cat-cpu">⚡ Kryo 460 Cluster Clocks</span>
           <span class="tile-status" id="statusCpuGov">Schedutil Active</span>
         </div>
         <h3 class="card-title">CPU Governors & Frequency Scaling</h3>
-        <p class="card-sub">Fine-tune power scaling governors and peak clock limits for Snapdragon 678 Kryo clusters.</p>
+        <p class="card-sub">Configure power scaling governors and peak clock limits for Snapdragon 678 Kryo clusters.</p>
+
+        <!-- Live Kryo Cluster Live Frequency Cards -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 14px 0;">
+          <div style="background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.25); border-radius: 8px; padding: 10px; text-align: center;">
+            <span style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.5px; display: block;">6× SILVER (0-5)</span>
+            <strong id="liveCpuLittleFreq" style="font-size: 16px; color: var(--text-primary); font-family: monospace; display: block; margin-top: 2px;">-- MHz</strong>
+            <span style="font-size: 9px; color: var(--text-muted);">Max: 1804 MHz</span>
+          </div>
+          <div style="background: rgba(251, 191, 36, 0.06); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: 8px; padding: 10px; text-align: center;">
+            <span style="font-size: 10px; font-weight: 700; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.5px; display: block;">2× GOLD (6-7)</span>
+            <strong id="liveCpuBigFreq" style="font-size: 16px; color: var(--text-primary); font-family: monospace; display: block; margin-top: 2px;">-- MHz</strong>
+            <span style="font-size: 9px; color: var(--text-muted);">Max: 2208 MHz</span>
+          </div>
+        </div>
 
         <div class="form-group">
           <label class="form-label" for="selCpuGovLittle">LITTLE Cluster Governor (Cores 0-5)</label>
@@ -978,9 +1548,16 @@
             <option value="1113600">1113 MHz (Ultra Low)</option>
             <option value="1017600">1017 MHz (Min Operating)</option>
           </select>
+          <!-- Modern Quick Freq Chips (Little) -->
+          <div class="btn-segmented cpufreq-chips" id="chipsCpuLittle" style="margin-top: 6px;">
+            <button class="seg-btn-freq" data-target="selCpuMaxLittle" data-val="1017600">1017 (Min)</button>
+            <button class="seg-btn-freq" data-target="selCpuMaxLittle" data-val="1363200">1363 (Save)</button>
+            <button class="seg-btn-freq" data-target="selCpuMaxLittle" data-val="1497600">1497 (Bal)</button>
+            <button class="seg-btn-freq active" data-target="selCpuMaxLittle" data-val="1804800">1804 (Max)</button>
+          </div>
         </div>
 
-        <div class="form-group" style="margin-top: 10px;">
+        <div class="form-group" style="margin-top: 12px;">
           <label class="form-label" for="selCpuGovBig">BIG Cluster Governor (Cores 6-7)</label>
           <select class="custom-select" id="selCpuGovBig">
             <option value="schedutil" selected>schedutil (Energy-Aware Scheduler - Default)</option>
@@ -999,46 +1576,215 @@
             <option value="1209600">1209 MHz (Power Saver)</option>
             <option value="1017600">1017 MHz (Min Operating)</option>
           </select>
+          <!-- Modern Quick Freq Chips (Big) -->
+          <div class="btn-segmented cpufreq-chips" id="chipsCpuBig" style="margin-top: 6px;">
+            <button class="seg-btn-freq" data-target="selCpuMaxBig" data-val="1209600">1209 (Save)</button>
+            <button class="seg-btn-freq" data-target="selCpuMaxBig" data-val="1536000">1536 (Bal)</button>
+            <button class="seg-btn-freq" data-target="selCpuMaxBig" data-val="1843200">1843 (Perf)</button>
+            <button class="seg-btn-freq active" data-target="selCpuMaxBig" data-val="2208000">2208 (Max)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ZRAM In-Memory Compression & Swap Sizing -->
+      <div class="card" id="cardZramEngine">
+        <div class="tile-category-row">
+          <span class="tile-category cat-sys">⚡ ZRAM ENGINE</span>
+          <button class="tile-status-pill" id="statusZramTile" onclick="quickCompactZram(event)" title="Click to compact memory pool and flush inactive pages">
+            <span class="status-dot-mini active" id="dotZramTile"></span>
+            <span id="textZramTile">LZ4 Active (35ns SIMD)</span>
+            <span class="pill-action-tag">🧹 Compact</span>
+          </button>
+        </div>
+        <h3 class="card-title">ZRAM In-Memory Compression & Sizing</h3>
+        <p class="card-sub">In-kernel compressed swap device in physical RAM. Keeps 15+ background apps warm with zero reload stalls and 35ns SIMD page evaluation.</p>
+
+        <!-- Live ZRAM Metrics Grid -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 16px 0;">
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px; text-align: center;">
+            <span style="font-size: 10px; color: var(--text-muted); display: block; font-weight: 700;">DISK SIZE</span>
+            <strong id="lblZramDisksize" style="font-size: 13px; color: var(--text-primary); font-family: monospace;">-- GB</strong>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px; text-align: center;">
+            <span style="font-size: 10px; color: var(--text-muted); display: block; font-weight: 700;">RAM USED</span>
+            <strong id="lblZramMemUsed" style="font-size: 13px; color: var(--accent-cyan); font-family: monospace;">-- MB</strong>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px; text-align: center;">
+            <span style="font-size: 10px; color: var(--text-muted); display: block; font-weight: 700;">RAW DATA</span>
+            <strong id="lblZramOrigData" style="font-size: 13px; color: var(--text-primary); font-family: monospace;">-- MB</strong>
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px; text-align: center;">
+            <span style="font-size: 10px; color: var(--text-muted); display: block; font-weight: 700;">RATIO</span>
+            <strong id="lblZramRatio" style="font-size: 13px; color: var(--color-success); font-family: monospace;">--x</strong>
+          </div>
+        </div>
+
+        <!-- ZRAM Disk Size Allocation -->
+        <div class="slider-head">
+          <label class="form-label">ZRAM Disk Size Allocation</label>
+          <span class="badge-val" id="lblZramSizeVal">3072 MB (3 GB)</span>
+        </div>
+        <div class="preset-row" id="zramSizeChips" style="margin-top: 6px;">
+          <button class="chip-btn" data-val="2048" onclick="setZramSizePreset('2048')">2 GB (Minimal)</button>
+          <button class="chip-btn active" data-val="3072" onclick="setZramSizePreset('3072')">3 GB (4GB Model Calibrated)</button>
+          <button class="chip-btn" data-val="4096" onclick="setZramSizePreset('4096')">4 GB (6GB Model Calibrated)</button>
+          <button class="chip-btn" data-val="5120" onclick="setZramSizePreset('5120')">5 GB (Multitask Max)</button>
+        </div>
+
+        <!-- ZRAM Compression Algorithm -->
+        <div class="slider-head" style="margin-top: 14px;">
+          <label class="form-label">Compression Algorithm (In-Kernel Backend)</label>
+          <span class="badge-val" id="lblZramAlgoVal">lz4 (AETHER Turbo 35ns)</span>
+        </div>
+        <div class="preset-row" id="zramAlgoChips" style="margin-top: 6px;">
+          <button class="chip-btn active" data-val="lz4" onclick="setZramAlgoPreset('lz4')">lz4 (Turbo 35ns - Default)</button>
+          <button class="chip-btn" data-val="zstd" onclick="setZramAlgoPreset('zstd')">zstd (Higher Compression)</button>
+          <button class="chip-btn" data-val="lzo" onclick="setZramAlgoPreset('lzo')">lzo (Standard)</button>
+        </div>
+
+        <!-- ZRAM Block Device Queue Status -->
+        <div style="margin-top: 14px; background: rgba(0,255,200,0.05); border: 1px solid rgba(0,255,200,0.15); border-radius: 8px; padding: 10px; font-size: 11px; line-height: 1.5;">
+          <span style="color: var(--accent-cyan); font-weight: 700; display: block; margin-bottom: 4px;">⚡ ZRAM Block Device Queue Calibrations:</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <span class="badge-pill" style="font-size: 10px;">read_ahead_kb: 0</span>
+            <span class="badge-pill" style="font-size: 10px;">rq_affinity: 2 (CPU-Affinity)</span>
+            <span class="badge-pill" style="font-size: 10px;">nomerges: 2 (No Spinlock)</span>
+            <span class="badge-pill" style="font-size: 10px;">iostats: 0 (No Lock Contention)</span>
+            <span class="badge-pill" style="font-size: 10px;">add_random: 0</span>
+            <span class="badge-pill" style="font-size: 10px;">priority: 32767 (Highest)</span>
+          </div>
+        </div>
+
+        <!-- Re-initialize ZRAM Button -->
+        <div style="margin-top: 16px; display: flex; gap: 8px;">
+          <button class="btn-action btn-primary" id="btnReinitZram" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="applyZramConfig()">
+            <span>⚡ Apply ZRAM Sizing & Algorithm</span>
+          </button>
         </div>
       </div>
 
       <!-- Memory & Kernel Scheduling -->
-      <div class="card">
+      <div class="card" id="cardVmEngine">
         <div class="tile-category-row">
           <span class="tile-category cat-sys">🧠 Virtual Memory</span>
           <span class="tile-status" id="statusMglruTile" style="color: var(--color-success);">Active (Smooth UI)</span>
         </div>
-        <h3 class="card-title">Memory & Scheduler Tuning</h3>
+        <h3 class="card-title">Memory & Scheduler Configuration</h3>
 
         <div class="slider-head">
           <label class="form-label">Schedutil Up-Rate Limit</label>
-          <span class="badge-val" id="lblUpRate">500 μs (Dev Tuned)</span>
+          <span class="badge-val" id="lblUpRate">500 μs (Standard)</span>
         </div>
         <input type="range" class="custom-slider" id="rngUpRate" min="0" max="2000" step="50" value="500">
 
-        <div class="slider-head" style="margin-top: 12px;">
-          <label class="form-label">VM Swappiness (ZRAM / MGLRU)</label>
-          <span class="badge-val" id="lblSwappiness">160</span>
+        <!-- VM Swappiness -->
+        <div class="slider-head" style="margin-top: 14px;">
+          <label class="form-label">VM Swappiness (ZRAM / MGLRU Migration)</label>
+          <span class="badge-val" id="lblSwappiness">100 (Balanced)</span>
         </div>
-        <input type="range" class="custom-slider" id="rngSwappiness" min="0" max="200" step="10" value="160">
+        <input type="range" class="custom-slider" id="rngSwappiness" min="0" max="200" step="10" value="100">
+        <div class="preset-row" id="swappinessChips" style="margin-top: 6px;">
+          <button class="chip-btn" data-val="60" onclick="setSwappinessPreset('60')">60 (Conservative)</button>
+          <button class="chip-btn active" data-val="100" onclick="setSwappinessPreset('100')">100 (Standard)</button>
+          <button class="chip-btn" data-val="160" onclick="setSwappinessPreset('160')">160 (High ZRAM)</button>
+        </div>
 
-        <div class="slider-head" style="margin-top: 12px;">
+        <!-- Watermark Scale Factor -->
+        <div class="slider-head" style="margin-top: 14px;">
+          <label class="form-label">Watermark Scale Factor (Kswapd Reclaim Buffer)</label>
+          <span class="badge-val" id="lblWatermark">200 (Responsive 2.0% - Kernel Default)</span>
+        </div>
+        <input type="range" class="custom-slider" id="rngWatermark" min="10" max="300" step="10" value="200">
+        <div class="preset-row" id="watermarkChips" style="margin-top: 6px;">
+          <button class="chip-btn" data-val="10" onclick="setWatermarkPreset('10')">10 (Legacy 0.1%)</button>
+          <button class="chip-btn" data-val="150" onclick="setWatermarkPreset('150')">150 (Conservative 1.5%)</button>
+          <button class="chip-btn active" data-val="200" onclick="setWatermarkPreset('200')">200 (Kernel Default 2.0%)</button>
+        </div>
+
+        <!-- VFS Cache Pressure -->
+        <div class="slider-head" style="margin-top: 14px;">
           <label class="form-label">VFS Cache Pressure (Dentry/Inode Reclamation)</label>
-          <span class="badge-val" id="lblVfsCache">100</span>
+          <span class="badge-val" id="lblVfsCache">100 (Balanced 1:1)</span>
         </div>
         <input type="range" class="custom-slider" id="rngVfsCache" min="10" max="200" step="10" value="100">
+        <div class="preset-row" id="vfsChips" style="margin-top: 6px;">
+          <button class="chip-btn" data-val="50" onclick="setVfsPreset('50')">50 (Cache Retain)</button>
+          <button class="chip-btn active" data-val="100" onclick="setVfsPreset('100')">100 (Balanced 1:1)</button>
+          <button class="chip-btn" data-val="150" onclick="setVfsPreset('150')">150 (Memory Saver)</button>
+        </div>
 
+        <!-- MGLRU TTL -->
         <div class="slider-head" style="margin-top: 14px;">
           <label class="form-label">Multi-Gen LRU (MGLRU) Cache Protection TTL</label>
-          <span class="badge-val" id="lblMglruTtl">0 ms</span>
+          <span class="badge-val" id="lblMglruTtl">1000 ms</span>
         </div>
-        <input type="range" class="custom-slider" id="rngMglruTtl" min="0" max="3000" step="100" value="0">
-        <div class="preset-row" id="mglruChips" style="margin-top: 8px;">
-          <button class="chip-btn active" data-val="0" onclick="setMglruPreset('0')">0 ms (Stock)</button>
+        <input type="range" class="custom-slider" id="rngMglruTtl" min="0" max="3000" step="100" value="1000">
+        <div class="preset-row" id="mglruChips" style="margin-top: 6px;">
+          <button class="chip-btn" data-val="0" onclick="setMglruPreset('0')">0 ms (Off)</button>
           <button class="chip-btn" data-val="500" onclick="setMglruPreset('500')">500 ms (Gaming)</button>
-          <button class="chip-btn" data-val="1000" onclick="setMglruPreset('1000')">1000 ms (Smooth)</button>
+          <button class="chip-btn active" data-val="1000" onclick="setMglruPreset('1000')">1000 ms (Smooth)</button>
           <button class="chip-btn" data-val="2000" onclick="setMglruPreset('2000')">2000 ms (Multitask)</button>
           <button class="chip-btn" data-val="3000" onclick="setMglruPreset('3000')">3000 ms (Max)</button>
+        </div>
+
+        <!-- VM Dirty Ratio -->
+        <div class="slider-head" style="margin-top: 14px;">
+          <label class="form-label">VM Dirty Ratio (Synchronous Flush Ceiling)</label>
+          <span class="badge-val" id="lblDirtyRatio">20% (Standard)</span>
+        </div>
+        <input type="range" class="custom-slider" id="rngDirtyRatio" min="5" max="40" step="1" value="20">
+        <div class="preset-row" id="dirtyRatioChips" style="margin-top: 6px;">
+          <button class="chip-btn" data-val="10" onclick="setDirtyRatioPreset('10')">10% (Low Latency)</button>
+          <button class="chip-btn active" data-val="20" onclick="setDirtyRatioPreset('20')">20% (Standard Baseline)</button>
+        </div>
+
+        <!-- Dirty Background Ratio -->
+        <div class="slider-head" style="margin-top: 14px;">
+          <label class="form-label">Dirty Background Ratio (Writeback Daemon Trigger)</label>
+          <span class="badge-val" id="lblDirtyBgRatio">10% (Standard)</span>
+        </div>
+        <input type="range" class="custom-slider" id="rngDirtyBgRatio" min="1" max="25" step="1" value="10">
+        <div class="preset-row" id="dirtyBgChips" style="margin-top: 6px;">
+          <button class="chip-btn" data-val="3" onclick="setDirtyBgPreset('3')">3% (Early Flush)</button>
+          <button class="chip-btn" data-val="5" onclick="setDirtyBgPreset('5')">5% (Stock Factory)</button>
+          <button class="chip-btn active" data-val="10" onclick="setDirtyBgPreset('10')">10% (Standard Baseline)</button>
+        </div>
+
+        <!-- In-Kernel Architectural Specifications Grid -->
+        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-cyan); margin-bottom: 8px;">
+            ⚡ In-Kernel Architecture Calibrations
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px;">
+              <span style="color: var(--text-muted); display: block;">Page Cluster</span>
+              <strong style="color: var(--color-success);">0 (4KB Granular Swap)</strong>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px;">
+              <span style="color: var(--text-muted); display: block;">Min Free Headroom</span>
+              <strong style="color: var(--color-success);">16384 KB (16 MB)</strong>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px;">
+              <span style="color: var(--text-muted); display: block;">Vendor Vault Lock</span>
+              <strong style="color: var(--color-success);">0 KB (448MB Restored)</strong>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px;">
+              <span style="color: var(--text-muted); display: block;">Zsmalloc Compaction</span>
+              <strong style="color: var(--color-success);">Order-3 (32 KB zspage)</strong>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px;">
+              <span style="color: var(--text-muted); display: block;">SIMD Page Scanner</span>
+              <strong style="color: var(--color-success);">35ns ARM64 4x64-bit</strong>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px;">
+              <span style="color: var(--text-muted); display: block;">Dirty Intervals</span>
+              <strong style="color: var(--color-success);">500cs (5s) / 1500cs (15s)</strong>
+            </div>
+          </div>
+          <div style="margin-top: 8px; background: rgba(0,255,200,0.05); border: 1px solid rgba(0,255,200,0.15); border-radius: 8px; padding: 8px; font-size: 11px; line-height: 1.4;">
+            <span style="color: var(--accent-cyan); font-weight: 600;">ZRAM Block Device Queue:</span>
+            <span style="color: var(--text-secondary); display: block;">read_ahead 0KB | rq_affinity 2 | nomerges 2 | iostats 0 | add_random 0</span>
+          </div>
         </div>
 
         <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
@@ -1049,6 +1795,29 @@
           <p class="card-sub" style="margin-bottom: 12px;">Syncs storage, flushes clean page/inode caches, and triggers ZRAM memory pool compaction.</p>
           <button class="btn-action btn-primary" id="btnDropCaches" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="terminateAllCaches()">
             <span>🧹 Flush Caches & Compact ZRAM</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- AETHER In-Kernel RAM & Performance Engine -->
+      <div class="card" style="margin-top: 16px;">
+        <div class="status-header-row">
+          <div>
+            <h3 class="card-title">AETHER In-Kernel Performance Engine</h3>
+            <p class="card-sub">Pure In-Kernel Architecture — Zero Userspace Polling Overhead</p>
+          </div>
+          <span class="badge-active" id="badgeAetherEngineStatus" style="font-size: 10px;">IN-KERNEL ACTIVE</span>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin: 10px 0 16px 0;">
+          • <strong>Kernel Interface:</strong> <span id="lblKernelDriverStatus" style="color: var(--accent-cyan);">/dev/aether_ctl</span><br>
+          • <strong>RAM Management:</strong> <span id="lblDaemonStatus" style="color: var(--accent-cyan);">Pure In-Kernel (v1.2 Smooth Profile)</span><br>
+          • <strong>Daemon Overhead:</strong> <span id="lblServiceStatus" style="color: #34d399;">0% (Zero Background Polling Daemons)</span>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-action btn-secondary" id="btnCheckAetherd" style="flex: 1;" onclick="checkAetherDriverStatus()">
+            <span>🔍 Query In-Kernel State</span>
           </button>
         </div>
       </div>
@@ -1136,98 +1905,301 @@
       </div>
     </main>
 
-    <!-- ==================== TAB 5: HELP CENTER WITH PRACTICAL EXAMPLES ==================== -->
+    <!-- ==================== TAB 5: UPGRADED HELP CENTER & TUNING GUIDE ==================== -->
     <main class="tab-page" id="tab-help">
       <div class="card">
         <div class="tile-category-row">
-          <span class="tile-category cat-power">💡 User Guide</span>
-          <span class="tile-status">Practical Scenarios</span>
+          <span class="tile-category cat-power">💡 Comprehensive Knowledge Base</span>
+          <span class="tile-status">In-Depth Tuning Guide</span>
         </div>
-        <h3 class="card-title">❓ AETHER Help Center & Knowledge Base</h3>
-        <p class="card-sub">Real-world scenarios showing exactly how each tweak improves your daily experience on Redmi Note 10:</p>
+        <h3 class="card-title">❓ AETHER Help Center & Hardware Tuning Reference</h3>
+        <p class="card-sub">Complete guide to every kernel setting on Redmi Note 10: what it does, what happens when you increase or decrease it, and recommended values.</p>
 
-        <div class="accordion">
-          <!-- Bypass Charging Example -->
+        <!-- Search Knowledge Base -->
+        <div style="margin: 10px 0 14px 0;">
+          <input type="text" id="searchHelpInput" class="custom-select" placeholder="🔍 Search settings (e.g. CPU, GPU, ZRAM, Bypass, Swappiness)..." style="width: 100%; padding: 10px 14px; font-size: 13px; border-radius: 10px;">
+        </div>
+
+        <div class="accordion" id="helpAccordion">
+          <!-- 1. CPU Max Frequency -->
           <details class="accordion-item" open>
-            <summary class="accordion-header">⚡ What is Bypass Charging?</summary>
+            <summary class="accordion-header">⚡ Kryo 460 CPU Max Frequencies (Little & Big Clusters)</summary>
             <div class="accordion-body">
-              <strong>How it works:</strong> Tells the Qualcomm SMB5 charging controller to halt electric current into the battery cells while keeping USB power alive to run the motherboard directly.
+              <strong>What it does:</strong> Sets the peak clock limits for the 6× Silver efficiency cores (0-5) and 2× Gold high-performance cores (6-7).
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">⬆️ If Increased (e.g. Little 1804 MHz / Big 2208 MHz)</span>
+                  <p><strong>Benefits:</strong> Instant app launch speeds, buttery 60 FPS animations, and maximum gaming frame rates under sustained load.</p>
+                  <p><strong>Drawbacks:</strong> Higher peak power consumption and elevated temperatures during heavy prolonged gaming.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">⬇️ If Decreased (e.g. Little 1017 MHz / Big 1209 MHz)</span>
+                  <p><strong>Benefits:</strong> Drastic battery savings (+3 to +5 hours SOT in Ultra Saver mode), device stays ice-cold, zero thermal throttling.</p>
+                  <p><strong>Drawbacks:</strong> Heavy games (BGMI, Genshin) and video rendering will take longer or drop frames.</p>
+                </div>
+              </div>
               <div class="help-example-box">
-                <div class="help-example-title">💡 Real-World Scenario: BGMI/PUBG Heavy Gaming While Charging</div>
-                Normally, gaming while plugged into a 33W charger creates intense heat (43°C+) because battery charging generates heat on top of the GPU heat, triggering severe thermal throttling and dropping FPS from 60 to 35. With <strong>Bypass Charging</strong> enabled, battery charging is bypassed entirely—the phone stays cool (~33°C), battery cycle wear is eliminated, and games stay locked at 60 FPS.
+                <div class="help-example-title">💡 Real-World Example & Recommended Value</div>
+                <strong>Daily Driver:</strong> Little 1497 MHz + Big 1843 MHz (silky UI, great battery).<br>
+                <strong>Competitive Gaming:</strong> Little 1804 MHz + Big 2208 MHz (Performance mode peak).<br>
+                <strong>Emergency Low Battery:</strong> Little 1017 MHz + Big 1209 MHz (Ultra Battery Saver).
               </div>
             </div>
           </details>
 
-          <!-- AMOLED DC Dimming Example -->
+          <!-- 2. Schedutil Rate Limits -->
           <details class="accordion-item">
-            <summary class="accordion-header">📱 What is AMOLED DC Dimming?</summary>
+            <summary class="accordion-header">⏱️ Schedutil Rate Limits (up_rate_limit & down_rate_limit)</summary>
             <div class="accordion-body">
-              <strong>How it works:</strong> Replaces Pulse Width Modulation (PWM) with continuous electric current regulation to dim the Samsung Super AMOLED panel.
+              <strong>What it does:</strong> Controls how many microseconds the kernel waits before ramping CPU clocks up when load arrives, and dropping clocks down when load finishes.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">⬆️ If Increased (e.g. up_rate_limit: 2000 μs)</span>
+                  <p><strong>Benefits:</strong> Prevents CPU from spiking up for brief background tasks; saves battery during casual reading and video playback.</p>
+                  <p><strong>Drawbacks:</strong> Sluggish UI ramp-up; app switches may feel slightly delayed.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">⬇️ If Decreased (e.g. up_rate_limit: 0 μs)</span>
+                  <p><strong>Benefits:</strong> Immediate clock jump on frame render; completely eliminates scroll hitching and frame drops.</p>
+                  <p><strong>Drawbacks:</strong> Slightly higher battery consumption during sporadic touch interactions.</p>
+                </div>
+              </div>
               <div class="help-example-box">
-                <div class="help-example-title">💡 Real-World Scenario: Reading in Bed in a Dark Room</div>
-                At brightness levels below 30%, standard AMOLED screens rapidly turn pixels ON and OFF 240 times a second to simulate lower brightness. While invisible consciously, this high-frequency strobe effect causes eye strain, dryness, and tension headaches after 15 minutes of reading. <strong>DC Dimming</strong> eliminates this pulse flicker completely for soothing night reading.
+                <div class="help-example-title">💡 Real-World Example & Recommended Value</div>
+                <strong>Gaming / Smooth:</strong> 0 μs up-rate (zero micro-stutter).<br>
+                <strong>Balanced Daily:</strong> 500 μs up-rate, 500 μs down-rate.<br>
+                <strong>Battery Saver:</strong> 2000 μs up-rate, 500 μs down-rate.
               </div>
             </div>
           </details>
 
-          <!-- In-Call Mic Delay Example -->
+          <!-- 3. CPU Input Boost -->
           <details class="accordion-item">
-            <summary class="accordion-header">🎙️ How does In-Call Mic Calibration work?</summary>
+            <summary class="accordion-header">🖐️ CPU Touch Input Boost (Duration & Frequency)</summary>
             <div class="accordion-body">
-              <strong>How it works:</strong> Directly calibrates the audio codec unmute timing register in the Qualcomm Bolero WCD937x TX Macro driver.
+              <strong>What it does:</strong> Fires an instantaneous CPU clock boost the millisecond your finger touches the glass to prepare the compositor for scrolling.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">⬆️ If Increased (e.g. 80-120 ms duration)</span>
+                  <p><strong>Benefits:</strong> Ultra-responsive touch velocity and fluid scrolling through heavy apps like Instagram, Twitter, and Reddit feeds.</p>
+                  <p><strong>Drawbacks:</strong> Typing rapidly on keyboard repeatedly wakes high-power cores, increasing battery drain.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">⬇️ If Decreased (e.g. 0-20 ms duration)</span>
+                  <p><strong>Benefits:</strong> Significant battery endurance savings; prevents CPU wakeup during screen taps.</p>
+                  <p><strong>Drawbacks:</strong> Fast flicks in long web pages may feel slightly stiffer or drop initial frames.</p>
+                </div>
+              </div>
               <div class="help-example-box">
-                <div class="help-example-title">💡 Real-World Scenario: Answering Incoming Calls</div>
-                On stock kernels, there is a known hardware timing bug where the microphone stays muted for 50-100ms when picking up a call, leading to callers asking "Hello? Are you there?". AETHER v1.6.1 permanently calibrates this to <strong>5ms</strong> with pre-charge ramp-up, so your very first word is heard loud and clear on pickup.
+                <div class="help-example-title">💡 Real-World Example & Recommended Value</div>
+                <strong>Stock Balanced:</strong> 80 ms (Little 1017 MHz / Big 1209 MHz).<br>
+                <strong>Ultra Battery:</strong> 0 ms (Disabled) for extreme power saving.
               </div>
             </div>
           </details>
 
-          <!-- Adreno 612 GPU Clock Lock Example -->
+          <!-- 4. Adreno 612 GPU Controls -->
           <details class="accordion-item">
-            <summary class="accordion-header">🎮 Why lock the GPU to 504MHz in Performance Mode?</summary>
+            <summary class="accordion-header">🎮 Adreno 612 GPU Governor & Minimum Clock Floor</summary>
             <div class="accordion-body">
-              <strong>How it works:</strong> Sets a strict clock frequency floor on the Adreno 612 GPU and extends downclock latency from 80ms to 200ms.
+              <strong>What it does:</strong> Sets the base frequency floor (180 to 845 MHz) and power collapse idle timer for the Qualcomm Adreno 612 GPU.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">⬆️ If Increased (Floor: 355 MHz / 504 MHz)</span>
+                  <p><strong>Benefits:</strong> Keeps GPU execution pipelines primed; eliminates frame drops during heavy 3D action, smoke grenades, and explosions in BGMI.</p>
+                  <p><strong>Drawbacks:</strong> Higher idle power consumption while the screen is awake.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">⬇️ If Decreased (Floor: 180 MHz)</span>
+                  <p><strong>Benefits:</strong> Maximum power efficiency when reading articles, viewing static photos, or chatting.</p>
+                  <p><strong>Drawbacks:</strong> GPU takes 40ms to ramp up when a 3D animation begins, causing a brief frame hitch.</p>
+                </div>
+              </div>
               <div class="help-example-box">
-                <div class="help-example-title">💡 Real-World Scenario: Intense Multiplayer Teamfights</div>
-                In games like BGMI, COD Mobile, or Genshin Impact, whenever a player looks at the ground or transitions scenes, the default governor drops the GPU clock down to 180MHz to save micro-watts. When an enemy suddenly appears and throws a smoke grenade, the GPU cannot scale up fast enough, causing a frame drop to 40 FPS. Locking the floor to <strong>504 MHz</strong> keeps rendering units warm and ready for guaranteed 60 FPS.
+                <div class="help-example-title">💡 Real-World Example & Recommended Value</div>
+                <strong>BGMI / Call of Duty:</strong> 504 MHz lock with 120ms idle delay (locked 60 FPS).<br>
+                <strong>Daily / Smooth:</strong> 180 MHz floor with 64ms idle delay.
               </div>
             </div>
           </details>
 
-
-          <!-- Touch Glove Sensitivity Example -->
+          <!-- 5. Hardware Charge Protection & Bypass -->
           <details class="accordion-item">
-            <summary class="accordion-header">🖐️ What is Touchscreen Glove Mode?</summary>
+            <summary class="accordion-header">🔋 Hardware Battery Charge Protection & Instant Bypass</summary>
             <div class="accordion-body">
-              <strong>How it works:</strong> Modulates the capacitive threshold registers on the FocalTech FT3418 touch digitizer.
+              <strong>What it does:</strong> Controls the Qualcomm SMB5 charging IC to pause electric current into lithium cells at 80%, 85%, 90%, or 95% while keeping USB power alive.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">Mode 1: USB-Powered Hold</span>
+                  <p>Motherboard runs directly off USB wall charger; battery charging is halted at 0mA. Device stays cool, battery cycle wear is 100% eliminated.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">Mode 2: Idle Float</span>
+                  <p>Charger stops current, lets battery drain 3%, and pulses a top-off. Ideal for desk charging without wall power hold.</p>
+                </div>
+              </div>
               <div class="help-example-box">
-                <div class="help-example-title">💡 Real-World Scenario: Thick Screen Protectors & Winter Wear</div>
-                If you have installed a thick 9H tempered glass screen protector or use motorcycle riding gloves, touch taps can occasionally fail to register. Turning on <strong>Glove Mode</strong> triples capacitive sensitivity, allowing smooth taps and gestures even with winter gloves on.
+                <div class="help-example-title">💡 Real-World Scenario: Overnight Charging & Car Hotspot</div>
+                Leaving phone on charger overnight at 100% causes chemical battery degradation. Setting <strong>80% Cutoff with USB Hold</strong> extends battery life from 2 years to 5+ years without battery swelling.
               </div>
             </div>
           </details>
 
-          <!-- UFS Storage Read-Ahead & TCP Fast Open Example -->
+          <!-- 6. Instant Bypass & Screen Boost -->
           <details class="accordion-item">
-            <summary class="accordion-header">📁 What is UFS Read-Ahead & TCP Fast Open?</summary>
+            <summary class="accordion-header">⚡ Instant Charge Bypass & Screen Boost (Thermal Lift)</summary>
             <div class="accordion-body">
-              <strong>How it works:</strong> Expands the Linux block I/O lookahead buffer to 512KB and sends payload data during initial TCP handshakes.
+              <strong>What it does:</strong> Instant Bypass forces battery charging current to 0mA immediately. Screen Boost lifts Xiaomi thermal charging caps when screen is ON.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">Instant Bypass Active (0mA)</span>
+                  <p><strong>Benefits:</strong> Zero battery heat while playing games plugged in. Prevents thermal throttling from dual battery + GPU heating.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">Screen Boost Active (41°C Uncapped)</span>
+                  <p><strong>Benefits:</strong> Retains full 33W fast charging even while watching videos or texting with screen awake.</p>
+                </div>
+              </div>
               <div class="help-example-box">
-                <div class="help-example-title">💡 Real-World Scenario: App Launch Speeds & Low Game Ping</div>
-                Setting UFS Read-Ahead to <strong>512 KB</strong> pre-loads sequential flash blocks into memory ahead of time, launching Instagram, YouTube, and heavy games up to 30% faster. Combining this with <strong>Google BBR</strong> and <strong>TCP Fast Open</strong> eliminates packet queue bufferbloat, keeping gaming ping stable even over congested Wi-Fi.
+                <div class="help-example-title">💡 Recommended Use</div>
+                Turn ON <strong>Instant Bypass</strong> during heavy gaming sessions with charger plugged in.<br>
+                Turn ON <strong>Screen Boost</strong> when you need to top up battery in a hurry while using your phone.
               </div>
             </div>
           </details>
 
-          <!-- SUSFS v2.3.0 Stealth Example -->
+          <!-- 7. BORE CFS Scheduler -->
           <details class="accordion-item">
-            <summary class="accordion-header">🛡️ Is SUSFS v2.3.0 fully spoofed?</summary>
+            <summary class="accordion-header">🧠 BORE (Burst-Oriented Response Enhancer) CFS Scheduler</summary>
             <div class="accordion-body">
-              <strong>How it works:</strong> Low-level kernel VFS hooks intercept system calls before userspace detection libraries can see them.
+              <strong>What it does:</strong> Enhances standard Linux CFS by analyzing task burstiness. Prioritizes interactive UI tasks over heavy background batch processes.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">⬆️ If Increased (Scale: 1380 - 1536)</span>
+                  <p><strong>Benefits:</strong> Foreground apps get top priority; UI stays silky-smooth even while downloading games or updating 20 apps in Play Store.</p>
+                  <p><strong>Drawbacks:</strong> Heavy background video encoding or file unzipping will progress slightly slower.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">⬇️ If Decreased (Scale: 1024 / Disabled)</span>
+                  <p><strong>Benefits:</strong> Standard Linux round-robin scheduling; background batch jobs finish faster.</p>
+                  <p><strong>Drawbacks:</strong> Foreground UI may stutter if a heavy background task hogs the CPU.</p>
+                </div>
+              </div>
               <div class="help-example-box">
-                <div class="help-example-title">💡 Real-World Scenario: Banking Apps, Work Profiles & Play Integrity</div>
-                Security engines like Google Play Integrity, Momo, RootBeer, and banking apps inspect `/proc/mounts`, bootloader cmdlines, and open syscalls for Magisk/KernelSU footprints. SUSFS v2.3.0 intercepts these calls directly in kernel space, redirecting and unmounting paths invisibly so all banking apps and enterprise work profiles run without detection.
+                <div class="help-example-title">💡 Real-World Example & Recommended Value</div>
+                <strong>Scale 1380 (Default):</strong> Tuned specifically for mobile app switching and zero touch latency.
+              </div>
+            </div>
+          </details>
+
+          <!-- 8. UFS Storage Read-Ahead & Kyber BLK-MQ -->
+          <details class="accordion-item">
+            <summary class="accordion-header">📁 UFS 2.2 Storage Read-Ahead & Google Kyber I/O</summary>
+            <div class="accordion-body">
+              <strong>What it does:</strong> Sets sequential flash storage lookahead read cache and enables Google Kyber I/O latency queue scheduling.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">⬆️ If Increased (512 KB - 1024 KB)</span>
+                  <p><strong>Benefits:</strong> Accelerates app loading times (Instagram, WhatsApp, games) by up to 30% by pre-fetching storage blocks.</p>
+                  <p><strong>Drawbacks:</strong> Uses a fraction more RAM buffer space for read queues.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">⬇️ If Decreased (128 KB)</span>
+                  <p><strong>Benefits:</strong> Conserves RAM buffer space; ideal for extreme battery saving.</p>
+                  <p><strong>Drawbacks:</strong> Game launch screens and loading maps will take slightly longer.</p>
+                </div>
+              </div>
+              <div class="help-example-box">
+                <div class="help-example-title">💡 Recommended Value</div>
+                <strong>512 KB with Google Kyber:</strong> The sweet spot for Redmi Note 10 UFS 2.2 flash storage.
+              </div>
+            </div>
+          </details>
+
+          <!-- 9. ZRAM Compression & Swappiness -->
+          <details class="accordion-item">
+            <summary class="accordion-header">💾 ZRAM Memory Compression & VM Swappiness</summary>
+            <div class="accordion-body">
+              <strong>What it does:</strong> Compresses background app memory pages into physical RAM using high-speed LZ4 SIMD compression.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">⬆️ If Increased (Swappiness: 100 - 160)</span>
+                  <p><strong>Benefits:</strong> Keeps 15-20 apps alive in memory without Android killing them. App switching is instant with zero reloading.</p>
+                  <p><strong>Drawbacks:</strong> Slight CPU cycle consumption during memory compression.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">⬇️ If Decreased (Swappiness: 60)</span>
+                  <p><strong>Benefits:</strong> Minimum CPU compression overhead; best for battery endurance in emergency situations.</p>
+                  <p><strong>Drawbacks:</strong> Background apps reload more frequently when opening multiple heavy apps.</p>
+                </div>
+              </div>
+              <div class="help-example-box">
+                <div class="help-example-title">💡 Recommended Configuration</div>
+                <strong>Swappiness 100 with 3.0 GB LZ4 ZRAM:</strong> Provides desktop-grade multitasking without thrashing.
+              </div>
+            </div>
+          </details>
+
+          <!-- 10. Multi-Gen LRU (MGLRU) -->
+          <details class="accordion-item">
+            <summary class="accordion-header">🌊 Multi-Gen LRU (MGLRU) & min_ttl_ms</summary>
+            <div class="accordion-body">
+              <strong>What it does:</strong> Linux kernel next-generation memory management that separates pages into generations based on access frequency.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">⬆️ If Increased (min_ttl_ms: 2000 - 4000 ms)</span>
+                  <p><strong>Benefits:</strong> Strongly protects active apps from being paged out; prevents browser tab reloads in Chrome.</p>
+                  <p><strong>Drawbacks:</strong> Keeps memory occupied longer before freeing.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">⬇️ If Decreased (min_ttl_ms: 0 - 500 ms)</span>
+                  <p><strong>Benefits:</strong> Quickly maximizes the free memory pool.</p>
+                  <p><strong>Drawbacks:</strong> Frequently switched apps may need to reload from flash.</p>
+                </div>
+              </div>
+              <div class="help-example-box">
+                <div class="help-example-title">💡 Recommended Value</div>
+                <strong>1000 ms:</strong> Balanced working-set retention for smooth daily multitasking.
+              </div>
+            </div>
+          </details>
+
+          <!-- 11. Hardware Audio DSP Bypass & HPF -->
+          <details class="accordion-item">
+            <summary class="accordion-header">🎙️ Hardware Audio DSP Bypass & Microphone HPF Cutoff</summary>
+            <div class="accordion-body">
+              <strong>What it does:</strong> Bypasses software audio post-processing for low-latency sound, and calibrates the Qualcomm Bolero TX Macro hardware high-pass filter.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">150 Hz Filter (Noise & Wind Cut)</span>
+                  <p>Strips out motorbike noise, traffic roar, wind buffeting, and heavy AC hum during voice calls and WhatsApp audio.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">75 Hz Filter (Voice Focus) / 4 Hz (Flat)</span>
+                  <p><strong>75 Hz:</strong> Removes desk vibrations while keeping voice deep and natural.<br><strong>4 Hz:</strong> Raw full audio spectrum for acoustic guitar and music recording.</p>
+                </div>
+              </div>
+              <div class="help-example-box">
+                <div class="help-example-title">💡 In-Call Mic Calibration Bug Fix</div>
+                AETHER v1.8 calibrates the Bolero unmute timing register to <strong>5ms</strong>, eliminating the notorious stock bug where the first word spoken during a call is cut off.
+              </div>
+            </div>
+          </details>
+
+          <!-- 12. Super AMOLED DC Dimming -->
+          <details class="accordion-item">
+            <summary class="accordion-header">📱 Super AMOLED DC Dimming & High Brightness Mode (HBM)</summary>
+            <div class="accordion-body">
+              <strong>What it does:</strong> Replaces 240Hz PWM strobe flicker with continuous analog voltage regulation to eliminate eye strain in the dark. HBM boosts sunlight readability up to 1100 nits.
+              <div class="help-impact-grid">
+                <div class="help-impact-item impact-up">
+                  <span class="impact-badge up">DC Dimming Active</span>
+                  <p>Zero eye fatigue or headaches when reading in bed with room lights off. Preserves deep AMOLED blacks.</p>
+                </div>
+                <div class="help-impact-item impact-down">
+                  <span class="impact-badge down">High Brightness Mode (HBM)</span>
+                  <p>Lifts hardware display panel brightness above stock limits for clear readability under bright sunlight outdoors.</p>
+                </div>
               </div>
             </div>
           </details>
@@ -1261,44 +2233,30 @@
         </div>
         <button class="chip-btn" id="btnToggleLogExpand">Expand</button>
       </div>
-      <pre class="terminal-log" id="termLogs" style="display: none;">[AETHER v1.6.1] Kernel Control WebUI Engine Initialized.
+      <pre class="terminal-log" id="termLogs" style="display: none;">[AETHER v1.8] Kernel Control WebUI Engine Initialized.
 [Ready] Awaiting user input...</pre>
     </section>
 
-    <!-- Floating Live Revert Popup (Interactive Instant Feedback) -->
+    <!-- Floating Live Revert Popup (Accidental Slider Change 10s Revert Guard) -->
     <div class="revert-toast-popup" id="revertActionPopup">
-      <div class="revert-popup-badge">⚡ LIVE</div>
+      <div class="revert-progress-bar" id="revertProgressBar"></div>
+      <div class="revert-popup-badge" id="revertPopupBadge">
+        <span class="revert-pulse-dot"></span>
+        <span id="revertCountdownTimer">10s</span>
+      </div>
       <div class="revert-popup-body">
         <span class="revert-popup-title" id="revertItemTitle">Setting Updated</span>
-        <span class="revert-popup-val" id="revertItemVal">Applied to kernel</span>
+        <span class="revert-popup-val" id="revertItemVal">Tap Revert to undo</span>
       </div>
-      <button class="btn-revert-action" id="btnRevertAction" title="Revert setting to kernel stock default">
-        ↺ Revert
+      <button class="btn-revert-action" id="btnRevertAction" title="Undo change and restore previous setting">
+        ↺ Revert <span class="revert-btn-timer" id="revertBtnTimer">(10s)</span>
       </button>
-      <button class="btn-revert-close" id="btnRevertClose" title="Dismiss">✕</button>
+      <button class="btn-revert-close" id="btnRevertClose" title="Keep change">✕</button>
     </div>
 
-    <!-- STICKY ACTION BAR -->
-    <footer class="action-dock">
-      <div class="dock-switch-row">
-        <span>💾 Apply Settings on Boot</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="chkApplyOnBoot" checked>
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-
-      <div class="dock-btn-row">
-        <button class="btn-action btn-danger" id="btnResetDefaults" title="Restore factory safe settings">
-          🔄 Reset All Defaults
-        </button>
-        <div class="live-hardware-badge" id="badgeLiveStatus">
-          <span class="pulse-dot"></span> Live Ring-0 Direct
-        </div>
-      </div>
-      <div class="toast-popup" id="toastBox">Settings applied successfully!</div>
-      <div class="touch-lock-toast" id="touchLockToast"><span>🔒</span> Controls Locked: Tap "Locked" button at top to edit</div>
-    </footer>
+    <button id="btnApplyAll" style="display: none;" aria-hidden="true">Apply Settings</button>
+    <div class="toast-popup" id="toastBox">Settings applied successfully!</div>
+    <div class="touch-lock-toast" id="touchLockToast"><span>🔒</span> Controls Locked: Tap "Locked" button at top to edit</div>
 
   </div>
 
@@ -1315,7 +2273,7 @@
 
       <div class="modal-body">
         <p class="modal-intro" id="modalProfileIntro">
-          You are switching from the <strong>Developer Pre-Calibrated Baseline</strong> to an aggressive hardware profile. Please review the operating risks:
+          You are switching from the <strong>Standard Default Profile</strong> to a customized hardware profile. Please review the operating configuration:
         </p>
 
         <div class="modal-warnings-grid">
@@ -1337,7 +2295,7 @@
             <span class="warn-card-icon">⚙️</span>
             <div class="warn-card-content">
               <strong>Multitask Retention & Background Load</strong>
-              <p id="warnDescStability">Aggressive scheduler tuning may alter background app management compared to the pre-calibrated stability baseline.</p>
+              <p id="warnDescStability">Altered scheduler parameters may affect background app management compared to the standard default profile.</p>
             </div>
           </div>
         </div>
@@ -1364,6 +2322,116 @@
         </button>
         <button class="btn-modal btn-modal-confirm" id="btnModalConfirm">
           ⚡ Confirm & Apply Profile (<span id="btnModalCountdown">10</span>s)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Ring-0 Kernel Sysfs Hardware Audit Modal -->
+  <div class="modal-backdrop" id="kernelAuditModal" style="display: none;">
+    <div class="modal-box modal-box-wide">
+      <div class="modal-top">
+        <div class="modal-alert-icon" style="background: rgba(0, 212, 255, 0.15); border: 1px solid rgba(0, 212, 255, 0.4); color: #00d4ff;">⚡</div>
+        <div class="modal-top-text">
+          <h3 class="modal-title">AETHER Ring-0 Kernel Hardware Audit</h3>
+          <span class="modal-badge-warn" style="background: rgba(0, 212, 255, 0.12); color: #00d4ff; border-color: rgba(0, 212, 255, 0.35);">Direct Sysfs Hardware Proof</span>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-intro">
+          Real-time verification of direct kernel sysfs interfaces and hardware drivers on <strong>Xiaomi Redmi Note 10 (mojito/sunny)</strong>:
+        </p>
+
+        <div class="audit-sysfs-grid" id="auditSysfsGrid">
+          <div class="audit-row">
+            <span class="audit-path">/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq</span>
+            <span class="audit-status audit-pass" id="auditCpu0">VERIFIED</span>
+          </div>
+          <div class="audit-row">
+            <span class="audit-path">/sys/devices/system/cpu/cpufreq/policy6/scaling_cur_freq</span>
+            <span class="audit-status audit-pass" id="auditCpu6">VERIFIED</span>
+          </div>
+          <div class="audit-row">
+            <span class="audit-path">/sys/class/kgsl/kgsl-3d0/gpuclk</span>
+            <span class="audit-status audit-pass" id="auditGpu">VERIFIED</span>
+          </div>
+          <div class="audit-row">
+            <span class="audit-path">/sys/class/power_supply/battery/temp</span>
+            <span class="audit-status audit-pass" id="auditBatt">VERIFIED</span>
+          </div>
+          <div class="audit-row">
+            <span class="audit-path">/sys/block/zram0/comp_algorithm</span>
+            <span class="audit-status audit-pass" id="auditZram">VERIFIED</span>
+          </div>
+          <div class="audit-row">
+            <span class="audit-path">/sys/kernel/bore/version</span>
+            <span class="audit-status audit-pass" id="auditBore">VERIFIED (v3.1.8)</span>
+          </div>
+          <div class="audit-row">
+            <span class="audit-path">/sys/kernel/mm/lru_gen/enabled</span>
+            <span class="audit-status audit-pass" id="auditMglru">VERIFIED (y)</span>
+          </div>
+          <div class="audit-row">
+            <span class="audit-path">/proc/sys/vm/swappiness</span>
+            <span class="audit-status audit-pass" id="auditVm">VERIFIED (60)</span>
+          </div>
+        </div>
+
+        <div class="audit-terminal-box">
+          <div class="audit-terminal-header">
+            <span>LIVE SHELL PROOF</span>
+            <button class="chip-btn" id="btnRefreshAudit" style="padding: 2px 8px; font-size: 11px;">Re-run Audit</button>
+          </div>
+          <pre class="audit-pre" id="auditOutput">Testing kernel driver connectivity...
+Connecting to /sys/devices/system/cpu/... OK
+Connecting to /sys/class/kgsl/kgsl-3d0/... OK
+Verifying BORE v3.1.8 CFS Scheduler... OK
+Verifying Google Multi-Gen LRU (MGLRU)... OK
+Verifying KernelSU-Next & SuSFS v2.3.0... OK
+Hardware direct connection active with zero middleware emulation.</pre>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn-modal btn-modal-confirm" id="btnCloseAuditModal" style="background: linear-gradient(135deg, #00d4ff, #0088cc); color: #000; font-weight: 700; width: 100%;">
+          Close Hardware Audit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- About AETHER Engine Modal -->
+  <div class="modal-backdrop" id="aetherAboutModal" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-top">
+        <div class="modal-alert-icon" style="background: rgba(0, 212, 255, 0.15); border: 1px solid rgba(0, 212, 255, 0.4); color: #00d4ff;">ℹ️</div>
+        <div class="modal-top-text">
+          <h3 class="modal-title">About AETHER Engine</h3>
+          <span class="modal-badge-warn" style="background: rgba(0, 255, 136, 0.12); color: #00ff88; border-color: rgba(0, 255, 136, 0.35);">Kernel v1.8 Production</span>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="about-card-info">
+          <div class="about-row"><strong>Target Device:</strong> <span>Xiaomi Redmi Note 10 (mojito / sunny)</span></div>
+          <div class="about-row"><strong>SoC Architecture:</strong> <span>Qualcomm Snapdragon 678 (SM6150)</span></div>
+          <div class="about-row"><strong>Kernel Version:</strong> <span>Linux 4.14.348-AETHER-v1.8-perf+</span></div>
+          <div class="about-row"><strong>Compiler Toolchain:</strong> <span>AOSP Clang 19.0.0 (r522817) + LLD</span></div>
+          <div class="about-row"><strong>Root & Hiding:</strong> <span>KernelSU Next v1.0.5 + SuSFS v2.3.0</span></div>
+          <div class="about-row"><strong>Memory Management:</strong> <span>Google Multi-Gen LRU (MGLRU) + ZRAM LZ4</span></div>
+          <div class="about-row"><strong>CPU Scheduler:</strong> <span>BORE (Burst-Oriented Response Enhancer) v3.1.8</span></div>
+          <div class="about-row"><strong>Audio Engine:</strong> <span>Qualcomm WCD937x Bolero High-Fidelity Audio</span></div>
+          <div class="about-row"><strong>Engine Developer:</strong> <span>Kiran_Embedded / AETHER Kernel Team</span></div>
+        </div>
+        <p class="card-sub" style="margin-top: 12px; font-size: 11.5px; line-height: 1.5;">
+          ⚡ Built with 100% pure vanilla HTML5, CSS3, and JavaScript. Zero external CDNs, zero background polling leaks, and native Page Visibility API power preservation for maximum battery longevity.
+        </p>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn-modal btn-modal-confirm" id="btnCloseAboutModal" style="background: linear-gradient(135deg, #00d4ff, #0088cc); color: #000; font-weight: 700; width: 100%;">
+          Done
         </button>
       </div>
     </div>

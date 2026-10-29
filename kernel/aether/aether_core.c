@@ -39,7 +39,7 @@ umode_t aether_attr_is_visible(struct kobject *kobj, struct attribute *attr, int
 /* 1. Subsystem Version Attribute */
 static ssize_t version_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "AETHER-v1.6.1 (In-Kernel Sandwiched Engine)\n");
+	return sprintf(buf, "AETHER-v1.8 (In-Kernel Sandwiched Engine)\n");
 }
 static struct kobj_attribute version_attr = __ATTR_RO(version);
 
@@ -54,7 +54,7 @@ static struct kobj_attribute engine_active_attr = __ATTR_RO(engine_active);
 static ssize_t status_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf,
-		"AETHER_VERSION=v1.6.1\n"
+		"AETHER_VERSION=v1.8\n"
 		"ENGINE_STATUS=ACTIVE_RING0\n"
 		"DEFAULT_BLK_MQ_IOSCHED=deadline\n"
 		"TCP_LOWAT_PACING=%d\n"

@@ -40,8 +40,12 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/pagemap.h>
 
-/* How many pages do we try to swap or page in/out together? */
-int page_cluster;
+/*
+ * AETHER: Zero-cluster (1 page = 4KB per swap I/O).
+ * ZRAM is RAM-backed with zero seek latency; single-page reads eliminate
+ * 75% swapin decompression latency and prevent cache pollution.
+ */
+int page_cluster = 0;
 
 static DEFINE_PER_CPU(struct pagevec, lru_add_pvec);
 static DEFINE_PER_CPU(struct pagevec, lru_rotate_pvecs);

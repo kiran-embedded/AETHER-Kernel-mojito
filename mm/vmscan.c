@@ -160,11 +160,12 @@ struct scan_control {
  * From 0 .. 100.  Higher means more swappy.
  */
 /*
- * AETHER: 160 swappiness enables MGLRU to aggressively compress cold anonymous
- * app pages (Contacts, Dialer, Settings) into ZRAM while keeping active file
- * cache (page cache) hot in physical RAM, eliminating UI stutter and app kills.
+ * AETHER: 100 swappiness allows MGLRU to seamlessly migrate cold anon
+ * background pages into ZRAM without thrashing, maximizing app retention.
+ * Direct reclaim swappiness (20) eliminates foreground synchronous swap stalls.
  */
-int vm_swappiness = 160;
+int vm_swappiness = 100;
+int direct_vm_swappiness = 20;
 /*
  * The total number of pages which are beyond the high watermark within all
  * zones.
@@ -689,7 +690,6 @@ static int __remove_mapping(struct address_space *mapping, struct page *page,
 {
 	unsigned long flags;
 	int refcount;
-	void *shadow = NULL;
 
 	BUG_ON(!PageLocked(page));
 	BUG_ON(mapping != page_mapping(page));
@@ -1790,6 +1790,10 @@ putback_inactive_pages(struct lruvec *lruvec, struct list_head *page_list)
  */
 static int current_may_throttle(void)
 {
+	/* Do not throttle Android UI compositor & system critical threads */
+	if (current->signal && current->signal->oom_score_adj < 0)
+		return 0;
+
 	return !(current->flags & PF_LESS_THROTTLE) ||
 		current->backing_dev_info == NULL ||
 		bdi_write_congested(current->backing_dev_info);
@@ -2243,6 +2247,9 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	unsigned long ap, fp;
 	enum lru_list lru;
 
+	if (!current_is_kswapd() && direct_vm_swappiness >= 0)
+		swappiness = direct_vm_swappiness;
+
 	/* If we have no swap space, do not bother scanning anon pages. */
 	if (!sc->may_swap || mem_cgroup_get_nr_swap_pages(memcg) <= 0) {
 		scan_balance = SCAN_FILE;
@@ -2487,6 +2494,9 @@ static int get_swappiness(struct lruvec *lruvec, struct scan_control *sc)
 
 	if (mem_cgroup_get_nr_swap_pages(memcg) <= 0)
 		return 0;
+
+	if (!current_is_kswapd() && direct_vm_swappiness >= 0)
+		return direct_vm_swappiness;
 
 	return mem_cgroup_swappiness(memcg);
 }
@@ -3820,11 +3830,10 @@ static bool age_lruvec(struct lruvec *lruvec, struct scan_control *sc, unsigned 
 }
 
 /*
- * A non-zero TTL can turn ordinary memory pressure into an OOM kill when the
- * protected working set is larger than available RAM. Leave it disabled by
- * default; userspace may opt in temporarily for a latency-sensitive workload.
+ * AETHER: 1000ms (1 * HZ) minimum generation residency lifetime.
+ * Guarantees working set protection and eliminates cache thrashing across background apps.
  */
-static unsigned long lru_gen_min_ttl __read_mostly;
+static unsigned long lru_gen_min_ttl __read_mostly = 1 * HZ;
 
 static void lru_gen_age_node(struct pglist_data *pgdat, struct scan_control *sc)
 {
@@ -4810,6 +4819,9 @@ static int __init init_lru_gen(void)
 {
 	BUILD_BUG_ON(MIN_NR_GENS + 1 >= MAX_NR_GENS);
 	BUILD_BUG_ON(BIT(LRU_GEN_WIDTH) <= MAX_NR_GENS);
+
+	/* AETHER: 1000ms minimum generation residency time to eliminate thrashing and protect background apps */
+	WRITE_ONCE(lru_gen_min_ttl, msecs_to_jiffies(1000));
 
 	if (sysfs_create_group(mm_kobj, &lru_gen_attr_group))
 		pr_err("lru_gen: failed to create sysfs group\n");

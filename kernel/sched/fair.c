@@ -8440,6 +8440,13 @@ static int find_energy_efficient_cpu(struct sched_domain *sd,
 		 */
 		prefer_idle = sched_feat(EAS_PREFER_IDLE) ?
 				(schedtune_prefer_idle(p) > 0) : 0;
+#if IS_ENABLED(CONFIG_AETHER_ENGINE)
+		{
+			extern int aether_sched_idle_search;
+			if (aether_sched_idle_search && (p->flags & PF_WAKE_UP_IDLE))
+				prefer_idle = 1;
+		}
+#endif
 
 		eenv->max_cpu_count = EAS_CPU_BKP + 1;
 

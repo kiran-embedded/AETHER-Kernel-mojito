@@ -3775,6 +3775,17 @@ SYSCALL_DEFINE2(memfd_create,
 	file->f_mode |= FMODE_LSEEK | FMODE_PREAD | FMODE_PWRITE;
 	file->f_flags |= O_RDWR | O_LARGEFILE;
 
+	{
+		struct qstr qname = QSTR_INIT(name, strlen(name));
+
+		error = security_inode_init_security_anon(file_inode(file),
+							  &qname, NULL);
+		if (error) {
+			fput(file);
+			goto err_fd;
+		}
+	}
+
 	if (flags & MFD_ALLOW_SEALING) {
 		/*
 		 * flags check at beginning of function ensures

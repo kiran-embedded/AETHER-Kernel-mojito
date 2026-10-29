@@ -1038,16 +1038,6 @@ struct psi_trigger *psi_trigger_create(struct psi_group *group,
 	if (threshold_us == 0 || threshold_us > window_us)
 		return ERR_PTR(-EINVAL);
 
-	/*
-	 * In-Kernel Android Multitasking & App Retention Protection:
-	 * Protect lightweight background apps (Contacts, Dialer, Settings) from being
-	 * panic-killed by userspace LMKD during transient allocation bursts (e.g. Camera CMA launch).
-	 * Enforce a safe minimum memory stall threshold of 150ms for memory pressure events.
-	 * This gives MGLRU and ZRAM ample opportunity to smoothly compress cold pages
-	 * before LMKD steps in, killing only under genuine, sustained extreme pressure.
-	 */
-	if (res == PSI_MEM && threshold_us < 150000 && window_us >= 150000)
-		threshold_us = 150000;
 
 	t = kmalloc(sizeof(*t), GFP_KERNEL);
 	if (!t)

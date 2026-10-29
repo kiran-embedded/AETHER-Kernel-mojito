@@ -53,6 +53,10 @@ extern int aether_get_hbm(void);
 extern int aether_set_hbm(int hbm_mode);
 extern int aether_get_anti_flicker(void);
 extern int aether_set_anti_flicker(int enable);
+extern unsigned int aether_get_measured_fps(void);
+
+/* --- Performance Subsystem States & Exports --- */
+extern int aether_sched_idle_search;
 
 /* --- Subsystem Initialization Prototypes --- */
 int aether_battery_init(struct kobject *parent);

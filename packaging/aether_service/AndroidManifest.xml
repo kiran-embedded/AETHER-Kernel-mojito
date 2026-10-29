@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AETHER Engine - Native System Service QS Tile Provider
+    =========================================================
+    Target: Xiaomi Redmi Note 10 (mojito/sunny) | Snapdragon 678 | Android 17
+    Version: 1.8.1
+
+    SAFETY NOTES — Why we do NOT use certain "system" attributes:
+    ─────────────────────────────────────────────────────────────
+    ✗ sharedUserId="android.uid.system"
+        Requires ROM platform signature. Without it, APK install silently fails
+        or causes "INSTALL_FAILED_SHARED_USER_INCOMPATIBLE" bootloop on dirty flash.
+    ✗ android:persistent="true"
+        Only honoured for system-signed apps installed in /system/priv-app.
+        On a normal APK it is silently ignored AND flags the app for higher
+        OOM scrutiny — worse than doing nothing.
+    ✗ android:PREVENT_POWER_KEY permission
+        Signature-level (requires platform key). Causes install rejection on
+        stock-signed ROM builds.
+
+    ✓ WHAT WE DO INSTEAD (all safe, no signature needed):
+    ──────────────────────────────────────────────────────
+    • android:directBootAware="true"  → starts early-boot, same as SystemUI
+    • REQUEST_IGNORE_BATTERY_OPTIMIZATIONS → normal-level, auto-granted; Doze exempt
+    • RECEIVE_BOOT_COMPLETED → re-register tiles after OTA/reboot
+    • android:allowBackup="false" → no accidental state restore from stale backup
+    • AetherQsBootReceiver → mirrors Play Services GmsBootReceiver pattern
+    • TileServices bound with BIND_QUICK_SETTINGS_TILE → Android treats them as
+      system-bound services, ALREADY exempt from Active Apps shade by design
+    • ProfileChooserActivity: taskAffinity="" + noHistory → zero recents footprint
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aether.engine.service"
+    android:versionCode="5"
+    android:versionName="1.8.1">
+
+    <uses-sdk
+        android:minSdkVersion="26"
+        android:targetSdkVersion="34" />
+
+    <!-- ── Runtime permissions (all normal or signature-exempt level) ─── -->
+
+    <!-- Required for direct sysfs writes without su on world-writable nodes -->
+    <!-- (sysfs nodes set to 0666 by service.sh at boot) -->
+
+    <!-- Boot: re-register QS tiles after reboot / OTA update -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Battery: request Doze exemption (user-grant path, no signature needed) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- QS: post tile update notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- ── Application declaration ─────────────────────────────────────── -->
+    <application
+        android:label="AETHER System Service"
+        android:directBootAware="true"
+        android:allowBackup="false">
+
+        <!--
+            Boot Receiver — re-registers QS tiles after reboot.
+            android:priority="999" ensures it fires before other receivers.
+            directBootAware="true" fires at LOCKED_BOOT_COMPLETED (pre-unlock).
+        -->
+        <receiver
+            android:name=".AetherQsBootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ── Quick Settings Tile: Bypass Charging ─────────────────────── -->
+        <!--
+            TileService note: All TileServices are bound by SystemUI using
+            android.permission.BIND_QUICK_SETTINGS_TILE. This means:
+            • They are system-bound (same as NFC/Bluetooth tiles)
+            • They do NOT appear in "Active Apps" shade
+            • Android Activity Manager treats them as SystemUI sub-services
+        -->
+        <service
+            android:name=".BypassChargingTileService"
+            android:label="@string/tile_bypass_name"
+            android:icon="@drawable/ic_qs_bypass"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- ── Quick Settings Tile: Performance Profile ──────────────────── -->
+        <service
+            android:name=".AetherProfileTileService"
+            android:label="@string/tile_profile_name"
+            android:icon="@drawable/ic_qs_profile"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!--
+            Profile Chooser Dialog (long-press on Profile tile)
+            taskAffinity=""     → runs in its own task stack, not the app's stack
+            noHistory="true"    → dismissed immediately on BACK, zero recents entry
+            excludeFromRecents  → never shows in recents / recent apps overview
+            showWhenLocked      → can appear over lock screen (QS is accessible on lock screen)
+        -->
+        <activity
+            android:name=".ProfileChooserActivity"
+            android:label="@string/tile_profile_name"
+            android:theme="@android:style/Theme.DeviceDefault.Dialog.NoActionBar"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:showWhenLocked="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity>
+
+        <!-- ── Quick Settings Tile: FPS Meter ───────────────────────────── -->
+        <service
+            android:name=".FpsMeterTileService"
+            android:label="@string/tile_fps_name"
+            android:icon="@drawable/ic_qs_fps"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- ── Quick Settings Tile: DC Dimming (Anti-Flicker) ───────────── -->
+        <service
+            android:name=".DcDimmingTileService"
+            android:label="@string/tile_dcdim_name"
+            android:icon="@drawable/ic_qs_dcdim"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- ── Quick Settings Tile: High Brightness Mode (HBM 1100 Nits) ── -->
+        <service
+            android:name=".HbmTileService"
+            android:label="@string/tile_hbm_name"
+            android:icon="@drawable/ic_qs_hbm"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- ── Quick Settings Tile: 240Hz Touch Response Boost ──────────── -->
+        <service
+            android:name=".TouchBoostTileService"
+            android:label="@string/tile_touch_name"
+            android:icon="@drawable/ic_qs_touch"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- ── Quick Settings Tile: 1-Tap RAM Compaction Cleaner ─────────── -->
+        <service
+            android:name=".RamCleanerTileService"
+            android:label="@string/tile_ram_name"
+            android:icon="@drawable/ic_qs_ram"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- ── Quick Settings Tile: Studio Hi-Fi AudioDAC Boost ──────────── -->
+        <service
+            android:name=".HiFiAudioTileService"
+            android:label="@string/tile_audio_name"
+            android:icon="@drawable/ic_qs_audio"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!--
+            No <activity> with android.intent.category.LAUNCHER:
+            → Zero home screen icon.
+            → Zero app drawer entry.
+            → App invisible to user (like com.android.systemui, com.google.android.gms).
+        -->
+    </application>
+</manifest>
