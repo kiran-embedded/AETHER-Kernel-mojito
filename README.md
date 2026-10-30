@@ -20,7 +20,7 @@
 
 Designed to deliver butter-smooth 60fps frame pacing, modern memory management, and advanced thermal power architecture, AETHER v1.4 eliminates stock thermal throttling collapse, resolves first-reboot startup lag, and introduces true hardware bypass charging with zero net battery draw.
 
-Compatible with **Android 14, 15,16 and 17 infininty x official custom ROMs.
+Compatible with **Android 14, 15,16 and 17 infinity x official custom ROM
 
 ---
 
